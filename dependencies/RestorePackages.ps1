@@ -1,4 +1,6 @@
-gci .\NEventStore\src -Recurse "packages.config" |% {
+$path = $(Split-Path -parent $MyInvocation.MyCommand.path)
+
+gci $path\NEventStore\src -Recurse "packages.config" |% {
 	"Restoring " + $_.FullName
-	.\NEventStore\src\.nuget\nuget.exe i $_.FullName -o .\NEventStore\src\packages
+	& $path\NEventStore\src\.nuget\nuget.exe i $_.FullName -o $path\NEventStore\src\packages
 }
