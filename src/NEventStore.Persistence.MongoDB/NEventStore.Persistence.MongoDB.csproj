@@ -56,6 +56,9 @@
     <Reference Include="System.Transactions" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\VersionAssemblyInfo.cs">
+      <Link>Properties\VersionAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Messages.Designer.cs">
       <AutoGen>True</AutoGen>
