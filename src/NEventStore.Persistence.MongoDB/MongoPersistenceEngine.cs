@@ -13,7 +13,8 @@
     public class MongoPersistenceEngine : IPersistStreams
     {
         private const string ConcurrencyException = "E1100";
-        private static readonly ILog Logger = LogFactory.BuildLogger(typeof (MongoPersistenceEngine));
+        private const int ConcurrencyExceptionCode = 11000;
+        private static readonly ILog Logger = LogFactory.BuildLogger(typeof(MongoPersistenceEngine));
         private readonly MongoCollectionSettings _commitSettings;
         private readonly IDocumentSerializer _serializer;
         private readonly MongoCollectionSettings _snapshotSettings;
@@ -23,10 +24,10 @@
         private int _initialized;
         private readonly Func<long> _getNextCheckpointNumber;
         private readonly Func<long> _getLastCheckPointNumber;
-		private readonly MongoPersistenceOptions _options;
-	    private readonly WriteConcern _insertCommitWriteConcern;
+        private readonly MongoPersistenceOptions _options;
+        private readonly WriteConcern _insertCommitWriteConcern;
 
-	    public MongoPersistenceEngine(MongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
+        public MongoPersistenceEngine(MongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
         {
             if (store == null)
             {
@@ -38,20 +39,20 @@
                 throw new ArgumentNullException("serializer");
             }
 
-		    if (options == null)
-		    {
-			    throw new ArgumentNullException("options");
-		    }
+            if (options == null)
+            {
+                throw new ArgumentNullException("options");
+            }
 
-		    _store = store;
+            _store = store;
             _serializer = serializer;
-			_options = options;
+            _options = options;
 
-			// set config options
-			_commitSettings = _options.GetCommitSettings();
-		    _snapshotSettings = _options.GetSnapshotSettings();
-		    _streamSettings = _options.GetStreamSettings();
-		    _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
+            // set config options
+            _commitSettings = _options.GetCommitSettings();
+            _snapshotSettings = _options.GetSnapshotSettings();
+            _streamSettings = _options.GetStreamSettings();
+            _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
 
             _getLastCheckPointNumber = () => TryMongo(() =>
             {
@@ -113,7 +114,7 @@
                             MongoCommitFields.StreamId,
                             MongoCommitFields.StreamRevisionFrom,
                             MongoCommitFields.StreamRevisionTo
-                            //,MongoCommitFields.FullqualifiedStreamRevision
+                    //,MongoCommitFields.FullqualifiedStreamRevision
                     ),
                     IndexOptions.SetName(MongoCommitIndexes.GetFrom).SetUnique(true)
                 );
@@ -127,6 +128,14 @@
                     IndexKeys.Ascending(MongoStreamHeadFields.Unsnapshotted),
                     IndexOptions.SetName(MongoStreamIndexes.Unsnapshotted).SetUnique(false)
                 );
+
+                if (_options.ServerSideOptimisticLoop)
+                {
+                    PersistedCommits.Database.GetCollection("system.js").Save(new BsonDocument{
+                        {"_id" , "insertCommit"},
+                        {"value" , new BsonJavaScript(_options.GetInsertCommitScript())}
+                    });
+                }
 
                 EmptyRecycleBin();
             });
@@ -143,8 +152,8 @@
                     Query.EQ(MongoCommitFields.StreamId, streamId),
                     Query.GTE(MongoCommitFields.StreamRevisionTo, minRevision),
                     Query.LTE(MongoCommitFields.StreamRevisionFrom, maxRevision));
-                    //Query.GTE(MongoCommitFields.FullqualifiedStreamRevision, minRevision),
-                    //Query.LTE(MongoCommitFields.FullqualifiedStreamRevision, maxRevision));
+                //Query.GTE(MongoCommitFields.FullqualifiedStreamRevision, minRevision),
+                //Query.LTE(MongoCommitFields.FullqualifiedStreamRevision, maxRevision));
 
                 return PersistedCommits
                     .Find(query)
@@ -161,7 +170,7 @@
             return TryMongo(() => PersistedCommits
                 .Find(
                     Query.And(
-                        Query.EQ(MongoCommitFields.BucketId, bucketId), 
+                        Query.EQ(MongoCommitFields.BucketId, bucketId),
                         Query.GTE(MongoCommitFields.CommitStamp, start)
                     )
                 )
@@ -173,7 +182,7 @@
         {
             var intCheckpoint = LongCheckpoint.Parse(checkpointToken);
             Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, intCheckpoint.Value);
-            
+
             return TryMongo(() => PersistedCommits
                 .Find(
                     Query.And(
@@ -197,8 +206,8 @@
 
             return TryMongo(() => PersistedCommits
                 .Find(Query.And(
-                    Query.EQ(MongoCommitFields.BucketId, bucketId), 
-                    Query.GTE(MongoCommitFields.CommitStamp, start), 
+                    Query.EQ(MongoCommitFields.BucketId, bucketId),
+                    Query.GTE(MongoCommitFields.CommitStamp, start),
                     Query.LT(MongoCommitFields.CommitStamp, end))
                 )
                 .SetSortOrder(MongoCommitFields.CheckpointNumber)
@@ -209,6 +218,63 @@
         {
             Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
 
+            return _options.ServerSideOptimisticLoop ? 
+                PersistWithServerSideOptimisticLoop(attempt) : 
+                PersistWithClientSideOptimisticLoop(attempt);
+        }
+
+        private ICommit PersistWithServerSideOptimisticLoop(CommitAttempt attempt)
+        {
+            BsonDocument commitDoc = attempt.ToMongoCommit(() => 0, _serializer);
+            var updateScript = new BsonJavaScript("function (x){ return insertCommit(x);}");
+
+            return TryMongo(() =>
+            {
+                var result = PersistedCommits.Database.Eval(
+                    EvalFlags.NoLock,
+                    updateScript,
+                    commitDoc
+                );
+
+                if (!result.IsBsonDocument)
+                    throw new Exception("Invalid response. Check server side js");
+
+                if (result.AsBsonDocument.Contains("id"))
+                {
+                    commitDoc["_id"] = result["id"];
+                    UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
+                    Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
+                }
+                else if (result.AsBsonDocument.Contains("err"))
+                {
+                    var errorDocument = result.AsBsonDocument;
+
+                    if (errorDocument["code"] != ConcurrencyExceptionCode)
+                    {
+                        throw new Exception(errorDocument["err"].AsString);
+                    }
+
+                    ICommit savedCommit = PersistedCommits.FindOne(attempt.ToMongoCommitIdQuery()).ToCommit(_serializer);
+
+                    if (savedCommit.CommitId == attempt.CommitId)
+                    {
+                        throw new DuplicateCommitException();
+                    }
+                    Logger.Debug(Messages.ConcurrentWriteDetected);
+                    throw new ConcurrencyException();
+                }
+                else
+                {
+                    throw new Exception("Invalid response. Check server side js");
+                }
+
+                return commitDoc.ToCommit(_serializer);
+            });
+        }
+
+
+        private ICommit PersistWithClientSideOptimisticLoop(CommitAttempt attempt)
+        {
             return TryMongo(() =>
             {
                 BsonDocument commitDoc = attempt.ToMongoCommit(_getNextCheckpointNumber, _serializer);
@@ -218,7 +284,8 @@
                     try
                     {
                         // for concurrency / duplicate commit detection safe mode is required
-	                    PersistedCommits.Insert(commitDoc, _insertCommitWriteConcern);
+                        PersistedCommits.Insert(commitDoc, _insertCommitWriteConcern);
+
                         retry = false;
                         UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
                         Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
@@ -293,7 +360,7 @@
         {
             Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
 
-            return TryMongo(() =>PersistedSnapshots
+            return TryMongo(() => PersistedSnapshots
                 .Find(ExtensionMethods.GetSnapshotQuery(bucketId, streamId, maxRevision))
                 .SetSortOrder(SortBy.Descending(MongoShapshotFields.Id))
                 .SetLimit(1)
@@ -372,7 +439,7 @@
                         {MongoStreamHeadFields.StreamId, streamId}
                     })
                 );
-                
+
                 PersistedSnapshots.Remove(
                     Query.EQ(MongoShapshotFields.Id, new BsonDocument{   
                         {MongoShapshotFields.BucketId, bucketId},
@@ -384,7 +451,7 @@
                     Query.And(
                         Query.EQ(MongoCommitFields.BucketId, bucketId),
                         Query.EQ(MongoCommitFields.StreamId, streamId)
-                    ), 
+                    ),
                     Update.Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
                     UpdateFlags.Multi
                 );
@@ -409,7 +476,7 @@
 
         private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
-            ThreadPool.QueueUserWorkItem(x => 
+            ThreadPool.QueueUserWorkItem(x =>
                 TryMongo(() =>
                 {
                     BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
