@@ -23,14 +23,15 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             get { return _counter; }
         }
 
-        private string _lastCommit;
+        private long _lastCheckpoint;
 
         public void OnNext(ICommit value)
         {
-            if (value.CheckpointToken != _lastCommit)
+            var chkpoint = LongCheckpoint.Parse(value.CheckpointToken).LongValue;
+            if (chkpoint  > _lastCheckpoint)
                 _counter++;
 
-            _lastCommit = value.CheckpointToken;
+            _lastCheckpoint = chkpoint;
         }
 
         public void OnError(Exception error)
@@ -44,7 +45,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
     public class when_a_reader_observe_commits_from_a_lot_of_writers : SpecificationBase
     {
-        protected const int IterationsPerWriter = 10;
+        protected const int IterationsPerWriter = 20;
         protected const int ParallelWriters = 30;
         protected const int PollingInterval = 1;
         readonly IList<IPersistStreams> _writers = new List<IPersistStreams>();
@@ -83,6 +84,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             var start = new ManualResetEventSlim(false);
             var stop = new ManualResetEventSlim(false);
             long counter = 0;
+            var rnd = new Random(DateTime.Now.Millisecond);
+
+
             for (int t = 0; t < ParallelWriters; t++)
             {
                 int t1 = t;
@@ -100,7 +104,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                             Debug.WriteLine(ex.Message);
                             throw;
                         }
-                        Thread.Sleep(1);
+                        Thread.Sleep(rnd.Next(3));
                     }
                     Interlocked.Increment(ref counter);
                     if (counter == ParallelWriters)
@@ -111,8 +115,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
                 runner.Start();
             }
+
             start.Set();
             stop.Wait();
+
             Thread.Sleep(500);
             _subscription.Dispose();
         }

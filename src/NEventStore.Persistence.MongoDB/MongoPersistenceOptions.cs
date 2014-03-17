@@ -49,8 +49,41 @@
 			};
 		}
 
+	    public virtual string GetInsertCommitScript()
+	    {
+	        return @"function (commit) {
+    var result;
+    while (1) {
+        var cursor = db.Commits.find( {}, { _id: 1 } ).sort( { _id: -1 } ).limit(1);
 
-		/// <summary>
+        var seq = cursor.hasNext() ? cursor.next()._id + 1 : 1;
+
+        commit._id = NumberLong(seq);
+        commit.idType = typeof(commit._id);
+
+        db.Commits.insert(commit);
+        
+        var err = db.getLastErrorObj();
+
+        if( err && err.code ) {
+            if( err.code == 11000 /* dup key */  && 
+                err.err.indexOf('$_id_') != -1  /* dup checkpoint id */){
+                continue;
+            }
+            else{
+                result = err ;
+                break;
+            }
+        }
+
+        result = {id: commit._id};
+        break;
+    }
+    return result;
+}";
+	    }
+
+	    /// <summary>
 		/// Connects to NEvenstore Mongo database
 		/// </summary>
 		/// <param name="connectionString">Connection string</param>
@@ -61,5 +94,13 @@
 			MongoDatabase database = (new MongoClient(connectionString)).GetServer().GetDatabase(builder.DatabaseName);
 			return database;
 		}
+
+	    public bool ServerSideOptimisticLoop { get; set; }
+
+	    public MongoPersistenceOptions()
+	    {
+            // experimental, default to false
+//	        this.ServerSideOptimisticLoop = true;
+	    }
 	}
 }
