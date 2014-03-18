@@ -22,10 +22,12 @@
         private readonly MongoCollectionSettings _streamSettings;
         private bool _disposed;
         private int _initialized;
-        private readonly Func<long> _getNextCheckpointNumber;
+        private readonly Func<LongCheckpoint> _getNextCheckpointNumber;
         private readonly Func<long> _getLastCheckPointNumber;
         private readonly MongoPersistenceOptions _options;
         private readonly WriteConcern _insertCommitWriteConcern;
+        private readonly BsonJavaScript _updateScript;
+        private readonly LongCheckpoint _checkpointZero;
 
         public MongoPersistenceEngine(MongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
         {
@@ -66,7 +68,10 @@
                 return max != null ? max[MongoCommitFields.CheckpointNumber].AsInt64 : 0L;
             });
 
-            _getNextCheckpointNumber = () => _getLastCheckPointNumber() + 1L;
+            _getNextCheckpointNumber = () => new LongCheckpoint(_getLastCheckPointNumber() + 1L);
+            
+            _updateScript = new BsonJavaScript("function (x){ return insertCommit(x);}");
+            _checkpointZero = new LongCheckpoint(0);
         }
 
         protected virtual MongoCollection<BsonDocument> PersistedCommits
@@ -225,14 +230,13 @@
 
         private ICommit PersistWithServerSideOptimisticLoop(CommitAttempt attempt)
         {
-            BsonDocument commitDoc = attempt.ToMongoCommit(() => 0, _serializer);
-            var updateScript = new BsonJavaScript("function (x){ return insertCommit(x);}");
+            BsonDocument commitDoc = attempt.ToMongoCommit(_checkpointZero, _serializer);
 
             return TryMongo(() =>
             {
                 var result = PersistedCommits.Database.Eval(
                     EvalFlags.NoLock,
-                    updateScript,
+                    _updateScript,
                     commitDoc
                 );
 
@@ -277,7 +281,11 @@
         {
             return TryMongo(() =>
             {
-                BsonDocument commitDoc = attempt.ToMongoCommit(_getNextCheckpointNumber, _serializer);
+                BsonDocument commitDoc = attempt.ToMongoCommit(
+                    _getNextCheckpointNumber(), 
+                    _serializer
+                );
+
                 bool retry = true;
                 while (retry)
                 {
@@ -300,7 +308,7 @@
                         // checkpoint index? 
                         if (e.Message.Contains(MongoCommitIndexes.CheckpointNumber))
                         {
-                            commitDoc[MongoCommitFields.CheckpointNumber] = _getNextCheckpointNumber();
+                            commitDoc[MongoCommitFields.CheckpointNumber] = _getNextCheckpointNumber().LongValue;
                         }
                         else
                         {
