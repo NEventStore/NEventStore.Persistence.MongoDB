@@ -69,7 +69,7 @@
             });
 
             _getNextCheckpointNumber = () => new LongCheckpoint(_getLastCheckPointNumber() + 1L);
-            
+
             _updateScript = new BsonJavaScript("function (x){ return insertCommit(x);}");
             _checkpointZero = new LongCheckpoint(0);
         }
@@ -106,14 +106,14 @@
 
             TryMongo(() =>
             {
-                PersistedCommits.EnsureIndex(
+                PersistedCommits.CreateIndex(
                     IndexKeys
                         .Ascending(MongoCommitFields.Dispatched)
                         .Ascending(MongoCommitFields.CommitStamp),
                     IndexOptions.SetName(MongoCommitIndexes.Dispatched).SetUnique(false)
                 );
 
-                PersistedCommits.EnsureIndex(
+                PersistedCommits.CreateIndex(
                     IndexKeys.Ascending(
                             MongoCommitFields.BucketId,
                             MongoCommitFields.StreamId,
@@ -124,12 +124,12 @@
                     IndexOptions.SetName(MongoCommitIndexes.GetFrom).SetUnique(true)
                 );
 
-                PersistedCommits.EnsureIndex(
+                PersistedCommits.CreateIndex(
                     IndexKeys.Ascending(MongoCommitFields.CommitStamp),
                     IndexOptions.SetName(MongoCommitIndexes.CommitStamp).SetUnique(false)
                 );
 
-                PersistedStreamHeads.EnsureIndex(
+                PersistedStreamHeads.CreateIndex(
                     IndexKeys.Ascending(MongoStreamHeadFields.Unsnapshotted),
                     IndexOptions.SetName(MongoStreamIndexes.Unsnapshotted).SetUnique(false)
                 );
@@ -223,8 +223,8 @@
         {
             Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
 
-            return _options.ServerSideOptimisticLoop ? 
-                PersistWithServerSideOptimisticLoop(attempt) : 
+            return _options.ServerSideOptimisticLoop ?
+                PersistWithServerSideOptimisticLoop(attempt) :
                 PersistWithClientSideOptimisticLoop(attempt);
         }
 
@@ -234,11 +234,12 @@
 
             return TryMongo(() =>
             {
-                var result = PersistedCommits.Database.Eval(
-                    EvalFlags.NoLock,
-                    _updateScript,
-                    commitDoc
-                );
+                var result = PersistedCommits.Database.Eval(new EvalArgs()
+                {
+                    Code = _updateScript,
+                    Lock = false,
+                    Args = new BsonValue[] { commitDoc }
+                });
 
                 if (!result.IsBsonDocument)
                     throw new Exception("Invalid response. Check server side js");
@@ -282,7 +283,7 @@
             return TryMongo(() =>
             {
                 BsonDocument commitDoc = attempt.ToMongoCommit(
-                    _getNextCheckpointNumber(), 
+                    _getNextCheckpointNumber(),
                     _serializer
                 );
 
