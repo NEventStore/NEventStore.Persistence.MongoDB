@@ -59,7 +59,6 @@
         var seq = cursor.hasNext() ? cursor.next()._id + 1 : 1;
 
         commit._id = NumberLong(seq);
-        commit.idType = typeof(commit._id);
 
         db.Commits.insert(commit);
         
