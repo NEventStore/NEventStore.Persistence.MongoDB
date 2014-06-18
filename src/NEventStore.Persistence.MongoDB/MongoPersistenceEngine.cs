@@ -157,13 +157,10 @@
                     Query.EQ(MongoCommitFields.StreamId, streamId),
                     Query.GTE(MongoCommitFields.StreamRevisionTo, minRevision),
                     Query.LTE(MongoCommitFields.StreamRevisionFrom, maxRevision));
-                //Query.GTE(MongoCommitFields.FullqualifiedStreamRevision, minRevision),
-                //Query.LTE(MongoCommitFields.FullqualifiedStreamRevision, maxRevision));
 
                 return PersistedCommits
                     .Find(query)
-                    .SetSortOrder(MongoCommitFields.CheckpointNumber)
-                    //.SetSortOrder(MongoCommitFields.FullqualifiedStreamRevision)
+                    .SetSortOrder(MongoCommitFields.StreamRevisionFrom)
                     .Select(mc => mc.ToCommit(_serializer));
             });
         }
