@@ -113,14 +113,22 @@
                     IndexOptions.SetName(MongoCommitIndexes.Dispatched).SetUnique(false)
                 );
 
+				// check the index structure to see if we need to drop it (update from a previous version)
+				var indexKeys = IndexKeys.Ascending(
+							MongoCommitFields.BucketId,
+							MongoCommitFields.StreamId,
+							MongoCommitFields.CheckpointNumber,
+							MongoCommitFields.StreamRevisionFrom,
+							MongoCommitFields.StreamRevisionTo
+					//,MongoCommitFields.FullqualifiedStreamRevision
+					);
+				if (PersistedCommits.DoesIndexHaveSameStructureAs(indexKeys, MongoCommitIndexes.GetFrom))
+				{
+					// I do not know a way to update an index, just drop it and recreate it (it can take some time too...)
+					PersistedCommits.DropIndexByName(MongoCommitIndexes.GetFrom);
+				}
                 PersistedCommits.CreateIndex(
-                    IndexKeys.Ascending(
-                            MongoCommitFields.BucketId,
-                            MongoCommitFields.StreamId,
-                            MongoCommitFields.StreamRevisionFrom,
-                            MongoCommitFields.StreamRevisionTo
-                    //,MongoCommitFields.FullqualifiedStreamRevision
-                    ),
+                    indexKeys,
                     IndexOptions.SetName(MongoCommitIndexes.GetFrom).SetUnique(true)
                 );
 
@@ -160,7 +168,10 @@
 
                 return PersistedCommits
                     .Find(query)
-                    .SetSortOrder(MongoCommitFields.StreamRevisionFrom)
+                    //.SetSortOrder(MongoCommitFields.StreamRevisionFrom)
+					// better to keep the sorting for checkpointnumber imo, 
+				    // I just added the field to the compound index to avoid the scanAndSort: true in the mongo query
+					.SetSortOrder(MongoCommitFields.CheckpointNumber)
                     .Select(mc => mc.ToCommit(_serializer));
             });
         }

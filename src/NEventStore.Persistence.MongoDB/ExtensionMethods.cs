@@ -173,5 +173,12 @@
                          ).ToBsonDocument())
                     );
         }
+
+		public static bool DoesIndexHaveSameStructureAs(this MongoCollection<BsonDocument> collection, IndexKeysBuilder indexKeysBuilder, string indexNameToCheck)
+		{
+			var idxToCheck = collection.GetIndexes().SingleOrDefault(idx => idx.Name == indexNameToCheck);
+			// check the index string representation, it should be good enough for now
+			return (idxToCheck != null && idxToCheck.Key.ToString() != indexKeysBuilder.ToBsonDocument().ToString());			
+		}
     }
 }
