@@ -113,15 +113,22 @@
                     IndexOptions.SetName(MongoCommitIndexes.Dispatched).SetUnique(false)
                 );
 
-                PersistedCommits.CreateIndex(
-                    IndexKeys.Ascending(
-                            MongoCommitFields.BucketId,
-                            MongoCommitFields.StreamId,
+				// check the index structure to see if we need to drop it (update from a previous version)
+				var indexKeys = IndexKeys.Ascending(
+							MongoCommitFields.BucketId,
+							MongoCommitFields.StreamId,
 							MongoCommitFields.CheckpointNumber,
-                            MongoCommitFields.StreamRevisionFrom,
-                            MongoCommitFields.StreamRevisionTo
-                    //,MongoCommitFields.FullqualifiedStreamRevision
-                    ),
+							MongoCommitFields.StreamRevisionFrom,
+							MongoCommitFields.StreamRevisionTo
+					//,MongoCommitFields.FullqualifiedStreamRevision
+					);
+				if (PersistedCommits.DoesIndexHaveSameStructureAs(indexKeys, MongoCommitIndexes.GetFrom))
+				{
+					// I do not know a way to update an index, just drop it and recreate it (it can take some time too...)
+					PersistedCommits.DropIndexByName(MongoCommitIndexes.GetFrom);
+				}
+                PersistedCommits.CreateIndex(
+                    indexKeys,
                     IndexOptions.SetName(MongoCommitIndexes.GetFrom).SetUnique(true)
                 );
 
