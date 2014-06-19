@@ -117,6 +117,7 @@
                     IndexKeys.Ascending(
                             MongoCommitFields.BucketId,
                             MongoCommitFields.StreamId,
+							MongoCommitFields.CheckpointNumber,
                             MongoCommitFields.StreamRevisionFrom,
                             MongoCommitFields.StreamRevisionTo
                     //,MongoCommitFields.FullqualifiedStreamRevision
@@ -160,7 +161,10 @@
 
                 return PersistedCommits
                     .Find(query)
-                    .SetSortOrder(MongoCommitFields.StreamRevisionFrom)
+                    //.SetSortOrder(MongoCommitFields.StreamRevisionFrom)
+					// better to keep the sorting for checkpointnumber imo, 
+				    // I just added the field to the compound index to avoid the scanAndSort: true in the mongo query
+					.SetSortOrder(MongoCommitFields.CheckpointNumber)
                     .Select(mc => mc.ToCommit(_serializer));
             });
         }
