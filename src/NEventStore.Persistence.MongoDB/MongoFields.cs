@@ -52,6 +52,7 @@
         public const string CommitStamp = "CommitStamp_Index";
         public const string GetFrom = "GetFrom_Index";
         public const string Dispatched = "Dispatched_Index";
+        public const string LogicalKey = "LogicalKey_Index";
     }
 
     public static class MongoStreamIndexes

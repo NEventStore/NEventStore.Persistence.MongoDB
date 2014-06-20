@@ -125,6 +125,15 @@
                 );
 
                 PersistedCommits.CreateIndex(
+                    IndexKeys.Ascending(
+                            MongoCommitFields.BucketId,
+                            MongoCommitFields.StreamId,
+                            MongoCommitFields.CommitSequence
+                    ),
+                    IndexOptions.SetName(MongoCommitIndexes.LogicalKey).SetUnique(true)
+                );
+
+                PersistedCommits.CreateIndex(
                     IndexKeys.Ascending(MongoCommitFields.CommitStamp),
                     IndexOptions.SetName(MongoCommitIndexes.CommitStamp).SetUnique(false)
                 );
