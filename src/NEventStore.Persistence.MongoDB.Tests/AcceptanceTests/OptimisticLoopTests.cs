@@ -119,7 +119,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             start.Set();
             stop.Wait();
 
-            Thread.Sleep(500);
+            Thread.Sleep(1500);
             _subscription.Dispose();
         }
 
