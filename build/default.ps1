@@ -63,6 +63,7 @@ task Package -depends Build {
 	move $output_directory $publish_directory
     mkdir $publish_directory\plugins\persistence\mongo | out-null
     copy "$src_directory\NEventStore.Persistence.MongoDB\bin\$target_config\NEventStore.Persistence.MongoDB.???" "$publish_directory\plugins\persistence\mongo"
+    copy "$src_directory\NEventStore.Persistence.MongoDB\bin\$target_config\readme.txt" "$publish_directory\plugins\persistence\mongo"
 }
 
 task NuGetPack -depends Package {
