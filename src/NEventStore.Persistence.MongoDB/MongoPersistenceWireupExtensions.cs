@@ -10,7 +10,14 @@ namespace NEventStore
 	{
 		public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
 		{
-			return new MongoPersistenceWireup(wireup, () => ConfigurationManager.ConnectionStrings[connectionName].ConnectionString, serializer, options);
+			return new MongoPersistenceWireup(wireup, () =>
+			{
+			    var connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionName];
+                if( connectionStringSettings == null)
+                    throw new ConfigurationErrorsException(Messages.ConnectionNotFound.FormatWith(connectionName));
+
+			    return connectionStringSettings.ConnectionString;
+			}, serializer, options);
 		}
 
 		public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions options = null)

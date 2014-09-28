@@ -36,6 +36,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
@@ -59,6 +60,7 @@
     <Compile Include="AcceptanceTests\OptimisticLoopTests.cs" />
     <Compile Include="AcceptanceTests\PersistenceEngineFixture.cs" />
     <Compile Include="AcceptanceTests\SharedPersistenceTests.cs" />
+    <Compile Include="AcceptanceTests\Issues\Issue8.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

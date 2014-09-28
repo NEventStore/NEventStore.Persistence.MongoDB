@@ -180,4 +180,7 @@
   <data name="UnsupportedCheckpointType" xml:space="preserve">
     <value>Unsuppored checkpoint type. Expected {0} but got {1}.</value>
   </data>
+  <data name="ConnectionNotFound" xml:space="preserve">
+    <value>Could not find connection name '{0}' in the configuration file.</value>
+  </data>
 </root>
