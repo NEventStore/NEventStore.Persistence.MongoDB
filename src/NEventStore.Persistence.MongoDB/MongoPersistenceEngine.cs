@@ -269,10 +269,14 @@
 
                     if (savedCommit.CommitId == attempt.CommitId)
                     {
-                        throw new DuplicateCommitException();
+                        throw new DuplicateCommitException(String.Format(
+                            "Duplicated Commit: bucketId [{0}]: commitId [{1}] - streamId [{2}] - streamRevision [{3}]",
+                             attempt.BucketId, attempt.CommitId, attempt.StreamId, attempt.StreamRevision));
                     }
                     Logger.Debug(Messages.ConcurrentWriteDetected);
-                    throw new ConcurrencyException();
+                    throw new ConcurrencyException(String.Format(
+                        "Concurrency exception forbucketId [{0}]: commitId [{1}] - streamId [{2}] - streamRevision [{3}]\n Inner provider error: {4}",
+                        attempt.BucketId, attempt.CommitId, attempt.StreamId, attempt.StreamRevision, errorDocument.AsString));
                 }
                 else
                 {
