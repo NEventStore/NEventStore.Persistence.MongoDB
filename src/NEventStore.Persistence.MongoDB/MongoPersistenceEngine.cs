@@ -276,7 +276,7 @@
                     Logger.Debug(Messages.ConcurrentWriteDetected);
                     throw new ConcurrencyException(String.Format(
                         "Concurrency exception forbucketId [{0}]: commitId [{1}] - streamId [{2}] - streamRevision [{3}]\n Inner provider error: {4}",
-                        attempt.BucketId, attempt.CommitId, attempt.StreamId, attempt.StreamRevision, errorDocument.AsString));
+                        attempt.BucketId, attempt.CommitId, attempt.StreamId, attempt.StreamRevision, errorDocument["err"].AsString));
                 }
                 else
                 {
