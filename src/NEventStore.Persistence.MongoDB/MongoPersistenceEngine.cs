@@ -189,6 +189,23 @@
                 .Select(x => x.ToCommit(_serializer)));
         }
 
+        public IEnumerable<ICommit> GetFrom(string bucketId, string checkpointToken)
+        {
+            var intCheckpoint = LongCheckpoint.Parse(checkpointToken);
+            Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, intCheckpoint.Value);
+
+            return TryMongo(() => PersistedCommits
+                .Find(
+                    Query.And(
+                        Query.EQ(MongoCommitFields.BucketId, bucketId),
+                        Query.GT(MongoCommitFields.CheckpointNumber, intCheckpoint.LongValue)
+                    )
+                )
+                .SetSortOrder(MongoCommitFields.CheckpointNumber)
+                .Select(x => x.ToCommit(_serializer))
+            );
+        }
+
         public IEnumerable<ICommit> GetFrom(string checkpointToken)
         {
             var intCheckpoint = LongCheckpoint.Parse(checkpointToken);

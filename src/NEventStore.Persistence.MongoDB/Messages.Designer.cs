@@ -142,6 +142,15 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Getting all commits from Bucket &apos;{0}&apos; and checkpoint &apos;{1}&apos;..
+        /// </summary>
+        internal static string GettingAllCommitsFromBucketAndCheckpoint {
+            get {
+                return ResourceManager.GetString("GettingAllCommitsFromBucketAndCheckpoint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Getting all commits since checkpoint &apos;{0}&apos;..
         /// </summary>
         internal static string GettingAllCommitsFromCheckpoint {
