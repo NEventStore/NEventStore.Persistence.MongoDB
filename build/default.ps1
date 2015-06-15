@@ -1,13 +1,13 @@
 properties {
     $base_directory = Resolve-Path .. 
-	$publish_directory = "$base_directory\publish-net40"
+	$publish_directory = "$base_directory\publish-net45"
 	$build_directory = "$base_directory\build"
 	$src_directory = "$base_directory\src"
 	$output_directory = "$base_directory\output"
 	$packages_directory = "$src_directory\packages"
 	$sln_file = "$src_directory\NEventStore.Persistence.MongoDB.sln"
 	$target_config = "Release"
-	$framework_version = "v4.0"
+	$framework_version = "v4.5"
 	$version = "0.0.0.0"
 
 	$xunit_path = "$base_directory\bin\xunit.runners.1.9.1\tools\xunit.console.clr4.exe"
@@ -48,7 +48,7 @@ task UpdateVersion {
 task Compile {
 	EnsureDirectory $output_directory
 	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /t:Clean }
-	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.0 }
+	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.5 }
 }
 
 task Test -precondition { $runPersistenceTests } {

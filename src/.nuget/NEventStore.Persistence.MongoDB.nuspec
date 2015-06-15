@@ -13,13 +13,13 @@
     <language>es-US</language>
     <tags>events, event sourcing, cqrs, storage, persistence, database, mongodb</tags>
     <dependencies>
-      <dependency id="NEventStore" version="5.0" />
-      <dependency id="mongocsharpdriver" version="1.10.0" />
+      <dependency id="NEventStore" version="5.1" />
+      <dependency id="mongocsharpdriver" version="2.0" />
     </dependencies>
   </metadata>
   <files>
-    <file src="publish-net40\plugins\persistence\mongo\NEventStore.Persistence.MongoDB.dll" target="lib\net40"/>
-    <file src="publish-net40\plugins\persistence\mongo\NEventStore.Persistence.MongoDB.pdb" target="lib\net40"/>
-    <file src="publish-net40\plugins\persistence\mongo\readme.txt" target=""/>
+    <file src="publish-net45\plugins\persistence\mongo\NEventStore.Persistence.MongoDB.dll" target="lib\net45"/>
+    <file src="publish-net45\plugins\persistence\mongo\NEventStore.Persistence.MongoDB.pdb" target="lib\net45"/>
+    <file src="publish-net45\plugins\persistence\mongo\readme.txt" target=""/>
   </files>
 </package>
