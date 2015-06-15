@@ -13,8 +13,9 @@
     <language>es-US</language>
     <tags>events, event sourcing, cqrs, storage, persistence, database, mongodb</tags>
     <dependencies>
-      <dependency id="NEventStore" version="5.1" />
-      <dependency id="mongocsharpdriver" version="2.0" />
+
+      <dependency id="NEventStore" version="5.2" />
+      <dependency id="mongocsharpdriver" version="1.10.0" />
     </dependencies>
   </metadata>
   <files>

@@ -1,6 +1,10 @@
 ﻿============================================
 Change Log
 ============================================
+5.2.0
+- Add support for IPersistStreams.GetFrom(BucketId, CheckpointToken) 
+https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/25
+
 
 5.0.1
 - Added an unique index "LogicalKey_Index" on BucketId + StreamId + CommitSequence

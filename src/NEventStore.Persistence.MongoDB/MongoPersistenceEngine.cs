@@ -1,4 +1,8 @@
-﻿namespace NEventStore.Persistence.MongoDB
+﻿using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Options;
+using MongoDB.Bson.Serialization.Serializers;
+
+namespace NEventStore.Persistence.MongoDB
 {
     using System;
     using System.Collections.Generic;
@@ -72,6 +76,24 @@
 
             _updateScript = new BsonJavaScript("function (x){ return insertCommit(x);}");
             _checkpointZero = new LongCheckpoint(0);
+
+            //var ser = global::MongoDB.Bson.Serialization.BsonSerializer.SerializerRegistry
+            //    .GetSerializer<IDictionary<string, object>>();
+
+            if (!BsonClassMap.IsClassMapRegistered(typeof(CommitAttempt)))
+            {
+                BsonClassMap.RegisterClassMap<CommitAttempt>(m =>
+                {
+                    m.AutoMap();
+                    var map = m.MapProperty("Headers");
+                    map.SetSerializer(
+                        new ImpliedImplementationInterfaceSerializer
+                            <IDictionary<string, object>,
+                             Dictionary<string, object>
+                        >(new DictionaryInterfaceImplementerSerializer<Dictionary<string, object>>(DictionaryRepresentation.ArrayOfArrays)));
+                });
+            }
+          
         }
 
         protected virtual MongoCollection<BsonDocument> PersistedCommits
