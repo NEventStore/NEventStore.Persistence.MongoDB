@@ -1,4 +1,6 @@
-﻿namespace NEventStore.Persistence.MongoDB
+﻿using MongoDB.Bson.Serialization;
+
+namespace NEventStore.Persistence.MongoDB
 {
     using System;
     using System.Collections.Generic;
@@ -16,13 +18,15 @@
     {
         public static Dictionary<Tkey, Tvalue> AsDictionary<Tkey, Tvalue>(this BsonValue bsonValue)
         {
-            using (BsonReader reader = BsonReader.Create(bsonValue.ToJson()))
+            using (var reader = new JsonReader(bsonValue.ToJson()))
             {
-                var dictionarySerializer = new DictionarySerializer<Tkey, Tvalue>();
-                object result = dictionarySerializer.Deserialize(reader,
-                    typeof(Dictionary<Tkey, Tvalue>),
-                    new DictionarySerializationOptions());
-                return (Dictionary<Tkey, Tvalue>)result;
+                var dictionarySerializer = new DictionaryInterfaceImplementerSerializer<Dictionary<Tkey,Tvalue>>();
+                var result = dictionarySerializer.Deserialize(
+                    BsonDeserializationContext.CreateRoot(reader),
+                    new BsonDeserializationArgs()
+                );
+               
+                return result;
             }
         }
 
@@ -36,14 +40,15 @@
                     new BsonDocument
                     {
                         {MongoCommitFields.StreamRevision, streamRevision++},
-                        {MongoCommitFields.Payload, new BsonDocumentWrapper(typeof (EventMessage), serializer.Serialize(e))}
+                        {MongoCommitFields.Payload, BsonDocumentWrapper.Create(typeof (EventMessage), serializer.Serialize(e))}
                     });
+            var headers = commit.ToBsonDocument();
             return new BsonDocument
             {
                 {MongoCommitFields.CheckpointNumber, checkpoint.LongValue},
                 {MongoCommitFields.CommitId, commit.CommitId},
                 {MongoCommitFields.CommitStamp, commit.CommitStamp},
-                {MongoCommitFields.Headers, BsonDocumentWrapper.Create(commit.Headers)},
+                {MongoCommitFields.Headers, headers["Headers"]},
                 {MongoCommitFields.Events, new BsonArray(events)},
                 {MongoCommitFields.Dispatched, false},
                 {MongoCommitFields.StreamRevisionFrom, streamRevisionStart},
