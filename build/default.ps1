@@ -27,7 +27,7 @@ properties {
 
 task default -depends Build
 
-task Build -depends Clean, UpdateVersion, Compile, Test
+task Build -depends Clean, Compile, Test
 
 task Clean {
 	Clean-Item $publish_directory -ea SilentlyContinue
