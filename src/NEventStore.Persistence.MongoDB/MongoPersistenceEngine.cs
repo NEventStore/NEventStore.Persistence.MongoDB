@@ -138,10 +138,20 @@
                     IndexOptions.SetName(MongoCommitIndexes.CommitStamp).SetUnique(false)
                 );
 
+                PersistedCommits.CreateIndex(
+                    IndexKeys.Ascending(
+                            MongoCommitFields.BucketId,
+                            MongoCommitFields.StreamId,
+                            MongoCommitFields.CommitId
+                    ),
+                    IndexOptions.SetName(MongoCommitIndexes.CommitId).SetUnique(true)
+                );
+
                 PersistedStreamHeads.CreateIndex(
                     IndexKeys.Ascending(MongoStreamHeadFields.Unsnapshotted),
                     IndexOptions.SetName(MongoStreamIndexes.Unsnapshotted).SetUnique(false)
                 );
+
 
                 if (_options.ServerSideOptimisticLoop)
                 {
@@ -284,7 +294,7 @@
 
                     ICommit savedCommit = PersistedCommits.FindOne(attempt.ToMongoCommitIdQuery()).ToCommit(_serializer);
 
-                    if (savedCommit.CommitId == attempt.CommitId)
+                    if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                     {
                         throw new DuplicateCommitException(String.Format(
                             "Duplicated Commit: bucketId [{0}]: commitId [{1}] - streamId [{2}] - streamRevision [{3}]",
@@ -340,12 +350,20 @@
                         }
                         else
                         {
-                            ICommit savedCommit = PersistedCommits.FindOne(attempt.ToMongoCommitIdQuery()).ToCommit(_serializer);
-
-                            if (savedCommit.CommitId == attempt.CommitId)
+                            if (e.Message.Contains(MongoCommitIndexes.CommitId))
                             {
                                 throw new DuplicateCommitException();
                             }
+
+                            ICommit savedCommit = PersistedCommits
+                                .FindOne(attempt.ToMongoCommitIdQuery())
+                                .ToCommit(_serializer);
+
+                            if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
+                            {
+                                throw new DuplicateCommitException();
+                            }
+
                             Logger.Debug(Messages.ConcurrentWriteDetected);
                             throw new ConcurrencyException();
                         }

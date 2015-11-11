@@ -142,7 +142,7 @@
             return Query.And(
                 Query.EQ(MongoCommitFields.BucketId, commit.BucketId),
                 Query.EQ(MongoCommitFields.StreamId, commit.StreamId),
-                Query.EQ(MongoCommitFields.CommitSequence, commit.CommitSequence)
+                Query.EQ(MongoCommitFields.CommitId, commit.CommitId)
                 );
         }
 
@@ -151,7 +151,7 @@
             return Query.And(
                 Query.EQ(MongoCommitFields.BucketId, commit.BucketId),
                 Query.EQ(MongoCommitFields.StreamId, commit.StreamId),
-                Query.EQ(MongoCommitFields.CommitSequence, commit.CommitSequence)
+                Query.EQ(MongoCommitFields.CommitId, commit.CommitId)
                 );
         }
 

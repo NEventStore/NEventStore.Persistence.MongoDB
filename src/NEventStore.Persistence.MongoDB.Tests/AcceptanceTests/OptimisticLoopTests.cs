@@ -46,7 +46,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     public class when_a_reader_observe_commits_from_a_lot_of_writers : SpecificationBase
     {
         protected const int IterationsPerWriter = 40;
-        protected const int ParallelWriters = 60;
+        protected const int ParallelWriters = 8;
         protected const int PollingInterval = 1;
         readonly IList<IPersistStreams> _writers = new List<IPersistStreams>();
         private PollingClient _client;
@@ -86,7 +86,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             long counter = 0;
             var rnd = new Random(DateTime.Now.Millisecond);
 
-
             for (int t = 0; t < ParallelWriters; t++)
             {
                 int t1 = t;
@@ -106,8 +105,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                         }
                         Thread.Sleep(rnd.Next(2));
                     }
-                    Interlocked.Increment(ref counter);
-                    if (counter == ParallelWriters)
+                    var current = Interlocked.Increment(ref counter);
+                    Debug.WriteLine("Thread {0} completed. {1} done.", t1, current);
+                    if (current == ParallelWriters)
                     {
                         stop.Set();
                     }
@@ -117,7 +117,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             }
 
             start.Set();
-            stop.Wait();
+            stop.Wait(3*60*1000);
 
             Thread.Sleep(1500);
             _subscription.Dispose();
