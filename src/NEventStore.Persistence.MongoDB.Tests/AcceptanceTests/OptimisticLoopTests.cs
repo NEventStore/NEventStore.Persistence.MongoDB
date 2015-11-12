@@ -47,7 +47,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     {
         protected const int IterationsPerWriter = 40;
         protected const int ParallelWriters = 8;
-        protected const int PollingInterval = 1;
+        protected const int PollingInterval = 100;
         readonly IList<IPersistStreams> _writers = new List<IPersistStreams>();
         private PollingClient _client;
         private Observer _observer;
@@ -101,7 +101,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                         catch (Exception ex)
                         {
                             Debug.WriteLine(ex.Message);
-                            throw;
+                            stop.Set();
+                            //throw;
                         }
                         Thread.Sleep(rnd.Next(2));
                     }
@@ -221,10 +222,19 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 new Thread(() =>
                 {
                     start.Wait();
+                    
                     for (int i = 0; i < Iterations; i++)
                     {
-                        var commit = Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt());
-                        Persistence.DeleteStream(commit.BucketId, commit.StreamId);
+                        try
+                        {
+                            var commit = Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt());
+                            Persistence.DeleteStream(commit.BucketId, commit.StreamId);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine(ex.Message);
+                            stop.Set();
+                        }
                     }
 
                     Interlocked.Increment(ref counter);
