@@ -454,7 +454,7 @@
             {
                 PersistedStreamHeads.Remove(Query.EQ(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
                 PersistedSnapshots.Remove(Query.EQ(MongoShapshotFields.FullQualifiedBucketId, bucketId));
-                PersistedCommits.Remove(Query.EQ(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
+                PersistedCommits.Remove(Query.EQ(MongoCommitFields.BucketId, bucketId));
             });
 
         }
