@@ -18,7 +18,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="NEventStore.Persistence.MongoDB\bin\$configuration$\NEventStore.Persistence.MongoDB.dll" target="lib\net40"/>
+	<file src="NEventStore.Persistence.MongoDB\bin\$configuration$\NEventStore.Persistence.MongoDB.dll" target="lib\net40"/>
     <file src="NEventStore.Persistence.MongoDB\bin\$configuration$\NEventStore.Persistence.MongoDB.pdb" target="lib\net40"/>
     <file src="NEventStore.Persistence.MongoDB\bin\$configuration$\readme.txt" target=""/>
   </files>
