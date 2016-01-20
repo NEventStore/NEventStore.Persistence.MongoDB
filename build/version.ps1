@@ -8,7 +8,7 @@ if(-not(Get-Module -name BuildFunctions))
     Import-Module -Name ".\Modules\BuildFunctions"
 }
 Write-Output "Invoking GitVersion.exe"
-$Output = & ..\bin\GitVersion\Gitversion.exe /nofetch | Out-String
+$Output = & ..\bin\GitVersion\Gitversion.exe | Out-String
 Write-Output ("GitVersion returned:  " + $output)
 
 
