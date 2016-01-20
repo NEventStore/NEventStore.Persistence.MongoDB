@@ -19,14 +19,9 @@ $assemblyInformationalVersion = ($version.SemVer + "/" + $version.Sha)
 
 Write-Output "SemVer - Assembly and File: $assemblyVersion Informational: $assemblyInformationalVersion"
 
-Write-Output $version.NuGetVersionV2
-Write-Output ("##vso[task.setvariable variable=NugetVersion;]" + $version.NugetVersionV2)
-Write-Output ("##vso[task.setvariable variable=AssemblyVersion;]" + $assemblyVersion)
-Write-Output ("##vso[task.setvariable variable=FileInfoVersion;]" + $assemblyFileVersion)
-Write-Output ("##vso[task.setvariable variable=AssemblyInformationalVersion;]" + $assemblyInformationalVersion)
-
-#change build number.
-Write-Output ("##vso[task.setvariable variable=build.buildnumber;]" + $version.FullSemVer)
-Write-Output ("##vso[build.updatebuildnumber]" + $version.FullSemVer)
+Write-Output ("NugetVersion=" + $version.NugetVersionV2)
+Write-Output ("AssemblyVersion=" + $assemblyVersion)
+Write-Output ("FileInfoVersion=" + $assemblyFileVersion)
+Write-Output ("AssemblyInformationalVersion=" + $assemblyInformationalVersion)
 
 Update-SourceVersion -SrcPath ..\src -FilePattern 'VersionAssemblyInfo.cs' -assemblyVersion $assemblyVersion -fileAssemblyVersion $assemblyFileVersion -assemblyInformationalVersion $assemblyInformationalVersion
