@@ -164,8 +164,8 @@
                 IMongoQuery query = Query.And(
                     Query.EQ(MongoCommitFields.BucketId, bucketId),
                     Query.EQ(MongoCommitFields.StreamId, streamId),
-                    Query.GTE(MongoCommitFields.StreamRevisionTo, minRevision),
-                    Query.LTE(MongoCommitFields.StreamRevisionFrom, maxRevision));
+                    Query.LTE(MongoCommitFields.StreamRevisionFrom, maxRevision),
+                    Query.GTE(MongoCommitFields.StreamRevisionTo, minRevision));
 
                 return PersistedCommits
                     .Find(query)
