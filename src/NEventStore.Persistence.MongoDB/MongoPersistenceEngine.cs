@@ -6,7 +6,6 @@
     using System.Threading;
     using global::MongoDB.Bson;
     using global::MongoDB.Driver;
-    using global::MongoDB.Driver.Builders;
     using NEventStore.Logging;
     using NEventStore.Serialization;
 
@@ -18,7 +17,7 @@
         private readonly MongoCollectionSettings _commitSettings;
         private readonly IDocumentSerializer _serializer;
         private readonly MongoCollectionSettings _snapshotSettings;
-        private readonly MongoDatabase _store;
+        private readonly IMongoDatabase _store;
         private readonly MongoCollectionSettings _streamSettings;
         private bool _disposed;
         private int _initialized;
@@ -29,7 +28,7 @@
         private readonly BsonJavaScript _updateScript;
         private readonly LongCheckpoint _checkpointZero;
 
-        public MongoPersistenceEngine(MongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
+        public MongoPersistenceEngine(IMongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
         {
             if (store == null)
             {
@@ -74,19 +73,19 @@
             _checkpointZero = new LongCheckpoint(0);
         }
 
-        protected virtual MongoCollection<BsonDocument> PersistedCommits
+        protected virtual IMongoCollection<BsonDocument> PersistedCommits
         {
-            get { return _store.GetCollection("Commits", _commitSettings); }
+            get { return _store.GetCollection<BsonDocument>("Commits", _commitSettings); }
         }
 
-        protected virtual MongoCollection<BsonDocument> PersistedStreamHeads
+        protected virtual IMongoCollection<BsonDocument> PersistedStreamHeads
         {
-            get { return _store.GetCollection("Streams", _streamSettings); }
+            get { return _store.GetCollection<BsonDocument>("Streams", _streamSettings); }
         }
 
-        protected virtual MongoCollection<BsonDocument> PersistedSnapshots
+        protected virtual IMongoCollection<BsonDocument> PersistedSnapshots
         {
-            get { return _store.GetCollection("Snapshots", _snapshotSettings); }
+            get { return _store.GetCollection<BsonDocument>("Snapshots", _snapshotSettings); }
         }
 
         public void Dispose()
@@ -106,22 +105,28 @@
 
             TryMongo(() =>
             {
-                PersistedCommits.CreateIndex(
-                    IndexKeys
+                PersistedCommits.Indexes.CreateOne(
+                    Builders<BsonDocument>.IndexKeys
                         .Ascending(MongoCommitFields.Dispatched)
                         .Ascending(MongoCommitFields.CommitStamp),
-                    IndexOptions.SetName(MongoCommitIndexes.Dispatched).SetUnique(false)
+                    new CreateIndexOptions()
+                    {
+                        Name = MongoCommitIndexes.Dispatched,
+                        Unique = false
+                    }
                 );
 
-                PersistedCommits.CreateIndex(
-                    IndexKeys.Ascending(
-                            MongoCommitFields.BucketId,
-                            MongoCommitFields.StreamId,
-                            MongoCommitFields.StreamRevisionFrom,
-                            MongoCommitFields.StreamRevisionTo
-                    //,MongoCommitFields.FullqualifiedStreamRevision
-                    ),
-                    IndexOptions.SetName(MongoCommitIndexes.GetFrom).SetUnique(true)
+                PersistedCommits.Indexes.CreateOne(
+                    Builders<BsonDocument>.IndexKeys
+                        .Ascending(MongoCommitFields.BucketId)
+                        .Ascending(MongoCommitFields.StreamId)
+                        .Ascending(MongoCommitFields.StreamRevisionFrom)
+                        .Ascending(MongoCommitFields.StreamRevisionTo),
+                    new CreateIndexOptions()
+                    {
+                        Name = MongoCommitIndexes.GetFrom,
+                        Unique = true
+                    }
                 );
 
                 PersistedCommits.CreateIndex(
@@ -155,7 +160,8 @@
 
                 if (_options.ServerSideOptimisticLoop)
                 {
-                    PersistedCommits.Database.GetCollection("system.js").Save(new BsonDocument{
+                    PersistedCommits.Database.GetCollection<BsonDocument>("system.js").
+                    Save(new BsonDocument{
                         {"_id" , "insertCommit"},
                         {"value" , new BsonJavaScript(_options.GetInsertCommitScript())}
                     });
@@ -179,6 +185,7 @@
 
                 return PersistedCommits
                     .Find(query)
+                    // @@review -> sort by commit id?
                     .SetSortOrder(MongoCommitFields.StreamRevisionFrom)
                     .Select(mc => mc.ToCommit(_serializer));
             });
@@ -488,14 +495,14 @@
             TryMongo(() =>
             {
                 PersistedStreamHeads.Remove(
-                    Query.EQ(MongoStreamHeadFields.Id, new BsonDocument{   
+                    Query.EQ(MongoStreamHeadFields.Id, new BsonDocument{
                         {MongoStreamHeadFields.BucketId, bucketId},
                         {MongoStreamHeadFields.StreamId, streamId}
                     })
                 );
 
                 PersistedSnapshots.Remove(
-                    Query.EQ(MongoShapshotFields.Id, new BsonDocument{   
+                    Query.EQ(MongoShapshotFields.Id, new BsonDocument{
                         {MongoShapshotFields.BucketId, bucketId},
                         {MongoShapshotFields.StreamId, streamId}
                     })
