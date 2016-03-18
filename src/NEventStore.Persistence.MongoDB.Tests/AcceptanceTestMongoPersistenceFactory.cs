@@ -12,15 +12,9 @@
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
-                new MongoPersistenceOptions() { ServerSideOptimisticLoop = IsServerSideLoop() }
+                new MongoPersistenceOptions()
             )
         { }
-
-        private static bool IsServerSideLoop()
-        {
-            string val = Environment.GetEnvironmentVariable(EnvVarServerSideLoopKey, EnvironmentVariableTarget.Process);
-            return val == "true";
-        }
 
         private static string GetConnectionString()
         {
