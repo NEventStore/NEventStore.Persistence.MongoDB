@@ -378,17 +378,25 @@
 
                 // Doing an upsert instead of an insert allows us to overwrite an existing snapshot and not get stuck with a
                 // stream that needs to be snapshotted because the insert fails and the SnapshotRevision isn't being updated.
-                PersistedSnapshots.UpdateOne(query, update, new UpdateOptions() {IsUpsert = true});
+                PersistedSnapshots.UpdateOne(query, update, new UpdateOptions() { IsUpsert = true });
 
                 // More commits could have been made between us deciding that a snapshot is required and writing it so just
                 // resetting the Unsnapshotted count may be a little off. Adding snapshots should be a separate process so
                 // this is a good chance to make sure the numbers are still in-sync - it only adds a 'read' after all ...
                 BsonDocument streamHeadId = GetStreamHeadId(snapshot.BucketId, snapshot.StreamId);
-                StreamHead streamHead = PersistedStreamHeads.FindOneById(streamHeadId).ToStreamHead();
+                StreamHead streamHead = PersistedStreamHeads.Find(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId))
+                    .First()
+                    .ToStreamHead();
+
                 int unsnapshotted = streamHead.HeadRevision - snapshot.StreamRevision;
-                PersistedStreamHeads.Update(
-                    Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
-                    Update.Set(MongoStreamHeadFields.SnapshotRevision, snapshot.StreamRevision).Set(MongoStreamHeadFields.Unsnapshotted, unsnapshotted));
+
+                PersistedStreamHeads.UpdateOne(
+                    Builders<BsonDocument>.Filter
+                        .Eq(MongoStreamHeadFields.Id, streamHeadId),
+                    Builders<BsonDocument>.Update
+                        .Set(MongoStreamHeadFields.SnapshotRevision, snapshot.StreamRevision)
+                        .Set(MongoStreamHeadFields.Unsnapshotted, unsnapshotted)
+                );
 
                 return true;
             }
@@ -401,9 +409,10 @@
         public virtual void Purge()
         {
             Logger.Warn(Messages.PurgingStorage);
-            PersistedCommits.RemoveAll();
-            PersistedStreamHeads.RemoveAll();
-            PersistedSnapshots.RemoveAll();
+            // @@review -> drop & create?
+            PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Empty);
+            PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Empty);
+            PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Empty);
         }
 
         public void Purge(string bucketId)
@@ -411,9 +420,9 @@
             Logger.Warn(Messages.PurgingBucket, bucketId);
             TryMongo(() =>
             {
-                PersistedStreamHeads.Remove(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
-                PersistedSnapshots.Remove(Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
-                PersistedCommits.Remove(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
+                PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
+                PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
+                PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
             });
 
         }
@@ -428,27 +437,26 @@
             Logger.Warn(Messages.DeletingStream, streamId, bucketId);
             TryMongo(() =>
             {
-                PersistedStreamHeads.Remove(
+                PersistedStreamHeads.DeleteOne(
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, new BsonDocument{
                         {MongoStreamHeadFields.BucketId, bucketId},
                         {MongoStreamHeadFields.StreamId, streamId}
                     })
                 );
 
-                PersistedSnapshots.Remove(
+                PersistedSnapshots.DeleteMany(
                     Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.Id, new BsonDocument{
                         {MongoShapshotFields.BucketId, bucketId},
                         {MongoShapshotFields.StreamId, streamId}
                     })
                 );
 
-                PersistedCommits.Update(
+                PersistedCommits.UpdateMany(
                     Builders<BsonDocument>.Filter.And(
                         Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
                         Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
                     ),
-                    Update.Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
-                    UpdateFlags.Multi
+                    Builders<BsonDocument>.Update.Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
                 );
             });
         }
@@ -475,13 +483,14 @@
                 TryMongo(() =>
                 {
                     BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
-                    PersistedStreamHeads.Update(
+                    PersistedStreamHeads.UpdateOne(
                         Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
-                        Update
+                        Builders<BsonDocument>.Update
                             .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
                             .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
                             .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
-                        UpdateFlags.Upsert);
+                        new UpdateOptions() { IsUpsert = true }
+                    );
                 }), null);
         }
 
@@ -516,9 +525,11 @@
 
         private static BsonDocument GetStreamHeadId(string bucketId, string streamId)
         {
-            var id = new BsonDocument();
-            id[MongoStreamHeadFields.BucketId] = bucketId;
-            id[MongoStreamHeadFields.StreamId] = streamId;
+            var id = new BsonDocument
+            {
+                [MongoStreamHeadFields.BucketId] = bucketId,
+                [MongoStreamHeadFields.StreamId] = streamId
+            };
             return id;
         }
 
@@ -527,7 +538,7 @@
             var lastCheckpointNumber = _getLastCheckPointNumber();
             TryMongo(() =>
             {
-                PersistedCommits.Remove(Builders<BsonDocument>.Filter.And(
+                PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
                     Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CheckpointNumber, lastCheckpointNumber)
                 ));
@@ -538,7 +549,8 @@
         {
             return TryMongo(() => PersistedCommits
                                       .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
-                                      .SetSortOrder(MongoCommitFields.CheckpointNumber)
+                                      .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                                      .ToEnumerable()
                                       .Select(mc => mc.ToCommit(_serializer)));
         }
     }

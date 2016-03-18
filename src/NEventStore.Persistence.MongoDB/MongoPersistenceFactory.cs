@@ -20,7 +20,7 @@
         public virtual IPersistStreams Build()
         {
             string connectionString = _connectionStringProvider();
-	        MongoDatabase database = _options.ConnectToDatabase(connectionString);
+	        var database = _options.ConnectToDatabase(connectionString);
             return new MongoPersistenceEngine(database, _serializer, _options);
         }
     }
