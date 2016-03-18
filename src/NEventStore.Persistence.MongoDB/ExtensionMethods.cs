@@ -166,21 +166,11 @@ namespace NEventStore.Persistence.MongoDB
         {
             var builder = Builders<BsonDocument>.Filter;
 
-            return
-                builder.And(
-                    builder.Gt(MongoShapshotFields.Id,
-                        builder.And(
-                            builder.Eq(MongoShapshotFields.BucketId, bucketId),
-                            builder.Eq(MongoShapshotFields.StreamId, streamId),
-                            builder.Eq(MongoShapshotFields.StreamRevision, BsonNull.Value)
-                        ).ToBsonDocument()),
-                    builder.Lte(MongoShapshotFields.Id,
-                        builder.And(
-                            builder.Eq(MongoShapshotFields.BucketId, bucketId),
-                            builder.Eq(MongoShapshotFields.StreamId, streamId),
-                            builder.Eq(MongoShapshotFields.StreamRevision, maxRevision)
-                         ).ToBsonDocument())
-                    );
+            return builder.And(
+                builder.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId),
+                builder.Eq(MongoShapshotFields.FullQualifiedStreamId, streamId),
+                builder.Lte(MongoShapshotFields.FullQualifiedStreamRevision, maxRevision)
+            );
         }
     }
 }

@@ -353,9 +353,10 @@
         public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
         {
             Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
+            var query = ExtensionMethods.GetSnapshotQuery(bucketId, streamId, maxRevision);
 
             return TryMongo(() => PersistedSnapshots
-                .Find(ExtensionMethods.GetSnapshotQuery(bucketId, streamId, maxRevision))
+                .Find(query)
                 .Sort(Builders<BsonDocument>.Sort.Descending(MongoShapshotFields.Id))
                 .Limit(1)
                 .ToEnumerable()
