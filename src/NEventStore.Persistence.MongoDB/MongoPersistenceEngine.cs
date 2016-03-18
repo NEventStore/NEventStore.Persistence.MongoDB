@@ -25,6 +25,7 @@
         private readonly MongoPersistenceOptions _options;
         private readonly WriteConcern _insertCommitWriteConcern;
         private long _cachedCheckPoint = 0;
+        private object _lock = new object();
         public MongoPersistenceEngine(IMongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
         {
             if (store == null)
@@ -280,12 +281,21 @@
 
         public virtual ICommit Commit(CommitAttempt attempt)
         {
+            lock (_lock)
+            {
+                return DoCommit(attempt);
+            }
+        }
+
+        private ICommit DoCommit(CommitAttempt attempt)
+        {
             Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
 
             return TryMongo(() =>
             {
+                var nextCheckpointNumber = _getNextCheckpointNumber(false);
                 var commitDoc = attempt.ToMongoCommit(
-                    _getNextCheckpointNumber(false),    // optimistic
+                    nextCheckpointNumber,    // optimistic
                     _serializer
                 );
 
@@ -296,10 +306,10 @@
                     {
                         // for concurrency / duplicate commit detection safe mode is required
                         PersistedCommits.InsertOne(commitDoc);
-                        Interlocked.Increment(ref _cachedCheckPoint); // save ok, updating cached checkpoint
                         retry = false;
-                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision,
-                            attempt.Events.Count);
+                        _cachedCheckPoint = nextCheckpointNumber.LongValue;
+
+                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision,attempt.Events.Count);
                         Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
                     }
                     catch (MongoWriteException e)
@@ -415,23 +425,32 @@
 
         public virtual void Purge()
         {
-            Logger.Warn(Messages.PurgingStorage);
-            // @@review -> drop & create?
-            PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Empty);
-            PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Empty);
-            PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Empty);
+            lock (_lock)
+            {
+                Logger.Warn(Messages.PurgingStorage);
+                // @@review -> drop & create?
+                PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Empty);
+                PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Empty);
+                PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Empty);
+                _cachedCheckPoint = 0;
+            }
         }
 
         public void Purge(string bucketId)
         {
-            Logger.Warn(Messages.PurgingBucket, bucketId);
-            TryMongo(() =>
+            lock (_lock)
             {
-                PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
-                PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
-                PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
-            });
-
+                Logger.Warn(Messages.PurgingBucket, bucketId);
+                TryMongo(() =>
+                {
+                    PersistedStreamHeads.DeleteMany(
+                        Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
+                    PersistedSnapshots.DeleteMany(
+                        Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
+                    PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
+                });
+                _cachedCheckPoint = 0;
+            }
         }
 
         public void Drop()
