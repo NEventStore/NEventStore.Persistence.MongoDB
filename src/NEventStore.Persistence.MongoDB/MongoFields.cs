@@ -50,7 +50,7 @@
 
     public static class MongoCommitIndexes
     {
-        public const string CheckpointNumber = "$_id_";
+        public const string CheckpointNumber = "_id_";
         public const string CommitStamp = "CommitStamp_Index";
         public const string CommitId = "CommitId_Index";
         public const string GetFrom = "GetFrom_Index";

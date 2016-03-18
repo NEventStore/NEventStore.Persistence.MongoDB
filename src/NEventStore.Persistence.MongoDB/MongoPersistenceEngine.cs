@@ -12,7 +12,6 @@
     public class MongoPersistenceEngine : IPersistStreams
     {
         private const string ConcurrencyException = "E1100";
-        private const int ConcurrencyExceptionCode = 11000;
         private static readonly ILog Logger = LogFactory.BuildLogger(typeof(MongoPersistenceEngine));
         private readonly MongoCollectionSettings _commitSettings;
         private readonly IDocumentSerializer _serializer;
@@ -21,12 +20,11 @@
         private readonly MongoCollectionSettings _streamSettings;
         private bool _disposed;
         private int _initialized;
-        private readonly Func<LongCheckpoint> _getNextCheckpointNumber;
+        private readonly Func<bool, LongCheckpoint> _getNextCheckpointNumber;
         private readonly Func<long> _getLastCheckPointNumber;
         private readonly MongoPersistenceOptions _options;
         private readonly WriteConcern _insertCommitWriteConcern;
-        private readonly LongCheckpoint _checkpointZero;
-
+        private long _cachedCheckPoint = 0;
         public MongoPersistenceEngine(IMongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
         {
             if (store == null)
@@ -72,8 +70,15 @@
                 return max != null ? max[MongoCommitFields.CheckpointNumber].AsInt64 : 0L;
             });
 
-            _getNextCheckpointNumber = () => new LongCheckpoint(_getLastCheckPointNumber() + 1L);
-            _checkpointZero = new LongCheckpoint(0);
+            _getNextCheckpointNumber = (forceReloadFromMongo) =>
+            {
+                var chkpoint = _cachedCheckPoint;
+
+                if (forceReloadFromMongo || chkpoint == 0)
+                    chkpoint = _cachedCheckPoint = _getLastCheckPointNumber();
+
+                return new LongCheckpoint(chkpoint + 1L);
+            };
         }
 
         protected virtual IMongoCollection<BsonDocument> PersistedCommits
@@ -280,7 +285,7 @@
             return TryMongo(() =>
             {
                 var commitDoc = attempt.ToMongoCommit(
-                    _getNextCheckpointNumber(),
+                    _getNextCheckpointNumber(false),    // optimistic
                     _serializer
                 );
 
@@ -291,14 +296,15 @@
                     {
                         // for concurrency / duplicate commit detection safe mode is required
                         PersistedCommits.InsertOne(commitDoc);
-
+                        Interlocked.Increment(ref _cachedCheckPoint); // save ok, updating cached checkpoint
                         retry = false;
-                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
+                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision,
+                            attempt.Events.Count);
                         Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
                     }
-                    catch (MongoException e)
+                    catch (MongoWriteException e)
                     {
-                        if (!e.Message.Contains(ConcurrencyException))
+                        if (e.WriteError.Category != ServerErrorCategory.DuplicateKey)
                         {
                             throw;
                         }
@@ -306,7 +312,7 @@
                         // checkpoint index? 
                         if (e.Message.Contains(MongoCommitIndexes.CheckpointNumber))
                         {
-                            commitDoc[MongoCommitFields.CheckpointNumber] = _getNextCheckpointNumber().LongValue;
+                            commitDoc[MongoCommitFields.CheckpointNumber] = _getNextCheckpointNumber(true).LongValue;
                         }
                         else
                         {
