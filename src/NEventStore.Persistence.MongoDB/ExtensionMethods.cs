@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -43,6 +44,40 @@ namespace NEventStore.Persistence.MongoDB
                         {MongoCommitFields.StreamRevision, streamRevision++},
                         {MongoCommitFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(e))}
                     });
+
+            var mc = new MongoCommit
+            {
+                CheckpointNumber = checkpoint.LongValue,
+                CommitId = commit.CommitId,
+                CommitStamp = commit.CommitStamp,
+                Headers = commit.Headers,
+                Events = new BsonArray(events),
+                StreamRevisionFrom = streamRevisionStart,
+                StreamRevisionTo = streamRevision - 1,
+                BucketId = commit.BucketId,
+                StreamId = commit.StreamId,
+                CommitSequence = commit.CommitSequence
+            };
+
+            return mc.ToBsonDocument();
+        }
+
+        public static BsonDocument ToxMongoCommit(this CommitAttempt commit, LongCheckpoint checkpoint, IDocumentSerializer serializer)
+        {
+            int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
+            int streamRevisionStart = streamRevision;
+            IEnumerable<BsonDocument> events = commit
+                .Events
+                .Select(e =>
+                    new BsonDocument
+                    {
+                        {MongoCommitFields.StreamRevision, streamRevision++},
+                        {MongoCommitFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(e))}
+                    });
+
+            //var dictionarySerialize = new DictionaryInterfaceImplementerSerializer<Dictionary<string, object>>(DictionaryRepresentation.ArrayOfArrays);
+            //var dicSer = BsonSerializer.LookupSerializer<Dictionary<string, object>>();
+
             return new BsonDocument
             {
                 {MongoCommitFields.CheckpointNumber, checkpoint.LongValue},
@@ -172,5 +207,22 @@ namespace NEventStore.Persistence.MongoDB
                 builder.Lte(MongoShapshotFields.FullQualifiedStreamRevision, maxRevision)
             );
         }
+    }
+
+    public class MongoCommit
+    {
+        [BsonId]
+        public long CheckpointNumber { get; set; }
+
+        public Guid CommitId { get; set; }
+        public DateTime CommitStamp { get; set; }
+        [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfArrays)]
+        public IDictionary<string, object> Headers { get; set; }
+        public BsonArray Events { get; set; }
+        public int StreamRevisionFrom { get; set; }
+        public int StreamRevisionTo { get; set; }
+        public string BucketId { get; set; }
+        public string StreamId { get; set; }
+        public int CommitSequence { get; set; }
     }
 }

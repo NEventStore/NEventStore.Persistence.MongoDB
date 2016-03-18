@@ -279,7 +279,7 @@
 
             return TryMongo(() =>
             {
-                BsonDocument commitDoc = attempt.ToMongoCommit(
+                var commitDoc = attempt.ToMongoCommit(
                     _getNextCheckpointNumber(),
                     _serializer
                 );
