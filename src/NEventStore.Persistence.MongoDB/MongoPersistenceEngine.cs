@@ -526,11 +526,9 @@
 
         private static BsonDocument GetStreamHeadId(string bucketId, string streamId)
         {
-            var id = new BsonDocument
-            {
-                [MongoStreamHeadFields.BucketId] = bucketId,
-                [MongoStreamHeadFields.StreamId] = streamId
-            };
+            var id = new BsonDocument();
+            id[MongoStreamHeadFields.BucketId] = bucketId;
+            id[MongoStreamHeadFields.StreamId] = streamId;
             return id;
         }
 
