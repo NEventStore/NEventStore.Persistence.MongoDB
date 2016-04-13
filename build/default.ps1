@@ -7,18 +7,12 @@ properties {
 	$packages_directory = "$src_directory\packages"
 	$sln_file = "$src_directory\NEventStore.Persistence.MongoDB.sln"
 	$target_config = "Release"
-	$framework_version = "v4.0"
+	$framework_version = "v4.5"
 	$version = "0.0.0.0"
-    $assemblyInfoFilePath = "$src_directory\VersionAssemblyInfo.cs"
 
 	$xunit_path = "$base_directory\bin\xunit.runners.1.9.1\tools\xunit.console.clr4.exe"
 	$ilMergeModule.ilMergePath = "$base_directory\bin\ilmerge-bin\ILMerge.exe"
 	$nuget_dir = "$src_directory\.nuget"
-
-
-	if($build_number -eq $null) {
-		$build_number = 0
-	}
 
 	if($runPersistenceTests -eq $null) {
 		$runPersistenceTests = $false
@@ -35,18 +29,26 @@ task Clean {
 }
 
 task UpdateVersion {
-    $version = Get-Version $assemblyInfoFilePath
-    "Version: $version - Build number: $build_number"
-	$oldVersion = New-Object Version $version
-	$newVersion = New-Object Version ($oldVersion.Major, $oldVersion.Minor, $oldVersion.Build, $build_number)
-	"New Version: $newVersion"
-	Update-Version $newVersion $assemblyInfoFilePath
+	$vSplit = $version.Split('.')
+	if($vSplit.Length -ne 4)
+	{
+		throw "Version number is invalid. Must be in the form of 0.0.0.0"
+	}
+	$major = $vSplit[0]
+	$minor = $vSplit[1]
+	$assemblyFileVersion = $version
+	$assemblyVersion = "$major.$minor.0.0"
+	$versionAssemblyInfoFile = "$src_directory/VersionAssemblyInfo.cs"
+	"using System.Reflection;" > $versionAssemblyInfoFile
+	"" >> $versionAssemblyInfoFile
+	"[assembly: AssemblyVersion(""$assemblyVersion"")]" >> $versionAssemblyInfoFile
+	"[assembly: AssemblyFileVersion(""$assemblyFileVersion"")]" >> $versionAssemblyInfoFile
 }
 
 task Compile {
 	EnsureDirectory $output_directory
 	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /t:Clean }
-	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.0 }
+	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.5 }
 }
 
 task Test -precondition { $runPersistenceTests } {
