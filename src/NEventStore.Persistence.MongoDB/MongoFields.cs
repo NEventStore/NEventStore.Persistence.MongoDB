@@ -25,6 +25,8 @@
         public const string Payload = "Payload";
         public const string StreamRevision = "StreamRevision";
         public const string FullQualifiedBucketId = Id + "." + BucketId;
+        public const string FullQualifiedStreamId = Id + "." + StreamId;
+        public const string FullQualifiedStreamRevision = Id + "." + StreamRevision;
     }
 
     public static class MongoCommitFields
