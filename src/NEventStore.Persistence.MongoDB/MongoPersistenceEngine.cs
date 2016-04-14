@@ -309,7 +309,7 @@
                         retry = false;
                         _cachedCheckPoint = nextCheckpointNumber.LongValue;
 
-                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision,attempt.Events.Count);
+                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
                         Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
                     }
                     catch (MongoWriteException e)
@@ -551,11 +551,9 @@
 
         private static BsonDocument GetStreamHeadId(string bucketId, string streamId)
         {
-            var id = new BsonDocument
-            {
-                [MongoStreamHeadFields.BucketId] = bucketId,
-                [MongoStreamHeadFields.StreamId] = streamId
-            };
+            var id = new BsonDocument();
+            id[MongoStreamHeadFields.BucketId] = bucketId;
+            id[MongoStreamHeadFields.StreamId] = streamId;
             return id;
         }
 
