@@ -309,7 +309,7 @@
                         retry = false;
                         _cachedCheckPoint = nextCheckpointNumber.LongValue;
 
-                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
+                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision,attempt.Events.Count);
                         Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
                     }
                     catch (MongoWriteException e)
