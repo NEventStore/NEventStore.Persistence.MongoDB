@@ -32,7 +32,17 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
-        public static BsonDocument ToMongoCommit(this CommitAttempt commit, LongCheckpoint checkpoint, IDocumentSerializer serializer)
+		/// <summary>
+		/// this extension method will use a predefined class <see cref="MongoCommit"/> with
+		/// serialization specified with Attributes.
+		/// 
+		/// todo: look if there's a was to modify the default serialization scheme so that the advanced user can customize the bahavior on her needs
+		/// </summary>
+		/// <param name="commit"></param>
+		/// <param name="checkpoint"></param>
+		/// <param name="serializer"></param>
+		/// <returns></returns>
+		public static BsonDocument ToMongoCommit_Experimental(this CommitAttempt commit, LongCheckpoint checkpoint, IDocumentSerializer serializer)
         {
             int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
             int streamRevisionStart = streamRevision;
@@ -62,7 +72,7 @@ namespace NEventStore.Persistence.MongoDB
             return mc.ToBsonDocument();
         }
 
-        public static BsonDocument ToxMongoCommit(this CommitAttempt commit, LongCheckpoint checkpoint, IDocumentSerializer serializer)
+        public static BsonDocument ToMongoCommit(this CommitAttempt commit, LongCheckpoint checkpoint, IDocumentSerializer serializer)
         {
             int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
             int streamRevisionStart = streamRevision;
@@ -83,9 +93,8 @@ namespace NEventStore.Persistence.MongoDB
                 {MongoCommitFields.CheckpointNumber, checkpoint.LongValue},
                 {MongoCommitFields.CommitId, commit.CommitId},
                 {MongoCommitFields.CommitStamp, commit.CommitStamp},
-                {MongoCommitFields.Headers, BsonDocumentWrapper.Create(commit.Headers)},
+                {MongoCommitFields.Headers, new BsonDocumentWrapper(commit.Headers, DictionarySerializerSelector.DictionarySerializer) }, // new BsonDocumentWrapper(commit.Headers, dictionarySerialize)},
                 {MongoCommitFields.Events, new BsonArray(events)},
-                {MongoCommitFields.Dispatched, false},
                 {MongoCommitFields.StreamRevisionFrom, streamRevisionStart},
                 {MongoCommitFields.StreamRevisionTo, streamRevision - 1},
                 {MongoCommitFields.BucketId, commit.BucketId},
