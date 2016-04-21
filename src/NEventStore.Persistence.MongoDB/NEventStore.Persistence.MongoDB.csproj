@@ -63,6 +63,7 @@
     <Compile Include="..\VersionAssemblyInfo.cs">
       <Link>Properties\VersionAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="DictionarySerializerSelector.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Messages.Designer.cs">
       <AutoGen>True</AutoGen>

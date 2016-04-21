@@ -3,12 +3,13 @@
 	using System;
 	using global::MongoDB.Driver;
 	using NEventStore.Serialization;
+	using global::MongoDB.Bson.Serialization.Options;
 
 	/// <summary>
 	/// Options for the MongoPersistence engine.
 	/// http://docs.mongodb.org/manual/core/write-concern/#write-concern
 	/// </summary>
-	public  class MongoPersistenceOptions
+	public class MongoPersistenceOptions
 	{
 		/// <summary>
 		/// Get the  <see href="http://docs.mongodb.org/manual/core/write-concern/#write-concern">WriteConcern</see> for the commit insert operation.
@@ -49,7 +50,7 @@
 			};
 		}
 
-	    /// <summary>
+		/// <summary>
 		/// Connects to NEvenstore Mongo database
 		/// </summary>
 		/// <param name="connectionString">Connection string</param>
@@ -61,8 +62,20 @@
 			return database;
 		}
 
-	    public MongoPersistenceOptions()
-	    {
-	    }
+		/// <summary>
+		/// Select your serialization scheme for Commit.Headers dictionaty:
+		/// 
+		/// defaults to: DictionaryRepresentation.ArrayOfArrays 
+		/// </summary>
+		public DictionaryRepresentation CommitHeadersDictionaryRepresentation
+		{
+			get { return DictionarySerializerSelector.DictionaryRepresentation; }
+			set { DictionarySerializerSelector.SetDictionaryRepresentation(value); }
+		}
+
+		public MongoPersistenceOptions()
+		{
+			CommitHeadersDictionaryRepresentation = DictionaryRepresentation.ArrayOfArrays;
+		}
 	}
 }
