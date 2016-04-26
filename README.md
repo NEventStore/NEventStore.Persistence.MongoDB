@@ -43,4 +43,19 @@ git flow init
 
 You can leave all values as default. Now your repository is GitFlow enabled.
 
+###Note on Nuget version on Nuspec
+
+While we are on develop branch, (suppose we just bumped major number so the driver version number is 6.0.0-unstablexxxx), we need to declare that this persistence driver depends from a version greater than the latest published. If the latest version of NEventStore 5.x.x wave iw 5.4.0 we need to declare this package dependency as
+
+(5.4, 7)
+
+This means, that we need a NEventStore greater than the latest published, but lesser than the next main version. This allows version 6.0.0-unstable of NEventStore to satisfy the dependency. We remember that prerelease package are considered minor than the stable package. Es.
+
+5.4.0
+5.4.1
+6.0.0-unstable00001
+6.0.0
+
+
+
 
