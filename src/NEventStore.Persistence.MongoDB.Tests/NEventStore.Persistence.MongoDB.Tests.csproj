@@ -63,9 +63,6 @@
     <Compile Include="..\..\dependencies\NEventStore\src\NEventStore.Persistence.AcceptanceTests\PersistenceTests.cs">
       <Link>AcceptanceTests\PersistenceTests.cs</Link>
     </Compile>
-    <Compile Include="..\VersionAssemblyInfo.cs">
-      <Link>Properties\VersionAssemblyInfo.cs</Link>
-    </Compile>
     <Compile Include="AcceptanceTestMongoPersistenceFactory.cs" />
     <Compile Include="AcceptanceTests\CommitHeadersSerializationTests.cs" />
     <Compile Include="AcceptanceTests\OptimisticLoopTests.cs" />
