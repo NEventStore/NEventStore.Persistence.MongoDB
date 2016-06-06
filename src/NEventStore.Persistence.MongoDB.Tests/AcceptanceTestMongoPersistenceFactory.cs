@@ -1,38 +1,46 @@
 ﻿namespace NEventStore.Persistence.MongoDB.Tests
 {
-    using System;
-    using NEventStore.Serialization;
+	using System;
+	using NEventStore.Serialization;
 
-    public class AcceptanceTestMongoPersistenceFactory : MongoPersistenceFactory
-    {
-        private const string EnvVarConnectionStringKey = "NEventStore.MongoDB";
-        private const string EnvVarServerSideLoopKey = "NEventStore.MongoDB.ServerSideLoop";
+	public class AcceptanceTestMongoPersistenceFactory : MongoPersistenceFactory
+	{
+		private const string EnvVarConnectionStringKey = "NEventStore.MongoDB";
+		private const string EnvVarServerSideLoopKey = "NEventStore.MongoDB.ServerSideLoop";
 
-        public AcceptanceTestMongoPersistenceFactory()
-            : base(
-                GetConnectionString,
-                new DocumentObjectSerializer(),
-                new MongoPersistenceOptions()
-            )
-        { }
+		public AcceptanceTestMongoPersistenceFactory()
+			: base(
+				GetConnectionString,
+				new DocumentObjectSerializer(),
+				new MongoPersistenceOptions()
+			)
+		{ }
 
-        private static string GetConnectionString()
-        {
-            string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
+		public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions options)
+			: base(
+				GetConnectionString,
+				new DocumentObjectSerializer(),
+				options
+			)
+		{ }
 
-            if (connectionString == null)
-            {
-                string message = string.Format(
-                    "Cannot initialize acceptance tests for Mongo. Cannot find the '{0}' environment variable. Please ensure " +
-                    "you have correctly setup the connection string environment variables. Refer to the " +
-                    "NEventStore wiki for details.",
-                    EnvVarConnectionStringKey);
-                throw new InvalidOperationException(message);
-            }
+		private static string GetConnectionString()
+		{
+			string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
 
-            connectionString = connectionString.TrimStart('"').TrimEnd('"');
+			if (connectionString == null)
+			{
+				string message = string.Format(
+					"Cannot initialize acceptance tests for Mongo. Cannot find the '{0}' environment variable. Please ensure " +
+					"you have correctly setup the connection string environment variables. Refer to the " +
+					"NEventStore wiki for details.",
+					EnvVarConnectionStringKey);
+				throw new InvalidOperationException(message);
+			}
 
-            return connectionString;
-        }
-    }
+			connectionString = connectionString.TrimStart('"').TrimEnd('"');
+
+			return connectionString;
+		}
+	}
 }
