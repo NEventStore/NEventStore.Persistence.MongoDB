@@ -1,4 +1,6 @@
-﻿namespace NEventStore.Persistence.MongoDB
+﻿using NEventStore.Persistence.MongoDB.Support;
+
+namespace NEventStore.Persistence.MongoDB
 {
     using System;
     using System.Collections.Generic;
@@ -21,13 +23,15 @@
         private readonly MongoCollectionSettings _streamSettings;
         private bool _disposed;
         private int _initialized;
-        private readonly Func<LongCheckpoint> _getNextCheckpointNumber;
-        private readonly Func<long> _getLastCheckPointNumber;
-        private readonly MongoPersistenceOptions _options;
-        private readonly WriteConcern _insertCommitWriteConcern;
-        private readonly LongCheckpoint _checkpointZero;
 
-        public MongoPersistenceEngine(IMongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
+ private readonly MongoPersistenceOptions _options;
+        private readonly WriteConcern _insertCommitWriteConcern;
+
+        private ICheckpointGenerator _checkpointGenerator;
+        public MongoPersistenceEngine(
+            IMongoDatabase store, 
+            IDocumentSerializer serializer,
+            MongoPersistenceOptions options)
         {
             if (store == null)
             {
@@ -53,27 +57,6 @@
             _snapshotSettings = _options.GetSnapshotSettings();
             _streamSettings = _options.GetStreamSettings();
             _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
-
-
-            var filter = Builders<BsonDocument>.Filter.Empty;
-            var findOptions = new FindOptions<BsonDocument, BsonDocument>()
-            {
-                Limit = 1,
-                Projection = BsonDocument.Parse("{" + MongoCommitFields.CheckpointNumber + ":1}"),
-                Sort = BsonDocument.Parse("{" + MongoCommitFields.CheckpointNumber + ":-1}")
-            };
-
-            _getLastCheckPointNumber = () => TryMongo(() =>
-            {
-                var max = PersistedCommits
-                    .FindSync(filter, findOptions)
-                    .FirstOrDefault();
-
-                return max != null ? max[MongoCommitFields.CheckpointNumber].AsInt64 : 0L;
-            });
-
-            _getNextCheckpointNumber = () => new LongCheckpoint(_getLastCheckPointNumber() + 1L);
-            _checkpointZero = new LongCheckpoint(0);
         }
 
         protected virtual IMongoCollection<BsonDocument> PersistedCommits
@@ -175,6 +158,9 @@
                        Unique = false
                 }
                 );
+
+                _checkpointGenerator = _options.CheckpointGenerator ??
+                    new SingleProcessCheckpointGenerator(PersistedCommits);
 
                 EmptyRecycleBin();
             });
@@ -279,8 +265,9 @@
 
             return TryMongo(() =>
             {
+                Int64 checkpointId;
                 var commitDoc = attempt.ToMongoCommit(
-                    _getNextCheckpointNumber(),
+                    new LongCheckpoint(checkpointId = _checkpointGenerator.Next()),
                     _serializer
                 );
 
@@ -306,7 +293,8 @@
                         // checkpoint index? 
                         if (e.Message.Contains(MongoCommitIndexes.CheckpointNumber))
                         {
-                            commitDoc[MongoCommitFields.CheckpointNumber] = _getNextCheckpointNumber().LongValue;
+                            _checkpointGenerator.SignalDuplicateId(checkpointId);
+                            commitDoc[MongoCommitFields.CheckpointNumber] = _checkpointGenerator.Next();
                         }
                         else
                         {
@@ -532,9 +520,26 @@
             return id;
         }
 
+        private Int64 GetLastCommittedCheckPointNumber()
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+            var findOptions = new FindOptions<BsonDocument, BsonDocument>()
+            {
+                Limit = 1,
+                Projection = Builders<BsonDocument>.Projection.Include(MongoCommitFields.CheckpointNumber),
+                Sort = Builders<BsonDocument>.Sort.Descending(MongoCommitFields.CheckpointNumber)
+            };
+       
+            var max = PersistedCommits
+               .FindSync(filter, findOptions)
+               .FirstOrDefault();
+
+            return max != null ? max[MongoCommitFields.CheckpointNumber].AsInt64 : 0L;
+        }
+
         public void EmptyRecycleBin()
         {
-            var lastCheckpointNumber = _getLastCheckPointNumber();
+            var lastCheckpointNumber = GetLastCommittedCheckPointNumber();
             TryMongo(() =>
             {
                 PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.And(

@@ -1,4 +1,7 @@
-﻿namespace NEventStore.Persistence.MongoDB
+﻿using MongoDB.Bson;
+using NEventStore.Persistence.MongoDB.Support;
+
+namespace NEventStore.Persistence.MongoDB
 {
 	using System;
 	using global::MongoDB.Driver;
@@ -61,8 +64,13 @@
 			return database;
 		}
 
+	    public ICheckpointGenerator CheckpointGenerator { get; set; }
+
 	    public MongoPersistenceOptions()
 	    {
+            
 	    }
+
+
 	}
 }

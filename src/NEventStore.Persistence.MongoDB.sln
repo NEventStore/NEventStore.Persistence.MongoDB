@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{09DEED55-B936-4C29-AC45-6844080C025D}"
 	ProjectSection(SolutionItems) = preProject
@@ -18,6 +18,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Persistence.MongoDB", "NEventStore.Persistence.MongoDB\NEventStore.Persistence.MongoDB.csproj", "{32ADD8CE-0F3F-41D8-BFA1-6E5D685E64DD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Persistence.MongoDB.Tests", "NEventStore.Persistence.MongoDB.Tests\NEventStore.Persistence.MongoDB.Tests.csproj", "{49C544AF-02FB-4BE9-BDDF-79EB087E00C3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Tests", "..\dependencies\NEventStore\src\NEventStore.Tests\NEventStore.Tests.csproj", "{785B7EF4-BD47-4F98-9802-DA1C4A55ECA4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,10 @@ Global
 		{49C544AF-02FB-4BE9-BDDF-79EB087E00C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49C544AF-02FB-4BE9-BDDF-79EB087E00C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49C544AF-02FB-4BE9-BDDF-79EB087E00C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{785B7EF4-BD47-4F98-9802-DA1C4A55ECA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{785B7EF4-BD47-4F98-9802-DA1C4A55ECA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{785B7EF4-BD47-4F98-9802-DA1C4A55ECA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{785B7EF4-BD47-4F98-9802-DA1C4A55ECA4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
