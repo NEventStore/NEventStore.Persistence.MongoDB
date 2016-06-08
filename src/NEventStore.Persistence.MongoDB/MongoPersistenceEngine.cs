@@ -1,4 +1,7 @@
-﻿namespace NEventStore.Persistence.MongoDB
+﻿using System.Collections.Concurrent;
+using System.Threading.Tasks;
+
+namespace NEventStore.Persistence.MongoDB
 {
     using System;
     using System.Collections.Generic;
@@ -28,6 +31,8 @@
         private readonly WriteConcern _insertCommitWriteConcern;
         private readonly BsonJavaScript _updateScript;
         private readonly LongCheckpoint _checkpointZero;
+        private readonly ConcurrentQueue<UpdateStreamHeadCommand> _streamHeads = new ConcurrentQueue<UpdateStreamHeadCommand>();
+        private int _isPolling;        
 
         public MongoPersistenceEngine(MongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
         {
@@ -510,20 +515,55 @@
             _disposed = true;
         }
 
-        private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
+        private void PollStreamHeads()
         {
-            ThreadPool.QueueUserWorkItem(x =>
+            if (Interlocked.CompareExchange(ref _isPolling, 1, 0) == 0)
+            {
+                while (!_streamHeads.IsEmpty)
+                {
+                    UpdateStreamHeadCommand command;
+
+                    if (_streamHeads.TryDequeue(out command))
+                    {
+                        UpdateStreamHead(command);
+                    }
+                }
+
+                Interlocked.Exchange(ref _isPolling, 0);
+            }
+        }
+
+        private void UpdateStreamHead(UpdateStreamHeadCommand command)
+        {
+            try
+            {
                 TryMongo(() =>
                 {
-                    BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
+                    BsonDocument streamHeadId = GetStreamHeadId(command.BucketId, command.StreamId);
                     PersistedStreamHeads.Update(
                         Query.EQ(MongoStreamHeadFields.Id, streamHeadId),
                         Update
-                            .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                            .Set(MongoStreamHeadFields.HeadRevision, command.StreamRevision)
                             .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
-                            .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
+                            .Inc(MongoStreamHeadFields.Unsnapshotted, command.EventsCount),
                         UpdateFlags.Upsert);
-                }), null);
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Unexpected exception when writing the stream head {0}", ex.GetType());
+            }
+        }
+
+        private void AttemptPollStreamHeads()
+        {
+            Task.Factory.StartNew(PollStreamHeads);
+        }
+
+        private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
+        {
+            _streamHeads.Enqueue(new UpdateStreamHeadCommand(bucketId, streamId, streamRevision, eventsCount));
+            AttemptPollStreamHeads();
         }
 
         protected virtual T TryMongo<T>(Func<T> callback)
@@ -581,6 +621,25 @@
                                       .Find(Query.EQ(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
                                       .SetSortOrder(MongoCommitFields.CheckpointNumber)
                                       .Select(mc => mc.ToCommit(_serializer)));
+        }
+
+        private class UpdateStreamHeadCommand
+        {
+            internal UpdateStreamHeadCommand(string bucketId, string streamId, int streamRevision, int eventsCount)
+            {
+                this.BucketId = bucketId;
+                this.StreamId = streamId;
+                this.StreamRevision = streamRevision;
+                this.EventsCount = eventsCount;
+            }
+
+            internal string BucketId { get; private set; }
+
+            internal string StreamId { get; private set; }
+
+            internal int StreamRevision { get; private set; }
+
+            internal int EventsCount { get; private set; }
         }
     }
 }
