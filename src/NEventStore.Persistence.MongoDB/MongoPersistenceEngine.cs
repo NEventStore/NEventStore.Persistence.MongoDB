@@ -1,4 +1,7 @@
-﻿namespace NEventStore.Persistence.MongoDB
+﻿using System.Collections.Concurrent;
+using System.Threading.Tasks;
+
+namespace NEventStore.Persistence.MongoDB
 {
     using System;
     using System.Collections.Generic;
@@ -510,20 +513,45 @@
             _disposed = true;
         }
 
+        private void UpdateStreamHead(string bucketId, string streamId, int streamRevision, int eventsCount)
+        {
+            const int MaxAttempts = 2;
+
+            bool retry = true;
+            var attempt = 0;
+
+            TryMongo(() =>
+            {
+                while (retry)
+                {
+                    attempt++;
+
+                    try
+                    {
+                        BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
+                        PersistedStreamHeads.Update(
+                            Query.EQ(MongoStreamHeadFields.Id, streamHeadId),
+                            Update
+                                .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                                .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
+                                .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
+                            UpdateFlags.Upsert);
+
+                        retry = false;
+                    }
+                    catch (MongoDuplicateKeyException ex)
+                    {
+                        Logger.Warn("Duplicate key exception {0} when upserting the stream head {1} {2}.", ex, bucketId, streamId);
+                        
+                        retry = attempt < MaxAttempts;
+                    }
+                }
+            });
+        }
+
         private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
-            ThreadPool.QueueUserWorkItem(x =>
-                TryMongo(() =>
-                {
-                    BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
-                    PersistedStreamHeads.Update(
-                        Query.EQ(MongoStreamHeadFields.Id, streamHeadId),
-                        Update
-                            .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
-                            .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
-                            .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
-                        UpdateFlags.Upsert);
-                }), null);
+            Task.Factory.StartNew(() => UpdateStreamHead(bucketId, streamId, streamRevision, eventsCount));
         }
 
         protected virtual T TryMongo<T>(Func<T> callback)
