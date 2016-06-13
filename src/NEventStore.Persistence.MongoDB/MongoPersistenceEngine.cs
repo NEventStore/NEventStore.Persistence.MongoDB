@@ -24,12 +24,14 @@ namespace NEventStore.Persistence.MongoDB
         private bool _disposed;
         private int _initialized;
 
- private readonly MongoPersistenceOptions _options;
+        private readonly MongoPersistenceOptions _options;
         private readonly WriteConcern _insertCommitWriteConcern;
+
+        private readonly string _systemBucketName;
 
         private ICheckpointGenerator _checkpointGenerator;
         public MongoPersistenceEngine(
-            IMongoDatabase store, 
+            IMongoDatabase store,
             IDocumentSerializer serializer,
             MongoPersistenceOptions options)
         {
@@ -51,6 +53,7 @@ namespace NEventStore.Persistence.MongoDB
             _store = store;
             _serializer = serializer;
             _options = options;
+            _systemBucketName = options.SystemBucketName;
 
             // set config options
             _commitSettings = _options.GetCommitSettings();
@@ -153,10 +156,10 @@ namespace NEventStore.Persistence.MongoDB
                    Builders<BsonDocument>.IndexKeys
                        .Ascending(MongoStreamHeadFields.Unsnapshotted),
                    new CreateIndexOptions()
-                {
+                   {
                        Name = MongoStreamIndexes.Unsnapshotted,
                        Unique = false
-                }
+                   }
                 );
 
                 _checkpointGenerator = _options.CheckpointGenerator ??
@@ -313,7 +316,12 @@ namespace NEventStore.Persistence.MongoDB
                                 throw new DuplicateCommitException();
                             }
 
-                            Logger.Debug(Messages.ConcurrentWriteDetected);
+                            var holeFillDoc = attempt.ToEmptyCommit(
+                               new LongCheckpoint(checkpointId),
+                               _serializer,
+                               _systemBucketName
+                            );
+                            PersistedCommits.InsertOne(holeFillDoc);
                             throw new ConcurrencyException();
                         }
                     }
@@ -529,7 +537,7 @@ namespace NEventStore.Persistence.MongoDB
                 Projection = Builders<BsonDocument>.Projection.Include(MongoCommitFields.CheckpointNumber),
                 Sort = Builders<BsonDocument>.Sort.Descending(MongoCommitFields.CheckpointNumber)
             };
-       
+
             var max = PersistedCommits
                .FindSync(filter, findOptions)
                .FirstOrDefault();

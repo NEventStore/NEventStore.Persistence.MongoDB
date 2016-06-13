@@ -62,6 +62,39 @@ namespace NEventStore.Persistence.MongoDB
             return mc.ToBsonDocument();
         }
 
+        public static BsonDocument ToEmptyCommit(this CommitAttempt commit, LongCheckpoint checkpoint, IDocumentSerializer serializer, String systemBucketName)
+        {
+            if (commit == null) throw new ArgumentNullException("commit");
+            if (checkpoint == null) throw new ArgumentNullException("checkpoint");
+            if (String.IsNullOrEmpty(systemBucketName)) throw new ArgumentNullException("systemBucketName");
+            int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
+            int streamRevisionStart = streamRevision;
+            IEnumerable<BsonDocument> events = commit
+                .Events
+                .Select(e =>
+                    new BsonDocument
+                    {
+                        {MongoCommitFields.StreamRevision, streamRevision++},
+                        {MongoCommitFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(e))}
+                    });
+
+            var mc = new MongoCommit
+            {
+                CheckpointNumber = checkpoint.LongValue,
+                CommitId = commit.CommitId,
+                CommitStamp = commit.CommitStamp,
+                Headers = new Dictionary<String, Object>(),
+                Events = new BsonArray(new Object[] { }),
+                StreamRevisionFrom = 0,
+                StreamRevisionTo = 0,
+                BucketId = systemBucketName,
+                StreamId = systemBucketName + "." + checkpoint.LongValue.ToString(),
+                CommitSequence = 1
+            };
+
+            return mc.ToBsonDocument();
+        }
+
         public static BsonDocument ToxMongoCommit(this CommitAttempt commit, LongCheckpoint checkpoint, IDocumentSerializer serializer)
         {
             int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);

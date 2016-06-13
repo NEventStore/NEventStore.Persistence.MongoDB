@@ -66,9 +66,11 @@ namespace NEventStore.Persistence.MongoDB
 
 	    public ICheckpointGenerator CheckpointGenerator { get; set; }
 
-	    public MongoPersistenceOptions()
+        public String SystemBucketName { get; set; }
+
+        public MongoPersistenceOptions()
 	    {
-            
+            SystemBucketName = "system";
 	    }
 
 
