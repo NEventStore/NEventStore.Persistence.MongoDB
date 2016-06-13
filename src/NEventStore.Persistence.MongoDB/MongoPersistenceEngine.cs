@@ -31,8 +31,6 @@ namespace NEventStore.Persistence.MongoDB
         private readonly WriteConcern _insertCommitWriteConcern;
         private readonly BsonJavaScript _updateScript;
         private readonly LongCheckpoint _checkpointZero;
-        private readonly ConcurrentQueue<UpdateStreamHeadCommand> _streamHeads = new ConcurrentQueue<UpdateStreamHeadCommand>();
-        private int _isPolling;        
 
         public MongoPersistenceEngine(MongoDatabase store, IDocumentSerializer serializer, MongoPersistenceOptions options)
         {
@@ -515,55 +513,45 @@ namespace NEventStore.Persistence.MongoDB
             _disposed = true;
         }
 
-        private void PollStreamHeads()
+        private void UpdateStreamHead(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
-            if (Interlocked.CompareExchange(ref _isPolling, 1, 0) == 0)
-            {
-                while (!_streamHeads.IsEmpty)
-                {
-                    UpdateStreamHeadCommand command;
+            const int MaxAttempts = 2;
 
-                    if (_streamHeads.TryDequeue(out command))
+            bool retry = true;
+            var attempt = 0;
+
+            TryMongo(() =>
+            {
+                while (retry)
+                {
+                    attempt++;
+
+                    try
                     {
-                        UpdateStreamHead(command);
+                        BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
+                        PersistedStreamHeads.Update(
+                            Query.EQ(MongoStreamHeadFields.Id, streamHeadId),
+                            Update
+                                .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                                .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
+                                .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
+                            UpdateFlags.Upsert);
+
+                        retry = false;
+                    }
+                    catch (MongoDuplicateKeyException ex)
+                    {
+                        Logger.Warn("Duplicate key exception {0} when upserting the stream head {1} {2}.", ex, bucketId, streamId);
+                        
+                        retry = attempt > MaxAttempts;
                     }
                 }
-
-                Interlocked.Exchange(ref _isPolling, 0);
-            }
-        }
-
-        private void UpdateStreamHead(UpdateStreamHeadCommand command)
-        {
-            try
-            {
-                TryMongo(() =>
-                {
-                    BsonDocument streamHeadId = GetStreamHeadId(command.BucketId, command.StreamId);
-                    PersistedStreamHeads.Update(
-                        Query.EQ(MongoStreamHeadFields.Id, streamHeadId),
-                        Update
-                            .Set(MongoStreamHeadFields.HeadRevision, command.StreamRevision)
-                            .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
-                            .Inc(MongoStreamHeadFields.Unsnapshotted, command.EventsCount),
-                        UpdateFlags.Upsert);
-                });
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Unexpected exception when writing the stream head {0}", ex.GetType());
-            }
-        }
-
-        private void AttemptPollStreamHeads()
-        {
-            Task.Factory.StartNew(PollStreamHeads);
+            });
         }
 
         private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
-            _streamHeads.Enqueue(new UpdateStreamHeadCommand(bucketId, streamId, streamRevision, eventsCount));
-            AttemptPollStreamHeads();
+            Task.Factory.StartNew(() => UpdateStreamHead(bucketId, streamId, streamRevision, eventsCount));
         }
 
         protected virtual T TryMongo<T>(Func<T> callback)
@@ -621,25 +609,6 @@ namespace NEventStore.Persistence.MongoDB
                                       .Find(Query.EQ(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
                                       .SetSortOrder(MongoCommitFields.CheckpointNumber)
                                       .Select(mc => mc.ToCommit(_serializer)));
-        }
-
-        private class UpdateStreamHeadCommand
-        {
-            internal UpdateStreamHeadCommand(string bucketId, string streamId, int streamRevision, int eventsCount)
-            {
-                this.BucketId = bucketId;
-                this.StreamId = streamId;
-                this.StreamRevision = streamRevision;
-                this.EventsCount = eventsCount;
-            }
-
-            internal string BucketId { get; private set; }
-
-            internal string StreamId { get; private set; }
-
-            internal int StreamRevision { get; private set; }
-
-            internal int EventsCount { get; private set; }
         }
     }
 }
