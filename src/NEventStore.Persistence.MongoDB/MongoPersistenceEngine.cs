@@ -543,7 +543,7 @@ namespace NEventStore.Persistence.MongoDB
                     {
                         Logger.Warn("Duplicate key exception {0} when upserting the stream head {1} {2}.", ex, bucketId, streamId);
                         
-                        retry = attempt > MaxAttempts;
+                        retry = attempt < MaxAttempts;
                     }
                 }
             });
