@@ -515,14 +515,21 @@
             ThreadPool.QueueUserWorkItem(x =>
                 TryMongo(() =>
                 {
-                    BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
-                    PersistedStreamHeads.Update(
-                        Query.EQ(MongoStreamHeadFields.Id, streamHeadId),
-                        Update
-                            .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
-                            .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
-                            .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
-                        UpdateFlags.Upsert);
+                    try
+                    {
+                        BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
+                        PersistedStreamHeads.Update(
+                            Query.EQ(MongoStreamHeadFields.Id, streamHeadId),
+                            Update
+                                .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                                .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
+                                .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
+                            UpdateFlags.Upsert);
+                    }
+                    catch (MongoDuplicateKeyException ex)
+                    {
+                        Logger.Warn("Duplicate key exception {0} when upserting the stream head {1} {2}.", ex, bucketId, streamId);
+                    }
                 }), null);
         }
 
