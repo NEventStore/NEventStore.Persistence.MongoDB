@@ -81,4 +81,24 @@ namespace NEventStore.Persistence.MongoDB.Support
             _last = base.GetLastValue();
         }
     }
+
+    public class AlwaysQueryDbForNextValueCheckpointGenerator : SingleProcessCheckpointGenerator
+    {
+
+        public AlwaysQueryDbForNextValueCheckpointGenerator(IMongoCollection<BsonDocument> collection) 
+            : base(collection)
+        {
+
+        }
+
+        public override long Next()
+        {
+            return _last = base.GetLastValue() + 1;
+        }
+
+        public override void SignalDuplicateId(long id)
+        {
+            _last = base.GetLastValue();
+        }
+    }
 }

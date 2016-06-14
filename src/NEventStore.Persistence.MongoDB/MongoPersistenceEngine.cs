@@ -79,6 +79,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public void Dispose()
         {
+
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -316,12 +317,16 @@ namespace NEventStore.Persistence.MongoDB
                                 throw new DuplicateCommitException();
                             }
 
-                            var holeFillDoc = attempt.ToEmptyCommit(
-                               new LongCheckpoint(checkpointId),
-                               _serializer,
-                               _systemBucketName
-                            );
-                            PersistedCommits.InsertOne(holeFillDoc);
+                            if (_options.ConcurrencyStrategy == ConcurrencyExceptionStrategy.FillHole)
+                            {
+                                var holeFillDoc = attempt.ToEmptyCommit(
+                                   new LongCheckpoint(checkpointId),
+                                   _serializer,
+                                   _systemBucketName
+                                );
+                                PersistedCommits.InsertOne(holeFillDoc);
+                            }
+
                             throw new ConcurrencyException();
                         }
                     }

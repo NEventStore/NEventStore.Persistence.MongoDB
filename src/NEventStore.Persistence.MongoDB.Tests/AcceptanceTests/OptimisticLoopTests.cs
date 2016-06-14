@@ -421,42 +421,5 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
     }
 
-    public class holes_are_filled_after_concurrency_exception : PersistenceEngineConcern
-    {
-        private string _streamId;
-        private string _bucketId;
-        private CommitAttempt _attempt;
-        protected override void Context()
-        {
-            _streamId = Guid.NewGuid().ToString();
-            var commit = Persistence.Commit(_attempt = _streamId.BuildAttempt());
-            _bucketId = commit.BucketId;
-        }
-
-        protected override void Because()
-        {
-            try
-            {
-                Persistence.Commit(_streamId.BuildAttempt());
-                throw new ApplicationException("Previous message should throw concurrency exception");
-            }
-            catch (ConcurrencyException ex)
-            {
-                //do nothing.
-            }
-            Persistence.Commit(_attempt.BuildNextAttempt());
-        }
-
-        [Fact]
-        public void holes_are_not_presents()
-        {
-            var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
-            Assert.Equal(2, commits.Length);
-
-            commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
-            Assert.Equal(1, commits.Length);
-            Assert.Equal("2", commits[0].CheckpointToken);
-        }
-
-    }
+  
 }
