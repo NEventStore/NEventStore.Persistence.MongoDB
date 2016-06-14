@@ -164,7 +164,7 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 _checkpointGenerator = _options.CheckpointGenerator ??
-                    new SingleProcessCheckpointGenerator(PersistedCommits);
+                    new AlwaysQueryDbForNextValueCheckpointGenerator(PersistedCommits);
 
                 EmptyRecycleBin();
             });

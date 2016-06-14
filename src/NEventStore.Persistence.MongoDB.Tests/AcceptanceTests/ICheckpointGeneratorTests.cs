@@ -104,10 +104,70 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(2, commits.Length);
+            Assert.Equal("1", commits[0].CheckpointToken);
+            Assert.Equal("3", commits[1].CheckpointToken);
 
             commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(1, commits.Length);
             Assert.Equal("2", commits[0].CheckpointToken);
+        }
+
+        protected override void Cleanup()
+        {
+            base.Cleanup();
+            PersistenceEngineFixture.Options = null;
+        }
+    }
+
+    public class holes_are_not_filled_as_default_behavior : PersistenceEngineConcern
+    {
+        private string _streamId;
+        private string _bucketId;
+        private CommitAttempt _attempt;
+
+        public holes_are_not_filled_as_default_behavior()
+        {
+            var options = new MongoPersistenceOptions();
+            options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
+
+            var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+            var collection = db.GetCollection<BsonDocument>("Commits");
+
+            options.CheckpointGenerator = new SingleProcessCheckpointGenerator(collection);
+            PersistenceEngineFixture.Options = options;
+        }
+
+        protected override void Context()
+        {
+            _streamId = Guid.NewGuid().ToString();
+            var commit = Persistence.Commit(_attempt = _streamId.BuildAttempt());
+            _bucketId = commit.BucketId;
+        }
+
+        protected override void Because()
+        {
+            try
+            {
+                Persistence.Commit(_streamId.BuildAttempt());
+                throw new ApplicationException("Previous message should throw concurrency exception");
+            }
+            catch (ConcurrencyException ex)
+            {
+                //do nothing.
+            }
+            Persistence.Commit(_attempt.BuildNextAttempt());
+        }
+
+        [Fact]
+        public void holes_are_presents()
+        {
+            var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
+            Assert.Equal(2, commits.Length);
+            Assert.Equal("1", commits[0].CheckpointToken);
+            Assert.Equal("3", commits[1].CheckpointToken);
+
+            commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
+            Assert.Equal(0, commits.Length);
         }
 
         protected override void Cleanup()
@@ -145,12 +205,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void holes_are_presents()
+        public void holes_are_not_presents()
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(2, commits.Length);
             Assert.Equal("1", commits[0].CheckpointToken);
-            Assert.Equal("3", commits[1].CheckpointToken);
+            Assert.Equal("2", commits[1].CheckpointToken);
 
             commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(0, commits.Length);
