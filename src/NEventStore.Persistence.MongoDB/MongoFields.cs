@@ -50,7 +50,12 @@
 
     public static class MongoCommitIndexes
     {
-        public const string CheckpointNumber = "$_id_";
+        /// <summary>
+        /// the following value is used to determine the index
+        /// that throws exception when a duplicate is found. 
+        /// </summary>
+        public const string CheckpointNumber = "index: _id_";
+
         public const string CommitStamp = "CommitStamp_Index";
         public const string CommitId = "CommitId_Index";
         public const string GetFrom = "GetFrom_Index";
