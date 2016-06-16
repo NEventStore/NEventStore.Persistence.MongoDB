@@ -54,7 +54,8 @@
         /// the following value is used to determine the index
         /// that throws exception when a duplicate is found. 
         /// </summary>
-        public const string CheckpointNumber = "index: _id_";
+        public const string CheckpointNumberMMApV1 = "$_id_";
+        public const string CheckpointNumberWiredTiger = "index: _id_";
 
         public const string CommitStamp = "CommitStamp_Index";
         public const string CommitId = "CommitId_Index";

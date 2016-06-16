@@ -295,7 +295,8 @@ namespace NEventStore.Persistence.MongoDB
                         }
 
                         // checkpoint index? 
-                        if (e.Message.Contains(MongoCommitIndexes.CheckpointNumber))
+                        if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1) ||
+                            e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
                         {
                             Logger.Warn("Duplicated checkpoint number generated {0}", checkpointId);
                             _checkpointGenerator.SignalDuplicateId(checkpointId);
