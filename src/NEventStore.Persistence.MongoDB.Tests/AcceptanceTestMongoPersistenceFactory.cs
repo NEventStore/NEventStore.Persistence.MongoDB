@@ -1,4 +1,6 @@
-﻿namespace NEventStore.Persistence.MongoDB.Tests
+﻿using NEventStore.Persistence.MongoDB.Tests.AcceptanceTests;
+
+namespace NEventStore.Persistence.MongoDB.Tests
 {
     using System;
     using NEventStore.Serialization;

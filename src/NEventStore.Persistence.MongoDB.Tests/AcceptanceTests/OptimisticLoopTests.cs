@@ -49,10 +49,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         protected const int ParallelWriters = 8;
         protected const int PollingInterval = 100;
         readonly IList<IPersistStreams> _writers = new List<IPersistStreams>();
-        private PollingClient _client;
+        private PollingClient2 _client;
         private Observer _observer;
-        private IObserveCommits _observeCommits;
-        private IDisposable _subscription;
 
         protected override void Context()
         {
@@ -71,11 +69,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             _observer = new Observer();
 
             var reader = new AcceptanceTestMongoPersistenceFactory().Build();
-            _client = new PollingClient(reader, PollingInterval);
+            _client = new PollingClient2(reader, c =>
+            {
+                _observer.OnNext(c);
+                return PollingClient2.HandlingResult.MoveToNext;
+            }, PollingInterval);
 
-            _observeCommits = _client.ObserveFrom(0);
-            _subscription = _observeCommits.Subscribe(_observer);
-            _observeCommits.Start();
+            _client.StartFrom(0);
         }
 
         protected override void Because()
@@ -120,7 +120,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             stop.Wait(3*60*1000);
 
             Thread.Sleep(1500);
-            _subscription.Dispose();
+            _client.Dispose();
         }
 
         [Fact]
