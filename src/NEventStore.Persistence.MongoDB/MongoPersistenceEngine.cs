@@ -170,10 +170,10 @@
                    Builders<BsonDocument>.IndexKeys
                        .Ascending(MongoStreamHeadFields.Unsnapshotted),
                    new CreateIndexOptions()
-                {
+                   {
                        Name = MongoStreamIndexes.Unsnapshotted,
                        Unique = false
-                }
+                   }
                 );
 
                 EmptyRecycleBin();
@@ -483,15 +483,22 @@
             ThreadPool.QueueUserWorkItem(x =>
                 TryMongo(() =>
                 {
-                    BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
-                    PersistedStreamHeads.UpdateOne(
-                        Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
-                        Builders<BsonDocument>.Update
-                            .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
-                            .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
-                            .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
-                        new UpdateOptions() { IsUpsert = true }
-                    );
+                    try
+                    {
+                        BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
+                        PersistedStreamHeads.UpdateOne(
+                            Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
+                            Builders<BsonDocument>.Update
+                                .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                                .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
+                                .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
+                            new UpdateOptions() { IsUpsert = true }
+                        );
+                    }
+                    catch (MongoDuplicateKeyException ex)
+                    {
+                        Logger.Warn("Duplicate key exception {0} when upserting the stream head {1} {2}.", ex, bucketId, streamId);
+                    }
                 }), null);
         }
 
