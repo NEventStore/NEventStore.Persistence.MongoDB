@@ -1,4 +1,7 @@
-﻿namespace NEventStore.Persistence.MongoDB
+﻿using MongoDB.Bson;
+using NEventStore.Persistence.MongoDB.Support;
+
+namespace NEventStore.Persistence.MongoDB
 {
 	using System;
 	using global::MongoDB.Driver;
@@ -61,8 +64,36 @@
 			return database;
 		}
 
-	    public MongoPersistenceOptions()
+        /// <summary>
+        /// This is the instance of the Id Generator I want to use to 
+        /// generate checkpoint. 
+        /// </summary>
+	    public ICheckpointGenerator CheckpointGenerator { get; set; }
+
+        public ConcurrencyExceptionStrategy ConcurrencyStrategy { get; set; }
+
+        public String SystemBucketName { get; set; }
+
+        public MongoPersistenceOptions()
 	    {
+            SystemBucketName = "system";
+            ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue; 
 	    }
 	}
+
+    public enum ConcurrencyExceptionStrategy
+    {
+        /// <summary>
+        /// When a <see cref="ConcurrencyException"/> is thrown, simply continue
+        /// and ask to <see cref="ICheckpointGenerator"/> implementation new id.
+        /// </summary>
+        Continue = 0,
+
+        /// <summary>
+        /// When a <see cref="ConcurrencyException"/> is thrown, generate an empty
+        /// commit with current <see cref="LongCheckpoint"/>, then ask to 
+        /// <see cref="ICheckpointGenerator"/> implementation new id.
+        /// </summary>
+        FillHole = 1,
+    }
 }

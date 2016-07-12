@@ -73,6 +73,7 @@
     <Compile Include="MongoPersistenceWireup.cs" />
     <Compile Include="MongoPersistenceWireupExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Support\ICheckpointGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Messages.resx">

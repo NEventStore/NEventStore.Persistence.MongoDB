@@ -63,9 +63,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 if (c == 1)
                 {
                     client.Drop();
-                    client.Initialize();
                 }
-
+                client.Initialize();
                 _writers.Add(client);
             }
 
@@ -100,14 +99,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine(ex.Message);
+                            Console.WriteLine(ex.Message);
                             stop.Set();
                             //throw;
                         }
                         Thread.Sleep(rnd.Next(2));
                     }
                     var current = Interlocked.Increment(ref counter);
-                    Debug.WriteLine("Thread {0} completed. {1} done.", t1, current);
+                    Console.WriteLine("Thread {0} completed. {1} done.", t1, current);
                     if (current == ParallelWriters)
                     {
                         stop.Set();
@@ -421,4 +420,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             Assert.Equal(0, commits.Length);
         }
     }
+
+  
 }

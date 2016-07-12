@@ -8,15 +8,15 @@
         private const string EnvVarConnectionStringKey = "NEventStore.MongoDB";
         private const string EnvVarServerSideLoopKey = "NEventStore.MongoDB.ServerSideLoop";
 
-        public AcceptanceTestMongoPersistenceFactory()
+        public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions options = null)
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
-                new MongoPersistenceOptions()
+                options ?? new MongoPersistenceOptions()
             )
         { }
 
-        private static string GetConnectionString()
+        internal static string GetConnectionString()
         {
             string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
 
