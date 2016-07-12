@@ -207,16 +207,16 @@ namespace NEventStore.Persistence.MongoDB
                 .Select(x => x.ToCommit(_serializer)));
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, string checkpointToken)
+        public IEnumerable<ICommit> GetFrom(string bucketId, Int64 checkpointToken)
         {
-            var intCheckpoint = LongCheckpoint.Parse(checkpointToken);
-            Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, intCheckpoint.Value);
+
+            Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, checkpointToken);
 
             return TryMongo(() => PersistedCommits
                 .Find(
                     Builders<BsonDocument>.Filter.And(
                         Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, intCheckpoint.LongValue)
+                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     )
                 )
                 .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
@@ -225,27 +225,21 @@ namespace NEventStore.Persistence.MongoDB
             );
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken)
+        public IEnumerable<ICommit> GetFrom(Int64 checkpointToken)
         {
-            var intCheckpoint = LongCheckpoint.Parse(checkpointToken);
-            Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, intCheckpoint.Value);
+            Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
 
             return TryMongo(() => PersistedCommits
                 .Find(
                     Builders<BsonDocument>.Filter.And(
                         Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
-                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, intCheckpoint.LongValue)
+                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     )
                 )
                 .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer))
             );
-        }
-
-        public ICheckpoint GetCheckpoint(string checkpointToken = null)
-        {
-            return LongCheckpoint.Parse(checkpointToken);
         }
 
         public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
@@ -271,7 +265,7 @@ namespace NEventStore.Persistence.MongoDB
             {
                 Int64 checkpointId;
                 var commitDoc = attempt.ToMongoCommit(
-                    new LongCheckpoint(checkpointId = _checkpointGenerator.Next()),
+                    checkpointId = _checkpointGenerator.Next(),
                     _serializer
                 );
 
@@ -322,7 +316,7 @@ namespace NEventStore.Persistence.MongoDB
                             if (_options.ConcurrencyStrategy == ConcurrencyExceptionStrategy.FillHole)
                             {
                                 var holeFillDoc = attempt.ToEmptyCommit(
-                                   new LongCheckpoint(checkpointId),
+                                   checkpointId,
                                    _serializer,
                                    _systemBucketName
                                 );

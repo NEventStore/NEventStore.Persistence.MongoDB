@@ -27,7 +27,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         public void OnNext(ICommit value)
         {
-            var chkpoint = LongCheckpoint.Parse(value.CheckpointToken).LongValue;
+            var chkpoint = value.CheckpointToken;
             if (chkpoint  > _lastCheckpoint)
                 _counter++;
 
@@ -73,7 +73,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             var reader = new AcceptanceTestMongoPersistenceFactory().Build();
             _client = new PollingClient(reader, PollingInterval);
 
-            _observeCommits = _client.ObserveFrom(null);
+            _observeCommits = _client.ObserveFrom(0);
             _subscription = _observeCommits.Subscribe(_observer);
             _observeCommits.Start();
         }
@@ -156,7 +156,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void should_have_checkpoint_equal_to_one()
         {
-            LongCheckpoint.Parse(_commit.CheckpointToken).LongValue.ShouldBe(1);
+            _commit.CheckpointToken.ShouldBe(1);
         }
     }
 
@@ -176,7 +176,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void should_have_checkpoint_equal_to_two()
         {
-            LongCheckpoint.Parse(_commit.CheckpointToken).LongValue.ShouldBe(2);
+            _commit.CheckpointToken.ShouldBe(2);
         }
 
     }
@@ -198,7 +198,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void should_have_checkpoint_equal_to_two()
         {
-            LongCheckpoint.Parse(_commit.CheckpointToken).LongValue.ShouldBe(2);
+            _commit.CheckpointToken.ShouldBe(2);
         }
     }
 
@@ -206,7 +206,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     {
         const int Iterations = 10;
         const int Clients = 10;
-        string _checkpointToken;
+        Int64 _checkpointToken;
 
         protected override void Context()
         {
@@ -255,7 +255,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void should_have_correct_checkpoint()
         {
-            LongCheckpoint.Parse(_checkpointToken).LongValue.ShouldBe(Clients * Iterations + 1);
+            _checkpointToken.ShouldBe(Clients * Iterations + 1);
         }
     }
 
@@ -288,8 +288,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void the_commits_cannot_be_loaded_from_the_checkpoint()
         {
-            const string origin = null;
-            Persistence.GetFrom(origin).ShouldBeEmpty();
+            Persistence.GetFrom(0).ShouldBeEmpty();
         }
 
         [Fact]
@@ -335,7 +334,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void last_deleted_commit_has_the_higher_checkpoint_number()
         {
-            LongCheckpoint.Parse(_commits[0].CheckpointToken).LongValue.ShouldBe(4);
+            _commits[0].CheckpointToken.ShouldBe(4);
         }
     }
 
@@ -369,13 +368,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
     public class when_stream_is_added_after_a_bucket_purge : PersistenceEngineConcern
     {
-        LongCheckpoint _checkpointBeforePurge;
-        LongCheckpoint _checkpointAfterPurge;
+        Int64 _checkpointBeforePurge;
+        Int64 _checkpointAfterPurge;
 
         protected override void Context()
         {
             var commit = Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt());
-            _checkpointBeforePurge = LongCheckpoint.Parse(commit.CheckpointToken);
+            _checkpointBeforePurge = commit.CheckpointToken;
             Persistence.DeleteStream(commit.StreamId);
             Persistence.Purge("default");
         }
@@ -383,7 +382,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         protected override void Because()
         {
             var commit = Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt());
-            _checkpointAfterPurge = LongCheckpoint.Parse(commit.CheckpointToken);
+            _checkpointAfterPurge = commit.CheckpointToken;
         }
 
         [Fact]

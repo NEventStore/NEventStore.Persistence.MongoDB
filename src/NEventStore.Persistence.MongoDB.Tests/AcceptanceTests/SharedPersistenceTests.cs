@@ -31,8 +31,8 @@
         [Fact]
         public void should_have_a_checkpoint_greater_than_the_previous_commit_on_the_other_process()
         {
-            long chkNum1 = LongCheckpoint.Parse(_commit1.CheckpointToken).LongValue;
-            long chkNum2 = LongCheckpoint.Parse(_commit2.CheckpointToken).LongValue;
+            long chkNum1 = _commit1.CheckpointToken;
+            long chkNum2 = _commit2.CheckpointToken;
 
             chkNum2.ShouldBeGreaterThan(chkNum1);
         }

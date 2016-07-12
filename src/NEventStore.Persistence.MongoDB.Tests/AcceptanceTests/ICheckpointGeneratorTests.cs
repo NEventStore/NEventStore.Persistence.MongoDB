@@ -54,8 +54,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(2, commits.Length);
-            Assert.Equal("1", commits[0].CheckpointToken);
-            Assert.Equal("2", commits[1].CheckpointToken);
+            Assert.Equal(1, commits[0].CheckpointToken);
+            Assert.Equal(2, commits[1].CheckpointToken);
         }
 
         protected override void Cleanup()
@@ -104,12 +104,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(2, commits.Length);
-            Assert.Equal("1", commits[0].CheckpointToken);
-            Assert.Equal("3", commits[1].CheckpointToken);
+            Assert.Equal(1, commits[0].CheckpointToken);
+            Assert.Equal(3, commits[1].CheckpointToken);
 
-            commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
+            commits = Persistence.GetFrom("system", "system.empty.2", int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(1, commits.Length);
-            Assert.Equal("2", commits[0].CheckpointToken);
+            Assert.Equal(2, commits[0].CheckpointToken);
         }
 
         protected override void Cleanup()
@@ -163,8 +163,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(2, commits.Length);
-            Assert.Equal("1", commits[0].CheckpointToken);
-            Assert.Equal("3", commits[1].CheckpointToken);
+            Assert.Equal(1, commits[0].CheckpointToken);
+            Assert.Equal(3, commits[1].CheckpointToken);
 
             commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(0, commits.Length);
@@ -209,8 +209,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(2, commits.Length);
-            Assert.Equal("1", commits[0].CheckpointToken);
-            Assert.Equal("2", commits[1].CheckpointToken);
+            Assert.Equal(1, commits[0].CheckpointToken);
+            Assert.Equal(2, commits[1].CheckpointToken);
 
             commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
             Assert.Equal(0, commits.Length);
