@@ -5,6 +5,40 @@ Mongo Persistence Engine for NEventStore v6
 
 Changelog at https://github.com/NEventStore/NEventStore.Persistence.MongoDB/blob/master/src/NEventStore.Persistence.MongoDB/Readme.txt
 
+## How to Build (locally)
+
+- clone the repository with:
+
+```
+git clone --recursive https://github.com/NEventStore/NEventStore.Persistence.MongoDB.git
+```
+
+or
+
+```
+git clone https://github.com/NEventStore/NEventStore.Persistence.MongoDB.git
+git submodule update
+```
+
+- execute 'RestorePackages.bat' to restore the NuGet packages for the main project and any submodule
+
+```
+RestorePackages.bat
+```
+
+To build the project locally use the following scripts:
+
+"RestorePackages.bat": let NuGet download all the packages it needs, you need to do this at least once to download all the tools needed to compile the library outside Visual Studio.
+
+"Build.RunTask.bat TaskName": executes the specified Task, available tasks are:
+
+- Clean - clean up the output and publish folders
+- UpdateVersion - update the assembly version info files 
+- Compile - compiles the solution
+- Test - executes unit tests
+- Build - executes Clean, UpdateVersion, Compile and Test 
+- Package - executes Build and publishes the artifacts
+
 ##How to contribute
 
 ###Git-Flow
