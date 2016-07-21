@@ -5,6 +5,27 @@ Mongo Persistence Engine for NEventStore v6
 
 Changelog at https://github.com/NEventStore/NEventStore.Persistence.MongoDB/blob/master/src/NEventStore.Persistence.MongoDB/Readme.txt
 
+## How to Build (locally)
+
+- clone the repository with:
+
+```
+git clone --recursive https://github.com/NEventStore/NEventStore.Persistence.MongoDB.git
+```
+
+or
+
+```
+git clone https://github.com/NEventStore/NEventStore.Persistence.MongoDB.git
+git submodule update
+```
+
+- execute 'RestorePackages.bat' to restore the NuGet packages for the main project and any submodule
+
+```
+RestorePackages.bat
+```
+
 ##How to contribute
 
 ###Git-Flow
