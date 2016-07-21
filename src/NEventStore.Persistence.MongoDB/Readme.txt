@@ -1,6 +1,11 @@
 ﻿============================================
 Change Log
 ============================================
+6.0.0
+-Added support for Id Generation done from client.
+-Removed LongCheckpoint
+-Removed ServerSideLoop to generate CheckpointId
+
 5.2.0
 - Add support for IPersistStreams.GetFrom(BucketId, CheckpointToken) 
 https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/25
