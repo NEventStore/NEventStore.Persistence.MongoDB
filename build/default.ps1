@@ -1,14 +1,14 @@
 properties {
     $base_directory = Resolve-Path .. 
 	$publish_directory = "$base_directory\publish-net40"
-	$build_directory = "$base_directory\build"
+	#$build_directory = "$base_directory\build"
 	$src_directory = "$base_directory\src"
 	$output_directory = "$base_directory\output"
-	$packages_directory = "$src_directory\packages"
+	#$packages_directory = "$src_directory\packages"
 	$sln_file = "$src_directory\NEventStore.Persistence.MongoDB.sln"
 	$target_config = "Release"
-	$framework_version = "v4.5"
-	$version = "0.0.0.0"
+	#$framework_version = "v4.5"
+	#$version = "0.0.0.0"
 
 	$xunit_path = "$base_directory\bin\xunit.runners.1.9.1\tools\xunit.console.clr4.exe"
 	$ilMergeModule.ilMergePath = "$base_directory\bin\ilmerge-bin\ILMerge.exe"
@@ -23,26 +23,26 @@ task default -depends Build
 
 task Build -depends Clean, UpdateVersion, Compile, Test
 
-task Clean {
-	Clean-Item $publish_directory -ea SilentlyContinue
-    Clean-Item $output_directory -ea SilentlyContinue
-}
-
 task UpdateVersion {
-	$vSplit = $version.Split('.')
-	if($vSplit.Length -ne 4)
-	{
-		throw "Version number is invalid. Must be in the form of 0.0.0.0"
-	}
-	$major = $vSplit[0]
-	$minor = $vSplit[1]
-	$assemblyFileVersion = $version
-	$assemblyVersion = "$major.$minor.0.0"
-	$versionAssemblyInfoFile = "$src_directory/VersionAssemblyInfo.cs"
-	"using System.Reflection;" > $versionAssemblyInfoFile
-	"" >> $versionAssemblyInfoFile
-	"[assembly: AssemblyVersion(""$assemblyVersion"")]" >> $versionAssemblyInfoFile
-	"[assembly: AssemblyFileVersion(""$assemblyFileVersion"")]" >> $versionAssemblyInfoFile
+	# a task to invoke GitVersion using the configuration file found in the 
+	# root of the repository (GitVersionConfig.yaml)
+	& ..\src\packages\GitVersion.CommandLine.3.5.4\tools\GitVersion.exe $base_directory /nofetch /updateassemblyinfo
+
+	# outdated code that was using parameters passed to the build script
+	#$vSplit = $version.Split('.')
+	#if($vSplit.Length -ne 4)
+	#{
+	#	throw "Version number is invalid. Must be in the form of 0.0.0.0"
+	#}
+	#$major = $vSplit[0]
+	#$minor = $vSplit[1]
+	#$assemblyFileVersion = $version
+	#$assemblyVersion = "$major.$minor.0.0"
+	#$versionAssemblyInfoFile = "$src_directory/VersionAssemblyInfo.cs"
+	#"using System.Reflection;" > $versionAssemblyInfoFile
+	#"" >> $versionAssemblyInfoFile
+	#"[assembly: AssemblyVersion(""$assemblyVersion"")]" >> $versionAssemblyInfoFile
+	#"[assembly: AssemblyFileVersion(""$assemblyFileVersion"")]" >> $versionAssemblyInfoFile
 }
 
 task Compile {
@@ -66,9 +66,15 @@ task Package -depends Build {
     copy "$src_directory\NEventStore.Persistence.MongoDB\bin\$target_config\readme.txt" "$publish_directory\plugins\persistence\mongo"
 }
 
-task NuGetPack -depends Package {
-	gci -r -i *.nuspec "$nuget_dir" |% { .$nuget_dir\nuget.exe pack $_ -basepath $base_directory -o $publish_directory -version $version }
+task Clean {
+	Clean-Item $publish_directory -ea SilentlyContinue
+    Clean-Item $output_directory -ea SilentlyContinue
 }
+
+# todo: review this action, this is not going to work
+#task NuGetPack -depends Package {
+#	gci -r -i *.nuspec "$nuget_dir" |% { .$nuget_dir\nuget.exe pack $_ -basepath $base_directory -o $publish_directory -version $version }
+#}
 
 function EnsureDirectory {
 	param($directory)
