@@ -98,6 +98,15 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 	{
 		private ICommit _persisted;
 		private string _streamId;
+
+		public when_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_name_that_contains_a_period()
+		{
+			// the underling implementation uses a static field to keep this information so changing it in a test might create
+			// problems in other tests, we need a way to reset the default behavior
+			var options = new MongoPersistenceOptions();
+			options.CommitHeadersDictionaryRepresentation = global::MongoDB.Bson.Serialization.Options.DictionaryRepresentation.ArrayOfArrays;
+			PersistenceEngineFixture.Options = options;
+		}
 		
 		protected override void Context()
 		{
