@@ -104,7 +104,7 @@ namespace NEventStore.Persistence.MongoDB
 
 		/// <summary>
 		/// When a <see cref="ConcurrencyException"/> is thrown, generate an empty
-		/// commit with current <see cref="LongCheckpoint"/>, then ask to 
+		/// commit with current checkpoint token, then ask to 
 		/// <see cref="ICheckpointGenerator"/> implementation new id.
 		/// </summary>
 		FillHole = 1,

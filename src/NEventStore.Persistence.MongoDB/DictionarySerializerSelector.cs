@@ -13,6 +13,11 @@ namespace NEventStore.Persistence.MongoDB
 		internal static DictionaryRepresentation DictionaryRepresentation;
 		internal static IBsonSerializer DictionarySerializer;
 
+		static DictionarySerializerSelector()
+		{
+			SetDictionaryRepresentation(DictionaryRepresentation.ArrayOfArrays);
+		}
+
 		public static void SetDictionaryRepresentation(DictionaryRepresentation dictionaryRepresentation)
 		{
 			DictionaryRepresentation = dictionaryRepresentation;

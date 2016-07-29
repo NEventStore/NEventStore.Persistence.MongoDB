@@ -12,24 +12,22 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 	/// <summary>
 	/// Be carefull! this test will fail with 'Catastrophic Failure' and Visual Studio IDE will report this as not run.
 	/// </summary>
-	public class when_serializing_headers_as_Document_and_a_commit_header_has_a_name_that_contains_a_period : SpecificationBase
+	public class when_serializing_headers_as_Document_and_a_commit_header_has_a_name_that_contains_a_period : PersistenceEngineConcern
 	{
 		// private ICommit _persisted;
 		private string _streamId;
-		private IPersistStreams Persistence;
-
+		
 		private Exception _thrown;
 
-		protected override void Context()
+		public when_serializing_headers_as_Document_and_a_commit_header_has_a_name_that_contains_a_period()
 		{
-			Persistence = new AcceptanceTestMongoPersistenceFactory(
-				new MongoPersistenceOptions
-				{
-					CommitHeadersDictionaryRepresentation =
-						global::MongoDB.Bson.Serialization.Options.DictionaryRepresentation.Document
-				}
-				).Build();
+			var options = new MongoPersistenceOptions();
+			options.CommitHeadersDictionaryRepresentation = global::MongoDB.Bson.Serialization.Options.DictionaryRepresentation.Document;
+			PersistenceEngineFixture.Options = options;
 		}
+
+		protected override void Context()
+		{ }
 
 		protected override void Because()
 		{
@@ -59,22 +57,20 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 		}
 	}
 
-	public class when_serializing_headers_as_Document_and_a_commit_header_has_a_valid_name : SpecificationBase
+	public class when_serializing_headers_as_Document_and_a_commit_header_has_a_valid_name : PersistenceEngineConcern
 	{
 		private ICommit _persisted;
 		private string _streamId;
-		private IPersistStreams Persistence;
+		
+		public when_serializing_headers_as_Document_and_a_commit_header_has_a_valid_name()
+		{
+			var options = new MongoPersistenceOptions();
+			options.CommitHeadersDictionaryRepresentation = global::MongoDB.Bson.Serialization.Options.DictionaryRepresentation.Document;
+			PersistenceEngineFixture.Options = options;
+		}
 
 		protected override void Context()
 		{
-			Persistence = new AcceptanceTestMongoPersistenceFactory(
-				new MongoPersistenceOptions
-				{
-					CommitHeadersDictionaryRepresentation =
-						global::MongoDB.Bson.Serialization.Options.DictionaryRepresentation.Document
-				}
-				).Build();
-
 			_streamId = Guid.NewGuid().ToString();
 			var attempt = new CommitAttempt(_streamId,
 				2,
@@ -98,22 +94,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 		}
 	}
 
-	public class when_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_name_that_contains_a_period : SpecificationBase
+	public class when_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_name_that_contains_a_period : PersistenceEngineConcern
 	{
 		private ICommit _persisted;
 		private string _streamId;
-		private IPersistStreams Persistence;
-
+		
 		protected override void Context()
 		{
-			Persistence = new AcceptanceTestMongoPersistenceFactory(
-				new MongoPersistenceOptions
-				{
-					CommitHeadersDictionaryRepresentation =
-					global::MongoDB.Bson.Serialization.Options.DictionaryRepresentation.ArrayOfArrays
-				}
-				).Build();
-
 			_streamId = Guid.NewGuid().ToString();
 			var attempt = new CommitAttempt(_streamId,
 				2,
