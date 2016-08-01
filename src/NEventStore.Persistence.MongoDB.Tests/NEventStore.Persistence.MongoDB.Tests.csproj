@@ -77,6 +77,7 @@
     <Compile Include="AcceptanceTests\SharedPersistenceTests.cs" />
     <Compile Include="AcceptanceTests\Issues\Issue8.cs" />
     <Compile Include="AcceptanceTests\ICheckpointGeneratorTests.cs" />
+    <Compile Include="MongoDbSerializationTests\BsonDocumentWrapperSerialization.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
