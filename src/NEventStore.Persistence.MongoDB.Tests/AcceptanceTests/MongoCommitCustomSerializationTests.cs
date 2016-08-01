@@ -21,8 +21,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 	{
 		public static void MapMongoCommit_Header_as_Document()
 		{
-
-
 			if (!BsonClassMap.IsClassMapRegistered(typeof(MongoCommit)))
 			{
 				BsonClassMap.RegisterClassMap<MongoCommit>(cm =>
@@ -83,7 +81,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 			// _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
 		}
 
-		[Fact]
+		[Fact(Skip = "Run Manually")]
 		public void should_throw_serialization_exception_due_to_invalid_key()
 		{
 			// _persisted.Headers.Keys.ShouldContain("key.1");
@@ -121,7 +119,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 			_persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
 		}
 
-		[Fact]
+		[Fact(Skip = "Run Manually")]
 		public void should_correctly_deserialize_headers()
 		{
 			_persisted.Headers.Keys.ShouldContain("key");
@@ -156,7 +154,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 			_persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
 		}
 
-		[Fact]
+		[Fact(Skip = "Run Manually")]
 		public void should_correctly_deserialize_headers()
 		{
 			_persisted.Headers.Keys.ShouldContain("key.1");

@@ -37,22 +37,23 @@ namespace NEventStore.Persistence.MongoDB
 		{
 			int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
 			int streamRevisionStart = streamRevision;
-			MongoCommitEvent[] events = commit
+
+			IEnumerable<BsonDocument> events = commit
 				.Events
 				.Select(e =>
-					new MongoCommitEvent
+					new BsonDocument
 					{
-						StreamRevision = streamRevision++,
-						Payload = BsonDocumentWrapper.Create(serializer.Serialize(e))
-					}).ToArray();
+						{MongoCommitFields.StreamRevision, streamRevision++},
+						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(e))}
+					}).ToList();
 
 			var mc = new MongoCommit
 			{
 				CheckpointNumber = checkpoint,
 				CommitId = commit.CommitId,
 				CommitStamp = commit.CommitStamp,
-				Headers = commit.Headers, // as Dictionary<string, object>,	// this is bad, we are assuming it is a dictionary!
-				Events = events,
+				Headers = commit.Headers,
+				Events = new BsonArray(events),
 				StreamRevisionFrom = streamRevisionStart,
 				StreamRevisionTo = streamRevision - 1,
 				BucketId = commit.BucketId,
@@ -84,7 +85,7 @@ namespace NEventStore.Persistence.MongoDB
 				CommitId = commit.CommitId,
 				CommitStamp = commit.CommitStamp,
 				Headers = new Dictionary<String, Object>(),
-				Events = new MongoCommitEvent[] { },
+				Events = new BsonArray(new object[] { }),
 				StreamRevisionFrom = 0,
 				StreamRevisionTo = 0,
 				BucketId = systemBucketName,
@@ -145,9 +146,9 @@ namespace NEventStore.Persistence.MongoDB
 				mc.CommitStamp,
 				mc.CheckpointNumber,
 				mc.Headers,
-				mc.Events.Select(e => e.Payload.IsBsonDocument
-					? BsonSerializer.Deserialize<EventMessage>(e.Payload)
-					: serializer.Deserialize<EventMessage>(e.Payload.AsByteArray))); // ByteStreamDocumentSerializer ?!?! doesn't work this way!
+				mc.Events.Select(e => e.AsBsonDocument[MongoCommitFields.Payload].IsBsonDocument
+					? BsonSerializer.Deserialize<EventMessage>(e.AsBsonDocument[MongoCommitFields.Payload].ToBsonDocument())
+					: serializer.Deserialize<EventMessage>(e.AsBsonDocument[MongoCommitFields.Payload].AsByteArray))); // ByteStreamDocumentSerializer ?!?! doesn't work this way!
 		}
 
 		[Obsolete("Original code, not used anymore, replaced by the new configurable version")]
@@ -277,21 +278,11 @@ namespace NEventStore.Persistence.MongoDB
 		[BsonDictionaryOptions(DictionaryRepresentation.ArrayOfArrays)] // we can override this specifing a classmap OR implementing an IBsonSerializer and an IBsonSerializationProvider 
 		public IDictionary<string, object> Headers { get; set; }
 		// multiple evaluations using linq can be dangerous, maybe it's better have a plain array to avoid bugs
-		public IEnumerable<MongoCommitEvent> Events { get; set; }
+		public BsonArray Events { get; set; }
 		public int StreamRevisionFrom { get; set; }
 		public int StreamRevisionTo { get; set; }
 		public string BucketId { get; set; }
 		public string StreamId { get; set; }
 		public int CommitSequence { get; set; }
-	}
-
-	// we can fully qualify this class if we get rid of using IDocumentSerializer or we can revert to having a BsonArray and do
-	// everything by hand once again.
-	public class MongoCommitEvent
-	{
-		public int StreamRevision { get; set; }
-
-		// the Payload Here can be an EventMessage to keep the serialization even simpler.
-		public BsonDocument Payload { get; set; }
 	}
 }

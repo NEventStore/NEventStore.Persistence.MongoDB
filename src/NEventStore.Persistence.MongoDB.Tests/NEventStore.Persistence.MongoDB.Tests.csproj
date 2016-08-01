@@ -72,13 +72,12 @@
       <Link>AcceptanceTests\PersistenceTests.cs</Link>
     </Compile>
     <Compile Include="AcceptanceTestMongoPersistenceFactory.cs" />
-    <Compile Include="AcceptanceTests\MongoCommitSerializationTests.cs" />
+    <Compile Include="AcceptanceTests\MongoCommitCustomSerializationTests.cs" />
     <Compile Include="AcceptanceTests\OptimisticLoopTests.cs" />
     <Compile Include="AcceptanceTests\PersistenceEngineFixture.cs" />
     <Compile Include="AcceptanceTests\SharedPersistenceTests.cs" />
     <Compile Include="AcceptanceTests\Issues\Issue8.cs" />
     <Compile Include="AcceptanceTests\ICheckpointGeneratorTests.cs" />
-    <Compile Include="MongoDbSerializationTests\BsonDocumentWrapperSerialization.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
