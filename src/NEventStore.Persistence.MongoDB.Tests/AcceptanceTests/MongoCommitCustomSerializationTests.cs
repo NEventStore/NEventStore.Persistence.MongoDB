@@ -12,6 +12,8 @@ using Xunit.Should;
 
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 {
+#warning due to problems with the xUnit test runner (it does not skip the tests marked with Fact(Skip="...") in the build server) we have actually disabled these tests commenting out the [Fact] attrubute, to run them you need to add it back manually
+
 	/// <summary>
 	/// the problem here is that this is 'static', no way to change it once it it defined, so the tests need to be run
 	/// manually :(	
@@ -81,7 +83,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 			// _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
 		}
 
-		[Fact(Skip = "Run Manually")]
+		// Enable this test manually, it does not get skipped in the build server causing the build to fail
+		// [Fact(Skip = "Run it Manually")]
 		public void should_throw_serialization_exception_due_to_invalid_key()
 		{
 			// _persisted.Headers.Keys.ShouldContain("key.1");
@@ -119,7 +122,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 			_persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
 		}
 
-		[Fact(Skip = "Run Manually")]
+		// Enable this test manually, it does not get skipped in the build server causing the build to fail
+		// [Fact(Skip = "Run it Manually")]
 		public void should_correctly_deserialize_headers()
 		{
 			_persisted.Headers.Keys.ShouldContain("key");
@@ -154,7 +158,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 			_persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
 		}
 
-		[Fact(Skip = "Run Manually")]
+		// Enable this test manually, it does not get skipped in the build server causing the build to fail
+		// [Fact(Skip = "Run it Manually")]
 		public void should_correctly_deserialize_headers()
 		{
 			_persisted.Headers.Keys.ShouldContain("key.1");
