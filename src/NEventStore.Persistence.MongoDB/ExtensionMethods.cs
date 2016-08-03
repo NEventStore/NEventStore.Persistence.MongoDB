@@ -267,6 +267,8 @@ namespace NEventStore.Persistence.MongoDB
 		}
 	}
 
+	// let's ignore the extra elements, the 'Dispatched' field and the dispatched concept have been dropped in NEventStore 6
+	[BsonIgnoreExtraElements]
 	public class MongoCommit
 	{
 		[BsonId]
