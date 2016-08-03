@@ -74,6 +74,16 @@ namespace NEventStore.Persistence.MongoDB
 
         public String SystemBucketName { get; set; }
 
+        /// <summary>
+        /// Set this property to true to ask Persistence Engine to disable 
+        /// snapshot support. If you are not using snapshot functionalities
+        /// this options allows you to save the extra insert to insert Stream Heads.
+        /// </summary>
+        /// <remarks>If you disable Stream Heads, you are not able to ask
+        /// for stream that need to be snapshotted. Basically you should set
+        /// this to true if you not use NEventstore snapshot functionalities.</remarks>
+        public Boolean DisableSnapshotSupport { get; set; }
+
         public MongoPersistenceOptions()
 	    {
             SystemBucketName = "system";

@@ -153,15 +153,18 @@ namespace NEventStore.Persistence.MongoDB
                    }
                 );
 
-                PersistedStreamHeads.Indexes.CreateOne(
-                   Builders<BsonDocument>.IndexKeys
-                       .Ascending(MongoStreamHeadFields.Unsnapshotted),
-                   new CreateIndexOptions()
+                if (_options.DisableSnapshotSupport == false)
                 {
-                       Name = MongoStreamIndexes.Unsnapshotted,
-                       Unique = false
+                    PersistedStreamHeads.Indexes.CreateOne(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoStreamHeadFields.Unsnapshotted),
+                        new CreateIndexOptions()
+                        {
+                            Name = MongoStreamIndexes.Unsnapshotted,
+                            Unique = false
+                        }
+                    );
                 }
-                );
 
                 _checkpointGenerator = _options.CheckpointGenerator ??
                     new AlwaysQueryDbForNextValueCheckpointGenerator(PersistedCommits);
@@ -278,7 +281,10 @@ namespace NEventStore.Persistence.MongoDB
                         PersistedCommits.InsertOne(commitDoc);
 
                         retry = false;
-                        UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
+                        if (!_options.DisableSnapshotSupport)
+                        {
+                            UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
+                        }
                         Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
                     }
                     catch (MongoException e)
@@ -334,6 +340,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
         {
+            CheckIfSnapshotEnabled();
             Logger.Debug(Messages.GettingStreamsToSnapshot);
 
             return TryMongo(() =>
@@ -349,6 +356,8 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
         {
+            CheckIfSnapshotEnabled();
+
             Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
             var query = ExtensionMethods.GetSnapshotQuery(bucketId, streamId, maxRevision);
 
@@ -363,6 +372,8 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual bool AddSnapshot(ISnapshot snapshot)
         {
+            CheckIfSnapshotEnabled();
+
             if (snapshot == null)
             {
                 return false;
@@ -482,15 +493,15 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     try
                     {
-                    BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
-                    PersistedStreamHeads.UpdateOne(
-                        Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
-                        Builders<BsonDocument>.Update
-                            .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
-                            .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
-                            .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
-                        new UpdateOptions() { IsUpsert = true }
-                    );
+                        BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
+                        PersistedStreamHeads.UpdateOne(
+                            Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
+                            Builders<BsonDocument>.Update
+                                .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                                .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
+                                .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
+                            new UpdateOptions() { IsUpsert = true }
+                        );
                     }
                     catch (MongoDuplicateKeyException ex)
                     {
@@ -572,6 +583,12 @@ namespace NEventStore.Persistence.MongoDB
                                       .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
                                       .ToEnumerable()
                                       .Select(mc => mc.ToCommit(_serializer)));
+        }
+
+        private void CheckIfSnapshotEnabled()
+        {
+            if (_options.DisableSnapshotSupport)
+                throw new NotSupportedException("Snapshot is disabled from MongoPersistenceOptions");
         }
     }
 }
