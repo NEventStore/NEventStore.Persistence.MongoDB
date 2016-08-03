@@ -44,7 +44,7 @@ namespace NEventStore.Persistence.MongoDB
 					new BsonDocument
 					{
 						{MongoCommitFields.StreamRevision, streamRevision++},
-						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(e))}
+						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(typeof(EventMessage), serializer.Serialize(e))}
 					}).ToList();
 
 			var mc = new MongoCommit
@@ -76,7 +76,7 @@ namespace NEventStore.Persistence.MongoDB
 					new BsonDocument
 					{
 						{MongoCommitFields.StreamRevision, streamRevision++},
-						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(e))}
+						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(typeof(EventMessage), serializer.Serialize(e))}
 					});
 
 			var mc = new MongoCommit
@@ -107,7 +107,7 @@ namespace NEventStore.Persistence.MongoDB
 					new BsonDocument
 					{
 						{MongoCommitFields.StreamRevision, streamRevision++},
-						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(e))}
+						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(typeof(EventMessage), serializer.Serialize(e))}
 					});
 
 			//var dictionarySerialize = new DictionaryInterfaceImplementerSerializer<Dictionary<string, object>>(DictionaryRepresentation.ArrayOfArrays);
