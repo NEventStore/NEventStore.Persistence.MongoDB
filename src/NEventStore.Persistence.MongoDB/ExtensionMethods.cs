@@ -35,6 +35,9 @@ namespace NEventStore.Persistence.MongoDB
 
 		public static BsonDocument ToMongoCommit(this CommitAttempt commit, Int64 checkpoint, IDocumentSerializer serializer)
 		{
+            if (serializer is DocumentObjectSerializer)
+                return ToMongoCommit(commit, checkpoint);
+
 			int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
 			int streamRevisionStart = streamRevision;
 
@@ -64,10 +67,38 @@ namespace NEventStore.Persistence.MongoDB
 			return mc.ToBsonDocument();
 		}
 
-		public static BsonDocument ToEmptyCommit(this CommitAttempt commit, Int64 checkpoint, IDocumentSerializer serializer, String systemBucketName)
+        public static BsonDocument ToMongoCommit(this CommitAttempt commit, Int64 checkpoint)
+        {
+            int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
+            int streamRevisionStart = streamRevision;
+
+            var mc = new PlainMongoCommit()
+            {
+                CheckpointToken = checkpoint,
+                CommitId = commit.CommitId,
+                CommitStamp = commit.CommitStamp,
+                Headers = commit.Headers,
+                Events = commit.Events.Select(e => new PlainMongoCommit.PlainEvent() {
+                    StreamRevision = streamRevision++,
+                    Payload = e,
+                }).ToList(),
+                StreamRevisionFrom = streamRevisionStart,
+                StreamRevisionTo = streamRevision - 1,
+                BucketId = commit.BucketId,
+                StreamId = commit.StreamId,
+                CommitSequence = commit.CommitSequence
+            };
+
+            return mc.ToBsonDocument();
+        }
+
+        public static BsonDocument ToEmptyCommit(this CommitAttempt commit, Int64 checkpoint, IDocumentSerializer serializer, String systemBucketName)
 		{
 			if (commit == null) throw new ArgumentNullException("commit");
-			if (String.IsNullOrEmpty(systemBucketName)) throw new ArgumentNullException("systemBucketName");
+            if (serializer is DocumentObjectSerializer)
+                return ToEmptyCommit(commit, checkpoint, systemBucketName);
+
+            if (String.IsNullOrEmpty(systemBucketName)) throw new ArgumentNullException("systemBucketName");
 			int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
 			int streamRevisionStart = streamRevision;
 			IEnumerable<BsonDocument> events = commit
@@ -96,45 +127,38 @@ namespace NEventStore.Persistence.MongoDB
 			return mc.ToBsonDocument();
 		}
 
-		[Obsolete("Original code, not used anymore, replaced by the new configurable version")]
-		public static BsonDocument ToMongoCommit_original(this CommitAttempt commit, Int64 checkpoint, IDocumentSerializer serializer)
-		{
-			int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
-			int streamRevisionStart = streamRevision;
-			IEnumerable<BsonDocument> events = commit
-				.Events
-				.Select(e =>
-					new BsonDocument
-					{
-						{MongoCommitFields.StreamRevision, streamRevision++},
-						{MongoCommitFields.Payload, BsonDocumentWrapper.Create(typeof(EventMessage), serializer.Serialize(e))}
-					});
+        public static BsonDocument ToEmptyCommit(this CommitAttempt commit, Int64 checkpoint, String systemBucketName)
+        {
+            if (commit == null) throw new ArgumentNullException("commit");
+            if (String.IsNullOrEmpty(systemBucketName)) throw new ArgumentNullException("systemBucketName");
 
-			//var dictionarySerialize = new DictionaryInterfaceImplementerSerializer<Dictionary<string, object>>(DictionaryRepresentation.ArrayOfArrays);
-			//var dicSer = BsonSerializer.LookupSerializer<Dictionary<string, object>>();
+            var mc = new PlainMongoCommit
+            {
+                CheckpointToken = checkpoint,
+                CommitId = commit.CommitId,
+                CommitStamp = commit.CommitStamp,
+                Headers = new Dictionary<String, Object>(),
+                Events = new List<PlainMongoCommit.PlainEvent>(),
+                StreamRevisionFrom = 0,
+                StreamRevisionTo = 0,
+                BucketId = systemBucketName,
+                StreamId = systemBucketName + ".empty." + checkpoint,
+                CommitSequence = 1
+            };
 
-			return new BsonDocument
-			{
-				{MongoCommitFields.CheckpointNumber, checkpoint},
-				{MongoCommitFields.CommitId, commit.CommitId},
-				{MongoCommitFields.CommitStamp, commit.CommitStamp},
-				{MongoCommitFields.Headers, BsonDocumentWrapper.Create(commit.Headers)},
-				{MongoCommitFields.Events, new BsonArray(events)},
-				{MongoCommitFields.Dispatched, false},
-				{MongoCommitFields.StreamRevisionFrom, streamRevisionStart},
-				{MongoCommitFields.StreamRevisionTo, streamRevision - 1},
-				{MongoCommitFields.BucketId, commit.BucketId},
-				{MongoCommitFields.StreamId, commit.StreamId},
-				{MongoCommitFields.CommitSequence, commit.CommitSequence}
-			};
-		}
+            return mc.ToBsonDocument();
+        }
 
+
+     
 		public static ICommit ToCommit(this BsonDocument doc, IDocumentSerializer serializer)
 		{
 			if (doc == null)
 			{
 				return null;
 			}
+            if (serializer is DocumentObjectSerializer)
+                return ToCommit(doc);
 
 			var mc = BsonSerializer.Deserialize<MongoCommit>(doc);
 
@@ -151,38 +175,17 @@ namespace NEventStore.Persistence.MongoDB
 					: serializer.Deserialize<EventMessage>(e.AsBsonDocument[MongoCommitFields.Payload].AsByteArray))); // ByteStreamDocumentSerializer ?!?! doesn't work this way!
 		}
 
-		[Obsolete("Original code, not used anymore, replaced by the new configurable version")]
-		public static ICommit ToCommit_original(this BsonDocument doc, IDocumentSerializer serializer)
-		{
-			if (doc == null)
-			{
-				return null;
-			}
+        public static ICommit ToCommit(this BsonDocument doc)
+        {
+            if (doc == null)
+            {
+                return null;
+            }
 
-			string bucketId = doc[MongoCommitFields.BucketId].AsString;
-			string streamId = doc[MongoCommitFields.StreamId].AsString;
-			int commitSequence = doc[MongoCommitFields.CommitSequence].AsInt32;
+            return BsonSerializer.Deserialize<PlainMongoCommit>(doc);
+        }
 
-			List<EventMessage> events = doc[MongoCommitFields.Events]
-				.AsBsonArray
-				.Select(e => e.AsBsonDocument[MongoCommitFields.Payload].IsBsonDocument
-					? BsonSerializer.Deserialize<EventMessage>(e.AsBsonDocument[MongoCommitFields.Payload].ToBsonDocument())
-					: serializer.Deserialize<EventMessage>(e.AsBsonDocument[MongoCommitFields.Payload].AsByteArray))
-				.ToList();
-			//int streamRevision = doc[MongoCommitFields.Events].AsBsonArray.Last().AsBsonDocument[MongoCommitFields.StreamRevision].AsInt32;
-			int streamRevision = doc[MongoCommitFields.StreamRevisionTo].AsInt32;
-			return new Commit(bucketId,
-				streamId,
-				streamRevision,
-				doc[MongoCommitFields.CommitId].AsGuid,
-				commitSequence,
-				doc[MongoCommitFields.CommitStamp].ToUniversalTime(),
-				doc[MongoCommitFields.CheckpointNumber].ToInt64(),
-				doc[MongoCommitFields.Headers].AsDictionary<string, object>(),
-				events);
-		}
-
-		public static BsonDocument ToMongoSnapshot(this ISnapshot snapshot, IDocumentSerializer serializer)
+        public static BsonDocument ToMongoSnapshot(this ISnapshot snapshot, IDocumentSerializer serializer)
 		{
 			return new BsonDocument
 			{
@@ -287,4 +290,46 @@ namespace NEventStore.Persistence.MongoDB
 		public string StreamId { get; set; }
 		public int CommitSequence { get; set; }
 	}
+
+    // let's ignore the extra elements, the 'Dispatched' field and the dispatched concept have been dropped in NEventStore 6
+    [BsonIgnoreExtraElements]
+    public sealed class PlainMongoCommit : ICommit
+    {
+        [BsonId]
+        public long CheckpointToken { get; set; }
+
+        public Guid CommitId { get; set; }
+        public DateTime CommitStamp { get; set; }
+
+        [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfArrays)] // we can override this specifing a classmap OR implementing an IBsonSerializer and an IBsonSerializationProvider 
+        public IDictionary<string, object> Headers { get; set; }
+        // multiple evaluations using linq can be dangerous, maybe it's better have a plain array to avoid bugs
+        public ICollection<PlainEvent> Events { get; set; }
+        public int StreamRevisionFrom { get; set; }
+        public int StreamRevisionTo { get; set; }
+
+        [BsonIgnore]
+        public int StreamRevision { get { return StreamRevisionTo; } }
+
+        public string BucketId { get; set; }
+        public string StreamId { get; set; }
+        public int CommitSequence { get; set; }
+
+        private List<EventMessage> _plainEvents;
+        ICollection<EventMessage> ICommit.Events
+        {
+            get
+            {
+                if (Events == null) return new List<EventMessage>();
+                return _plainEvents ?? (_plainEvents = Events.Select(e => e.Payload).ToList());
+            }
+        }
+
+        public class PlainEvent
+        {
+            public Int32 StreamRevision { get; set; }
+
+            public EventMessage Payload { get; set; }
+        }
+    }
 }
