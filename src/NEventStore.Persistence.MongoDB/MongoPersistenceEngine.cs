@@ -306,6 +306,7 @@ namespace NEventStore.Persistence.MongoDB
                         {
                             if (e.Message.Contains(MongoCommitIndexes.CommitId))
                             {
+                                Logger.Info(String.Format("Duplicated commitId {0}", attempt.CommitId));
                                 throw new DuplicateCommitException();
                             }
 
@@ -316,6 +317,7 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
+                                Logger.Info(String.Format("Duplicated commitId {0}", attempt.CommitId));
                                 throw new DuplicateCommitException();
                             }
 
@@ -328,7 +330,7 @@ namespace NEventStore.Persistence.MongoDB
                                 );
                                 PersistedCommits.InsertOne(holeFillDoc);
                             }
-
+                            Logger.Warn(String.Format("Concurrency exception for commit {0} [{1}] due to mongo exception {2}", attempt.CommitId, checkpointId, e));
                             throw new ConcurrencyException();
                         }
                     }
