@@ -330,7 +330,7 @@ namespace NEventStore.Persistence.MongoDB
                                 );
                                 PersistedCommits.InsertOne(holeFillDoc);
                             }
-                            Logger.Warn(String.Format("Concurrency exception for commit {0} [{1}] due to mongo exception {2}", attempt.CommitId, checkpointId, e));
+                            Logger.Info(String.Format("Concurrency exception for commit {0} [{1}] due to mongo exception {2}", attempt.CommitId, checkpointId, e));
                             throw new ConcurrencyException();
                         }
                     }
