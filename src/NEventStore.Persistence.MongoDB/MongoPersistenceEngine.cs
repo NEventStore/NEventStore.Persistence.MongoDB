@@ -470,14 +470,14 @@
             TryMongo(() =>
             {
                 PersistedStreamHeads.Remove(
-                    Query.EQ(MongoStreamHeadFields.Id, new BsonDocument{   
+                    Query.EQ(MongoStreamHeadFields.Id, new BsonDocument{
                         {MongoStreamHeadFields.BucketId, bucketId},
                         {MongoStreamHeadFields.StreamId, streamId}
                     })
                 );
 
                 PersistedSnapshots.Remove(
-                    Query.EQ(MongoShapshotFields.Id, new BsonDocument{   
+                    Query.EQ(MongoShapshotFields.Id, new BsonDocument{
                         {MongoShapshotFields.BucketId, bucketId},
                         {MongoShapshotFields.StreamId, streamId}
                     })
@@ -513,9 +513,10 @@
         private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
             ThreadPool.QueueUserWorkItem(x =>
-                TryMongo(() =>
+            {
+                try
                 {
-                    try
+                    TryMongo(() =>
                     {
                         BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
                         PersistedStreamHeads.Update(
@@ -525,12 +526,20 @@
                                 .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
                                 .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
                             UpdateFlags.Upsert);
-                    }
-                    catch (MongoDuplicateKeyException ex)
-                    {
-                        Logger.Warn("Duplicate key exception {0} when upserting the stream head {1} {2}.", ex, bucketId, streamId);
-                    }
-                }), null);
+
+                    });
+                }
+                catch (OutOfMemoryException ex)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                     //It is safe to ignore transient exception updating stream head.
+                    Logger.Warn("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
+                }
+            }, null
+          );
         }
 
         protected virtual T TryMongo<T>(Func<T> callback)
