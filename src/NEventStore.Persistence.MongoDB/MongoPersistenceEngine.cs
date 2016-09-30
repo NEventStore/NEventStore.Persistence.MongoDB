@@ -334,7 +334,8 @@
                         }
 
                         // checkpoint index? 
-                        if (e.Message.Contains(MongoCommitIndexes.CheckpointNumber))
+                        if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1) ||
+                           e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
                         {
                             commitDoc[MongoCommitFields.CheckpointNumber] = _getNextCheckpointNumber().LongValue;
                         }
