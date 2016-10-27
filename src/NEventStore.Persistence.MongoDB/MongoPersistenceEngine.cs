@@ -291,6 +291,7 @@ namespace NEventStore.Persistence.MongoDB
                     {
                         if (!e.Message.Contains(ConcurrencyException))
                         {
+                            Logger.Error("Generic error persisting commit {0} - Checkpoint token {1} - Ex: {2}", attempt.CommitId, checkpointId, e);
                             throw;
                         }
 
@@ -304,9 +305,19 @@ namespace NEventStore.Persistence.MongoDB
                         }
                         else
                         {
+                            if (_options.ConcurrencyStrategy == ConcurrencyExceptionStrategy.FillHole)
+                            {
+                                var holeFillDoc = attempt.ToEmptyCommit(
+                                   checkpointId,
+                                   _serializer,
+                                   _systemBucketName
+                                );
+                                PersistedCommits.InsertOne(holeFillDoc);
+                            }
+
                             if (e.Message.Contains(MongoCommitIndexes.CommitId))
                             {
-                                Logger.Info(String.Format("Duplicated commitId {0}", attempt.CommitId));
+                                Logger.Info(String.Format("Duplicated commitId {0} - Checkpoint token {1}", attempt.CommitId, checkpointId));
                                 throw new DuplicateCommitException();
                             }
 
@@ -317,19 +328,10 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
-                                Logger.Info(String.Format("Duplicated commitId {0}", attempt.CommitId));
+                                Logger.Info(String.Format("Duplicated commitId {0} - Checkpoint token {1}", attempt.CommitId, checkpointId));
                                 throw new DuplicateCommitException();
                             }
 
-                            if (_options.ConcurrencyStrategy == ConcurrencyExceptionStrategy.FillHole)
-                            {
-                                var holeFillDoc = attempt.ToEmptyCommit(
-                                   checkpointId,
-                                   _serializer,
-                                   _systemBucketName
-                                );
-                                PersistedCommits.InsertOne(holeFillDoc);
-                            }
                             Logger.Info(String.Format("Concurrency exception for commit {0} [{1}] due to mongo exception {2}", attempt.CommitId, checkpointId, e));
                             throw new ConcurrencyException();
                         }

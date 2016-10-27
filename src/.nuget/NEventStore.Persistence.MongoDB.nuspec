@@ -14,7 +14,7 @@
     <tags>events, event sourcing, cqrs, storage, persistence, database, mongodb</tags>
     <dependencies>
       <dependency id="NEventStore" version="(5.4,7.0.0)" />
-      <dependency id="MongoDB.Driver" version="2.2.3" />
+      <dependency id="MongoDB.Driver" version="2.3.0" />
     </dependencies>
   </metadata>
   <files>
