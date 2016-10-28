@@ -301,7 +301,7 @@ namespace NEventStore.Persistence.MongoDB
                         {
                             Logger.Warn(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                             _checkpointGenerator.SignalDuplicateId(checkpointId);
-                            commitDoc[MongoCommitFields.CheckpointNumber] = _checkpointGenerator.Next();
+                            commitDoc[MongoCommitFields.CheckpointNumber] = checkpointId = _checkpointGenerator.Next();
                         }
                         else
                         {
