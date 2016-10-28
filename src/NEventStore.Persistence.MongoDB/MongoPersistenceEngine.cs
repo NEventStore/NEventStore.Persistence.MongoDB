@@ -291,7 +291,7 @@ namespace NEventStore.Persistence.MongoDB
                     {
                         if (!e.Message.Contains(ConcurrencyException))
                         {
-                            Logger.Error("Generic error persisting commit {0} - Checkpoint token {1} - Ex: {2}", attempt.CommitId, checkpointId, e);
+                            Logger.Error(Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             throw;
                         }
 
@@ -299,7 +299,7 @@ namespace NEventStore.Persistence.MongoDB
                         if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1) ||
                             e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
                         {
-                            Logger.Warn("Duplicated checkpoint number generated {0}", checkpointId);
+                            Logger.Warn(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                             _checkpointGenerator.SignalDuplicateId(checkpointId);
                             commitDoc[MongoCommitFields.CheckpointNumber] = _checkpointGenerator.Next();
                         }
@@ -307,17 +307,12 @@ namespace NEventStore.Persistence.MongoDB
                         {
                             if (_options.ConcurrencyStrategy == ConcurrencyExceptionStrategy.FillHole)
                             {
-                                var holeFillDoc = attempt.ToEmptyCommit(
-                                   checkpointId,
-                                   _serializer,
-                                   _systemBucketName
-                                );
-                                PersistedCommits.InsertOne(holeFillDoc);
+                                FillHole(attempt, checkpointId);
                             }
 
                             if (e.Message.Contains(MongoCommitIndexes.CommitId))
                             {
-                                Logger.Info(String.Format("Duplicated commitId {0} - Checkpoint token {1}", attempt.CommitId, checkpointId));
+                                Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                                 throw new DuplicateCommitException();
                             }
 
@@ -328,11 +323,11 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
-                                Logger.Info(String.Format("Duplicated commitId {0} - Checkpoint token {1}", attempt.CommitId, checkpointId));
+                                Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                                 throw new DuplicateCommitException();
                             }
 
-                            Logger.Info(String.Format("Concurrency exception for commit {0} [{1}] due to mongo exception {2}", attempt.CommitId, checkpointId, e));
+                            Logger.Info(Messages.ConcurrencyExceptionError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             throw new ConcurrencyException();
                         }
                     }
@@ -340,6 +335,28 @@ namespace NEventStore.Persistence.MongoDB
 
                 return commitDoc.ToCommit(_serializer);
             });
+        }
+
+        private void FillHole(CommitAttempt attempt, Int64 checkpointId)
+        {
+            try
+            {
+                var holeFillDoc = attempt.ToEmptyCommit(
+                   checkpointId,
+                   _serializer,
+                   _systemBucketName
+                );
+                PersistedCommits.InsertOne(holeFillDoc);
+            }
+            catch (OutOfMemoryException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                Logger.Warn(Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+            }
+
         }
 
         public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
@@ -496,19 +513,15 @@ namespace NEventStore.Persistence.MongoDB
             {
                 try
                 {
-                    TryMongo(() =>
-                    {
-
-                        BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
-                        PersistedStreamHeads.UpdateOne(
-                            Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
-                            Builders<BsonDocument>.Update
-                                .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
-                                .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
-                                .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
-                            new UpdateOptions() { IsUpsert = true }
-                        );
-                    });
+                    BsonDocument streamHeadId = GetStreamHeadId(bucketId, streamId);
+                    PersistedStreamHeads.UpdateOne(
+                        Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
+                        Builders<BsonDocument>.Update
+                            .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                            .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
+                            .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
+                        new UpdateOptions() { IsUpsert = true }
+                    );
                 }
                 catch (OutOfMemoryException ex)
                 {
@@ -520,8 +533,9 @@ namespace NEventStore.Persistence.MongoDB
                     Logger.Warn("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
                 }
             }, null);
-
         }
+
+
 
         protected virtual T TryMongo<T>(Func<T> callback)
         {
@@ -547,7 +561,7 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (MongoException e)
             {
-                Logger.Error(Messages.StorageThrewException, e.GetType());
+                Logger.Error(Messages.StorageThrewException, e.GetType(), e.ToString());
                 throw new StorageException(e.Message, e);
             }
         }

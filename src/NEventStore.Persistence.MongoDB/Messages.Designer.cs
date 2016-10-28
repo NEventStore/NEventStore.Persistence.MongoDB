@@ -88,6 +88,15 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Concurrency Exception commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.
+        /// </summary>
+        internal static string ConcurrencyExceptionError {
+            get {
+                return ResourceManager.GetString("ConcurrencyExceptionError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Concurrent write detected..
         /// </summary>
         internal static string ConcurrentWriteDetected {
@@ -120,6 +129,42 @@ namespace NEventStore.Persistence.MongoDB {
         internal static string DetectingConcurrency {
             get {
                 return ResourceManager.GetString("DetectingConcurrency", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duplicated checkpoint Token commit {0} [{1}] - Bucket {2} - StreamId {3}.
+        /// </summary>
+        internal static string DuplicatedCheckpointTokenError {
+            get {
+                return ResourceManager.GetString("DuplicatedCheckpointTokenError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}.
+        /// </summary>
+        internal static string DuplicatedCommitError {
+            get {
+                return ResourceManager.GetString("DuplicatedCommitError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error filling hole commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.
+        /// </summary>
+        internal static string FillHoleError {
+            get {
+                return ResourceManager.GetString("FillHoleError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Generic error persisting commit {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.
+        /// </summary>
+        internal static string GenericPersistingError {
+            get {
+                return ResourceManager.GetString("GenericPersistingError", resourceCulture);
             }
         }
         
@@ -241,7 +286,8 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Storage threw exception of type &apos;{0}&apos;..
+        ///   Looks up a localized string similar to Storage threw exception of type &apos;{0}&apos;.
+        ///{1}.
         /// </summary>
         internal static string StorageThrewException {
             get {
