@@ -133,7 +133,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
             var collection = db.GetCollection<BsonDocument>("Commits");
 
-            options.CheckpointGenerator = new SingleProcessCheckpointGenerator(collection);
+            options.CheckpointGenerator = new InMemoryCheckpointGenerator(collection);
             PersistenceEngineFixture.Options = options;
         }
 

@@ -25,7 +25,7 @@ namespace NEventStore.Persistence.MongoDB.Support
         void SignalDuplicateId(Int64 id);
     }
 
-    public class SingleProcessCheckpointGenerator : ICheckpointGenerator
+    public class InMemoryCheckpointGenerator : ICheckpointGenerator
     {
         protected Int64 _last;
 
@@ -35,7 +35,7 @@ namespace NEventStore.Persistence.MongoDB.Support
 
         private readonly IMongoCollection<BsonDocument> _collection;
 
-        public SingleProcessCheckpointGenerator(IMongoCollection<BsonDocument> collection)
+        public InMemoryCheckpointGenerator(IMongoCollection<BsonDocument> collection)
         {
             _collection = collection;
             Filter = Builders<BsonDocument>.Filter.Empty;
@@ -64,25 +64,11 @@ namespace NEventStore.Persistence.MongoDB.Support
 
         public virtual void SignalDuplicateId(long id)
         {
-            //do nothing, 
+            _last = GetLastValue();
         }
     }
 
-    public class MultiProcessCheckpointGenerator : SingleProcessCheckpointGenerator
-    {
-
-        public MultiProcessCheckpointGenerator(IMongoCollection<BsonDocument> collection) : base(collection)
-        {
-
-        }
-
-        public override void SignalDuplicateId(long id)
-        {
-            _last = base.GetLastValue();
-        }
-    }
-
-    public class AlwaysQueryDbForNextValueCheckpointGenerator : SingleProcessCheckpointGenerator
+    public class AlwaysQueryDbForNextValueCheckpointGenerator : InMemoryCheckpointGenerator
     {
 
         public AlwaysQueryDbForNextValueCheckpointGenerator(IMongoCollection<BsonDocument> collection) 
