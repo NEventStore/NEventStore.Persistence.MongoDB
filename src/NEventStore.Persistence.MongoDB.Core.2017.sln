@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26206.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.Persistence.MongoDB.Core", "NEventStore.Persistence.MongoDB\NEventStore.Persistence.MongoDB.Core.csproj", "{0A3E5F93-6BC6-48F4-9426-3A1063649375}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.Core", "..\dependencies\NEventStore\src\NEventStore\NEventStore.Core.csproj", "{4C815124-0833-4D90-A2C7-D6CA88888D93}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Debug|x64.ActiveCfg = Debug|x64
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Debug|x64.Build.0 = Debug|x64
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Debug|x86.ActiveCfg = Debug|x86
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Debug|x86.Build.0 = Debug|x86
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Release|x64.ActiveCfg = Release|x64
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Release|x64.Build.0 = Release|x64
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Release|x86.ActiveCfg = Release|x86
+		{0A3E5F93-6BC6-48F4-9426-3A1063649375}.Release|x86.Build.0 = Release|x86
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Debug|x64.ActiveCfg = Debug|x64
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Debug|x64.Build.0 = Debug|x64
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Debug|x86.ActiveCfg = Debug|x86
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Debug|x86.Build.0 = Debug|x86
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Release|x64.ActiveCfg = Release|x64
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Release|x64.Build.0 = Release|x64
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Release|x86.ActiveCfg = Release|x86
+		{4C815124-0833-4D90-A2C7-D6CA88888D93}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

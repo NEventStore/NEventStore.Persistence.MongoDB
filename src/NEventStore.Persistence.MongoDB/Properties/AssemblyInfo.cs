@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 
+#if !NETSTANDARD1_6
 [assembly: AssemblyTitle("NEventStore.Persistence.MongoDB")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
@@ -12,3 +13,4 @@
 [assembly: AssemblyVersion("0.0.0.0")]
 [assembly: AssemblyFileVersion("0.0.0.0")]
 [assembly: AssemblyInformationalVersion("0.0.0.0")]
+#endif

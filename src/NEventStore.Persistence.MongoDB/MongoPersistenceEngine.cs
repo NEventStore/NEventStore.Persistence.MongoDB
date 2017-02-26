@@ -509,7 +509,7 @@ namespace NEventStore.Persistence.MongoDB
 
         private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
-            ThreadPool.QueueUserWorkItem(x =>
+            StartBackgroundThread(() =>
             {
                 try
                 {
@@ -525,6 +525,7 @@ namespace NEventStore.Persistence.MongoDB
                 }
                 catch (OutOfMemoryException ex)
                 {
+					Logger.Error("OutOfMemoryException: {0}", ex);
                     throw;
                 }
                 catch (Exception ex)
@@ -532,7 +533,7 @@ namespace NEventStore.Persistence.MongoDB
                     //It is safe to ignore transient exception updating stream head.
                     Logger.Warn("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
                 }
-            }, null);
+            });
         }
 
 
@@ -617,5 +618,15 @@ namespace NEventStore.Persistence.MongoDB
             if (_options.DisableSnapshotSupport)
                 throw new NotSupportedException("Snapshot is disabled from MongoPersistenceOptions");
         }
+
+		private static void StartBackgroundThread(ThreadStart threadStart)
+		{
+			if (threadStart != null)
+			{
+				var thread = new Thread(threadStart);
+				thread.IsBackground = true;
+				thread.Start();
+			}
+		}
     }
 }
