@@ -10,6 +10,7 @@ namespace NEventStore
 
 	public static class MongoPersistenceWireupExtensions
 	{
+		// todo: change the ConfigurationErrorsException with a new Custom Exception class, System.Configuration will not be ported to dotnet core
 #if !NETSTANDARD1_6
 		public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
 		{
@@ -17,7 +18,7 @@ namespace NEventStore
 			{
 			    var connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionName];
                 if( connectionStringSettings == null)
-                    throw new ConfigurationErrorsException(Messages.ConnectionNotFound.FormatWith(connectionName));
+                    throw new ConcurrencyException(Messages.ConnectionNotFound.FormatWith(connectionName));
 
 			    return connectionStringSettings.ConnectionString;
 			}, serializer, options);
@@ -29,7 +30,7 @@ namespace NEventStore
 			return new MongoPersistenceWireup(wireup, () =>
 			{
 				if (string.IsNullOrWhiteSpace(connectionString))
-					throw new ArgumentNullException(nameof(connectionString), Messages.ConnectionNotFound.FormatWith(connectionString));
+					throw new ConcurrencyException(Messages.ConnectionNotFound.FormatWith(connectionString));
 
 				return connectionString;
 			}, serializer, options);

@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
     <Product>NEventStore.Persistence.MongoDB.Core</Product>
+    <RootNamespace>NEventStore.Persistence.MongoDB</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,10 @@
 
   <ItemGroup>
     <EmbeddedResource Remove="Messages.resx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="packages.config" />
   </ItemGroup>
 
   <ItemGroup>

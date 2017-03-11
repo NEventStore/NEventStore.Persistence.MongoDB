@@ -20,7 +20,11 @@ namespace NEventStore.Persistence.MongoDB.Tests
 
         internal static string GetConnectionString()
         {
+#if !NETSTANDARD1_6
             string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
+#else
+            string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey);
+#endif
 
             if (connectionString == null)
             {

@@ -3,9 +3,21 @@
     using System;
     using NEventStore.Persistence.AcceptanceTests;
     using NEventStore.Persistence.AcceptanceTests.BDD;
-    using Xunit;
-    using Xunit.Should;
+    using FluentAssertions;
+#if MSTEST
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
+#if NUNIT
+	using NUnit.Framework;	
+#endif
+#if XUNIT
+	using Xunit;
+	using Xunit.Should;
+#endif
 
+#if MSTEST
+    [TestClass]
+#endif
     public class when_a_commit_is_persisted_from_a_second_process : SpecificationBase
     {
         private ICommit _commit1;
@@ -34,7 +46,7 @@
             long chkNum1 = _commit1.CheckpointToken;
             long chkNum2 = _commit2.CheckpointToken;
 
-            chkNum2.ShouldBeGreaterThan(chkNum1);
+            chkNum2.Should().BeGreaterThan(chkNum1);
         }
 
         protected override void Cleanup()

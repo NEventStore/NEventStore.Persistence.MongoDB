@@ -6,183 +6,205 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Xunit;
-using Xunit.Should;
+using NEventStore.Persistence.AcceptanceTests.BDD;
+using FluentAssertions;
+#if MSTEST
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
+#if NUNIT
+	using NUnit.Framework;	
+#endif
+#if XUNIT
+	using Xunit;
+	using Xunit.Should;
+#endif
 
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 {
-    public class Issue40Tests
-    {
-        public class verify_ability_to_opt_out_stream_head : PersistenceEngineConcern
-        {
-            private IMongoCollection<BsonDocument> _streamHeads;
+	public class Issue40Tests
+	{
+#if MSTEST
+		[TestClass]
+#endif
+		public class verify_ability_to_opt_out_stream_head : PersistenceEngineConcern
+		{
+			private IMongoCollection<BsonDocument> _streamHeads;
 
-            public verify_ability_to_opt_out_stream_head()
-            {
-                var options = new MongoPersistenceOptions();
-                options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
-                options.DisableSnapshotSupport = true;
+			public verify_ability_to_opt_out_stream_head()
+			{
+				var options = new MongoPersistenceOptions();
+				options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
+				options.DisableSnapshotSupport = true;
 
-                var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
-                _streamHeads = db.GetCollection<BsonDocument>("Streams");
+				var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+				_streamHeads = db.GetCollection<BsonDocument>("Streams");
 
-                PersistenceEngineFixture.Options = options;
-            }
+				PersistenceEngineFixture.Options = options;
+			}
 
-            protected override void Context()
-            {
+			protected override void Context()
+			{
 
-            }
+			}
 
-            protected override void Because()
-            {
-                var streamId = Guid.NewGuid().ToString();
-                CommitAttempt attempt = streamId.BuildAttempt();
-                Persistence.Commit(streamId.BuildAttempt());
-            }
+			protected override void Because()
+			{
+				var streamId = Guid.NewGuid().ToString();
+				CommitAttempt attempt = streamId.BuildAttempt();
+				Persistence.Commit(streamId.BuildAttempt());
+			}
 
-            [Fact]
-            public void holes_are_presents()
-            {
-                var heads = _streamHeads.Find(Builders<BsonDocument>.Filter.Empty);
-                Assert.Equal(0, heads.Count());
-            }
+			[Fact]
+			public void holes_are_presents()
+			{
+				var heads = _streamHeads.Find(Builders<BsonDocument>.Filter.Empty);
+				heads.Count().Should().Be(0);
+			}
 
-            protected override void Cleanup()
-            {
-                PersistenceEngineFixture.Options = null;
-                base.Cleanup();
-            }
-        }
+			protected override void Cleanup()
+			{
+				PersistenceEngineFixture.Options = null;
+				base.Cleanup();
+			}
+		}
 
-        public class calling_AddShapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
-        {
-           
-            public calling_AddShapshot_function_when_snapshot_disabled_throws()
-            {
-                var options = new MongoPersistenceOptions();
-                options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
-                options.DisableSnapshotSupport = true;
+#if MSTEST
+		[TestClass]
+#endif
+		public class calling_AddShapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
+		{
 
-                var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+			public calling_AddShapshot_function_when_snapshot_disabled_throws()
+			{
+				var options = new MongoPersistenceOptions();
+				options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
+				options.DisableSnapshotSupport = true;
 
-                PersistenceEngineFixture.Options = options;
-            }
+				var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
 
-            protected override void Context()
-            {
+				PersistenceEngineFixture.Options = options;
+			}
 
-            }
+			protected override void Context()
+			{
 
-            Exception _ex;
+			}
 
-            protected override void Because()
-            {
-                var streamId = Guid.NewGuid().ToString();
-                CommitAttempt attempt = streamId.BuildAttempt();
-                Persistence.Commit(streamId.BuildAttempt());
+			Exception _ex;
 
-                _ex = Catch.Exception(() => Persistence.AddSnapshot(new Snapshot(streamId, 1, new object())));
-            }
+			protected override void Because()
+			{
+				var streamId = Guid.NewGuid().ToString();
+				CommitAttempt attempt = streamId.BuildAttempt();
+				Persistence.Commit(streamId.BuildAttempt());
 
-            [Fact]
-            public void exception_was_thrown()
-            {
-                _ex.ShouldBeInstanceOf<NotSupportedException>();
-            }
+				_ex = Catch.Exception(() => Persistence.AddSnapshot(new Snapshot(streamId, 1, new object())));
+			}
 
-            protected override void Cleanup()
-            {
-                PersistenceEngineFixture.Options = null;
-                base.Cleanup();
-            }
-        }
+			[Fact]
+			public void exception_was_thrown()
+			{
+				_ex.Should().BeOfType<NotSupportedException>();
+			}
 
-        public class calling_GetSnapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
-        {
-         
-            public calling_GetSnapshot_function_when_snapshot_disabled_throws()
-            {
-                var options = new MongoPersistenceOptions();
-                options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
-                options.DisableSnapshotSupport = true;
+			protected override void Cleanup()
+			{
+				PersistenceEngineFixture.Options = null;
+				base.Cleanup();
+			}
+		}
 
-                var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+#if MSTEST
+		[TestClass]
+#endif
+		public class calling_GetSnapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
+		{
 
-                PersistenceEngineFixture.Options = options;
-            }
+			public calling_GetSnapshot_function_when_snapshot_disabled_throws()
+			{
+				var options = new MongoPersistenceOptions();
+				options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
+				options.DisableSnapshotSupport = true;
 
-            protected override void Context()
-            {
+				var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
 
-            }
+				PersistenceEngineFixture.Options = options;
+			}
 
-            Exception _ex;
+			protected override void Context()
+			{
 
-            protected override void Because()
-            {
-                var streamId = Guid.NewGuid().ToString();
-                CommitAttempt attempt = streamId.BuildAttempt();
-                Persistence.Commit(streamId.BuildAttempt());
+			}
 
-                _ex = Catch.Exception(() => Persistence.GetSnapshot(streamId, 1));
-            }
+			Exception _ex;
 
-            [Fact]
-            public void exception_was_thrown()
-            {
-                _ex.ShouldBeInstanceOf<NotSupportedException>();
-            }
+			protected override void Because()
+			{
+				var streamId = Guid.NewGuid().ToString();
+				CommitAttempt attempt = streamId.BuildAttempt();
+				Persistence.Commit(streamId.BuildAttempt());
 
-            protected override void Cleanup()
-            {
-                PersistenceEngineFixture.Options = null;
-                base.Cleanup();
-            }
-        }
+				_ex = Catch.Exception(() => Persistence.GetSnapshot(streamId, 1));
+			}
 
-        public class calling_GetStreamToSnapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
-        {
+			[Fact]
+			public void exception_was_thrown()
+			{
+				_ex.Should().BeOfType<NotSupportedException>();
+			}
 
-            public calling_GetStreamToSnapshot_function_when_snapshot_disabled_throws()
-            {
-                var options = new MongoPersistenceOptions();
-                options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
-                options.DisableSnapshotSupport = true;
+			protected override void Cleanup()
+			{
+				PersistenceEngineFixture.Options = null;
+				base.Cleanup();
+			}
+		}
 
-                var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+#if MSTEST
+		[TestClass]
+#endif
+		public class calling_GetStreamToSnapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
+		{
 
-                PersistenceEngineFixture.Options = options;
-            }
+			public calling_GetStreamToSnapshot_function_when_snapshot_disabled_throws()
+			{
+				var options = new MongoPersistenceOptions();
+				options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
+				options.DisableSnapshotSupport = true;
 
-            protected override void Context()
-            {
+				var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
 
-            }
+				PersistenceEngineFixture.Options = options;
+			}
 
-            Exception _ex;
+			protected override void Context()
+			{
 
-            protected override void Because()
-            {
-                var streamId = Guid.NewGuid().ToString();
-                CommitAttempt attempt = streamId.BuildAttempt();
-                Persistence.Commit(streamId.BuildAttempt());
+			}
 
-                _ex = Catch.Exception(() => Persistence.GetStreamsToSnapshot("testBucket", 1));
-            }
+			Exception _ex;
 
-            [Fact]
-            public void exception_was_thrown()
-            {
-                _ex.ShouldBeInstanceOf<NotSupportedException>();
-            }
+			protected override void Because()
+			{
+				var streamId = Guid.NewGuid().ToString();
+				CommitAttempt attempt = streamId.BuildAttempt();
+				Persistence.Commit(streamId.BuildAttempt());
 
-            protected override void Cleanup()
-            {
-                PersistenceEngineFixture.Options = null;
-                base.Cleanup();
-            }
-        }
+				_ex = Catch.Exception(() => Persistence.GetStreamsToSnapshot("testBucket", 1));
+			}
 
-    }
+			[Fact]
+			public void exception_was_thrown()
+			{
+				_ex.Should().BeOfType<NotSupportedException>();
+			}
+
+			protected override void Cleanup()
+			{
+				PersistenceEngineFixture.Options = null;
+				base.Cleanup();
+			}
+		}
+
+	}
 }

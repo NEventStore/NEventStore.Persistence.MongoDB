@@ -11,6 +11,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.Persistence.Acc
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.Core.Tests", "..\dependencies\NEventStore\src\NEventStore.Tests\NEventStore.Core.Tests.csproj", "{71229AF7-EF74-4841-9FBE-A4C7F7914722}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.Persistence.MongoDB.Core.Tests", "NEventStore.Persistence.MongoDB.Tests\NEventStore.Persistence.MongoDB.Core.Tests.csproj", "{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6B3F0D5A-6C8E-44A5-A118-C58B0EB834A0}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +76,18 @@ Global
 		{71229AF7-EF74-4841-9FBE-A4C7F7914722}.Release|x64.Build.0 = Release|Any CPU
 		{71229AF7-EF74-4841-9FBE-A4C7F7914722}.Release|x86.ActiveCfg = Release|Any CPU
 		{71229AF7-EF74-4841-9FBE-A4C7F7914722}.Release|x86.Build.0 = Release|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Debug|x64.Build.0 = Debug|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Debug|x86.Build.0 = Debug|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|x64.ActiveCfg = Release|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|x64.Build.0 = Release|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|x86.ActiveCfg = Release|Any CPU
+		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,13 @@
 ﻿============================================
 Change Log
 ============================================
+
+vNext
+
+Breaking Changes
+
+ConfigurationErrorsException has been replaced by ConfigurationException
+
 6.0.0
 -Added support for Id Generation done from client.
 -Removed LongCheckpoint
