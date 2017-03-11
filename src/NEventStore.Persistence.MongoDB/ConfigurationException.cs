@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NEventStore.Persistence.MongoDB.Core
+namespace NEventStore.Persistence.MongoDB
 {
 	[Serializable]
 	public class ConfigurationException : Exception

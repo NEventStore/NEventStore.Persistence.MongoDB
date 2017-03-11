@@ -3,6 +3,7 @@ using NEventStore.Persistence.AcceptanceTests.BDD;
 using NEventStore.Serialization;
 using NEventStore.Persistence.AcceptanceTests;
 using FluentAssertions;
+using MongoDB.Driver;
 #if MSTEST
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
@@ -17,38 +18,37 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 {
 #if MSTEST
-	[TestClass]
+    [TestClass]
 #endif
-	public class Issue8 : SpecificationBase
-	{
-		private Exception _error;
-		private const string InvalidConnectionStringName = "this_is_not_a_connection_string";
+    public class Issue8 : SpecificationBase
+    {
+        private Exception _error;
+        private const string InvalidConnectionStringName = "this_is_not_a_connection_string";
 
-		protected override void Context()
-		{
+        protected override void Context()
+        {
+        }
 
-		}
+        protected override void Because()
+        {
+            _error = Catch.Exception(() =>
+            {
+                Wireup.Init()
+                    .UsingMongoPersistence(InvalidConnectionStringName, new DocumentObjectSerializer())
+                    .Build();
+            });
+        }
 
-		protected override void Because()
-		{
-			_error = Catch.Exception(() =>
-			{
-				Wireup.Init()
-					.UsingMongoPersistence(InvalidConnectionStringName, new DocumentObjectSerializer())
-					.Build();
-			});
-		}
+        [Fact]
+        public void a_configuration_exception_should_be_thrown()
+        {
+            _error.Should().BeOfType<MongoConfigurationException>();
+        }
 
-		[Fact]
-		public void a_configuration_exception_should_be_thrown()
-		{
-			_error.Should().BeOfType<ConcurrencyException>();
-		}
-
-		[Fact]
-		public void a_configuration_error_should_be_thrown()
-		{
-			_error.Message.Should().Contain(InvalidConnectionStringName);
-		}
-	}
+        [Fact]
+        public void a_configuration_error_should_be_thrown()
+        {
+            _error.Message.Should().Contain(InvalidConnectionStringName);
+        }
+    }
 }
