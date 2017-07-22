@@ -12,11 +12,11 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-	using NUnit.Framework;	
+    using NUnit.Framework;	
 #endif
 #if XUNIT
-	using Xunit;
-	using Xunit.Should;
+    using Xunit;
+    using Xunit.Should;
 #endif
 
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
@@ -40,6 +40,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
             options.CheckpointGenerator = new AlwaysQueryDbForNextValueCheckpointGenerator(collection);
             PersistenceEngineFixture.Options = options;
+
+            // workaround for test initialization to have uniform config for all 3 test frameworks
+            // we can't use ClassInitialize, TestFixtureSetup or SetFixture
+            Reinitialize();
         }
 
         protected override void Context()
@@ -93,6 +97,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             var options = new MongoPersistenceOptions();
             options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.FillHole;
             PersistenceEngineFixture.Options = options;
+
+            // workaround for test initialization to have uniform config for all 3 test frameworks
+            // we can't use ClassInitialize, TestFixtureSetup or SetFixture
+            Reinitialize();
         }
 
         protected override void Context()
@@ -155,6 +163,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
             options.CheckpointGenerator = new InMemoryCheckpointGenerator(collection);
             PersistenceEngineFixture.Options = options;
+
+            // workaround for test initialization to have uniform config for all 3 test frameworks
+            // we can't use ClassInitialize, TestFixtureSetup or SetFixture
+            Reinitialize();
         }
 
         protected override void Context()
