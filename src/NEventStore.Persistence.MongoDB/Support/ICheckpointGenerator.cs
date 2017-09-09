@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -29,9 +26,9 @@ namespace NEventStore.Persistence.MongoDB.Support
     {
         protected Int64 _last;
 
-        protected FilterDefinition<BsonDocument> Filter { get; private set; }
+        protected FilterDefinition<BsonDocument> Filter { get; }
 
-        protected FindOptions<BsonDocument, BsonDocument> FindOptions { get; private set; }
+        protected FindOptions<BsonDocument, BsonDocument> FindOptions { get; }
 
         private readonly IMongoCollection<BsonDocument> _collection;
 
@@ -54,7 +51,7 @@ namespace NEventStore.Persistence.MongoDB.Support
                .FindSync(Filter, FindOptions)
                .FirstOrDefault();
 
-            return max != null ? max[MongoCommitFields.CheckpointNumber].AsInt64 : 0L;
+            return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
         }
 
         public virtual long Next()
@@ -70,11 +67,9 @@ namespace NEventStore.Persistence.MongoDB.Support
 
     public class AlwaysQueryDbForNextValueCheckpointGenerator : InMemoryCheckpointGenerator
     {
-
-        public AlwaysQueryDbForNextValueCheckpointGenerator(IMongoCollection<BsonDocument> collection) 
+        public AlwaysQueryDbForNextValueCheckpointGenerator(IMongoCollection<BsonDocument> collection)
             : base(collection)
         {
-
         }
 
         public override long Next()

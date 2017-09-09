@@ -15,11 +15,11 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-	using NUnit.Framework;	
+    using NUnit.Framework;	
 #endif
 #if XUNIT
     using Xunit;
-	using Xunit.Should;
+    using Xunit.Should;
 #endif
 
     public class Observer : IObserver<ICommit>
@@ -349,7 +349,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         protected override void Because()
         {
-#if !NETSTANDARD1_6
+#if !NETSTANDARD1_6 && !NETSTANDARD2_0
             var mongoEngine = (MongoPersistenceEngine)(((NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)Persistence).UnwrapPersistenceEngine());
 #else
             var mongoEngine = (MongoPersistenceEngine)Persistence;
@@ -390,7 +390,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         protected override void Because()
         {
-#if !NETSTANDARD1_6
+#if !NETSTANDARD1_6 &&!NETSTANDARD2_0
             var mongoEngine = (MongoPersistenceEngine)(((NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)Persistence).UnwrapPersistenceEngine());
 #else
             var mongoEngine = (MongoPersistenceEngine)Persistence;

@@ -525,7 +525,7 @@ namespace NEventStore.Persistence.MongoDB
                 }
                 catch (OutOfMemoryException ex)
                 {
-					Logger.Error("OutOfMemoryException: {0}", ex);
+                    Logger.Error("OutOfMemoryException: {0}", ex);
                     throw;
                 }
                 catch (Exception ex)
@@ -619,14 +619,14 @@ namespace NEventStore.Persistence.MongoDB
                 throw new NotSupportedException("Snapshot is disabled from MongoPersistenceOptions");
         }
 
-		private static void StartBackgroundThread(ThreadStart threadStart)
-		{
-			if (threadStart != null)
-			{
-				var thread = new Thread(threadStart);
-				thread.IsBackground = true;
-				thread.Start();
-			}
-		}
+        private static void StartBackgroundThread(ThreadStart threadStart)
+        {
+            if (threadStart != null)
+            {
+                var thread = new Thread(threadStart);
+                thread.IsBackground = true;
+                thread.Start();
+            }
+        }
     }
 }

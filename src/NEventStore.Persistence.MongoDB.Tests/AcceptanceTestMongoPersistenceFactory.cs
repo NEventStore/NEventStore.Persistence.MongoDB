@@ -1,14 +1,12 @@
-﻿using NEventStore.Persistence.MongoDB.Tests.AcceptanceTests;
-
-namespace NEventStore.Persistence.MongoDB.Tests
+﻿namespace NEventStore.Persistence.MongoDB.Tests
 {
     using System;
     using NEventStore.Serialization;
+    using global::MongoDB.Driver;
 
     public class AcceptanceTestMongoPersistenceFactory : MongoPersistenceFactory
     {
         private const string EnvVarConnectionStringKey = "NEventStore.MongoDB";
-        private const string EnvVarServerSideLoopKey = "NEventStore.MongoDB.ServerSideLoop";
 
         public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions options = null)
             : base(
@@ -38,7 +36,16 @@ namespace NEventStore.Persistence.MongoDB.Tests
 
             connectionString = connectionString.TrimStart('"').TrimEnd('"');
 
+#if MSTEST
             return connectionString;
+
+            // quick and dirty solution to avoid tests clashing when executed in parallel
+            var builder = new MongoUrlBuilder(connectionString);
+            builder.DatabaseName += Guid.NewGuid().ToString();
+            return builder.ToString();
+#else
+            return connectionString;
+#endif
         }
     }
 }

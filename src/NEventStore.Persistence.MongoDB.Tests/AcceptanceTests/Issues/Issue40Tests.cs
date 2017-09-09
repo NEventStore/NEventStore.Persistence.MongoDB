@@ -44,6 +44,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 // workaround for test initialization to have uniform config for all 3 test frameworks
                 // we can't use ClassInitialize, TestFixtureSetup or SetFixture
                 Reinitialize();
+
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -67,7 +70,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }
@@ -91,6 +93,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 // workaround for test initialization to have uniform config for all 3 test frameworks
                 // we can't use ClassInitialize, TestFixtureSetup or SetFixture
                 Reinitialize();
+
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -117,7 +122,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }
@@ -141,6 +145,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 // workaround for test initialization to have uniform config for all 3 test frameworks
                 // we can't use ClassInitialize, TestFixtureSetup or SetFixture
                 Reinitialize();
+
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -167,7 +174,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }
@@ -191,6 +197,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 // workaround for test initialization to have uniform config for all 3 test frameworks
                 // we can't use ClassInitialize, TestFixtureSetup or SetFixture
                 Reinitialize();
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -217,7 +225,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }
