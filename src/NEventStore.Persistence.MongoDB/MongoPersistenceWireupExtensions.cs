@@ -2,7 +2,7 @@
 namespace NEventStore
 {
     using System;
-#if !NETSTANDARD1_6
+#if !NETSTANDARD1_6 && !NETSTANDARD2_0
     using System.Configuration;
 #endif
     using NEventStore.Persistence.MongoDB;
@@ -18,7 +18,7 @@ namespace NEventStore
             {
                 var connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionName];
                 if( connectionStringSettings == null)
-                    throw new ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionName));
+                    throw new NEventStore.Persistence.MongoDB.ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionName));
 
                 return connectionStringSettings.ConnectionString;
             }, serializer, options);
@@ -30,7 +30,7 @@ namespace NEventStore
             return new MongoPersistenceWireup(wireup, () =>
             {
                 if (string.IsNullOrWhiteSpace(connectionString))
-                    throw new ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionString));
+                    throw new NEventStore.Persistence.MongoDB.ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionString));
 
                 return connectionString;
             }, serializer, options);
