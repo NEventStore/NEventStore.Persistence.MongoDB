@@ -76,10 +76,20 @@ namespace NEventStore.Persistence.MongoDB
         /// snapshot support. If you are not using snapshot functionalities
         /// this options allows you to save the extra insert to insert Stream Heads.
         /// </summary>
-        /// <remarks>If you disable Stream Heads, you are not able to ask
+        /// <remarks>
+        /// If you disable Stream Heads, you are not able to ask
         /// for stream that need to be snapshotted. Basically you should set
-        /// this to true if you not use NEventstore snapshot functionalities.</remarks>
+        /// this to true if you not use NEventstore snapshot functionalities.
+        /// </remarks>
         public Boolean DisableSnapshotSupport { get; set; }
+
+        /// <summary>
+        /// The default behavior when using snapshot is to persist the stream heads in
+        /// a background threads, but this way it can be hard to test if the heads and snapshots
+        /// are computed an updated correctly after a commit.
+        /// This setting is here mainly to help testing.
+        /// </summary>
+        public Boolean PersistStreamHeadsOnBackgroundThread { get; set; } = true;
 
         public MongoPersistenceOptions()
         {

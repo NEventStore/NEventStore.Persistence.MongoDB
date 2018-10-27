@@ -619,13 +619,17 @@ namespace NEventStore.Persistence.MongoDB
                 throw new NotSupportedException("Snapshot is disabled from MongoPersistenceOptions");
         }
 
-        private static void StartBackgroundThread(ThreadStart threadStart)
+        private void StartBackgroundThread(ThreadStart threadStart)
         {
-            if (threadStart != null)
+            if (threadStart != null && _options.PersistStreamHeadsOnBackgroundThread)
             {
                 var thread = new Thread(threadStart);
                 thread.IsBackground = true;
                 thread.Start();
+            }
+            else
+            {
+                threadStart?.Invoke();
             }
         }
     }

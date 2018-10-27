@@ -12,9 +12,15 @@
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
-                options ?? new MongoPersistenceOptions()
+                configureOptionsForTesting(options ?? new MongoPersistenceOptions())
             )
         { }
+
+        private static MongoPersistenceOptions configureOptionsForTesting(MongoPersistenceOptions mongoPersistenceOptions)
+        {
+            mongoPersistenceOptions.PersistStreamHeadsOnBackgroundThread = false;
+            return mongoPersistenceOptions;
+        }
 
         internal static string GetConnectionString()
         {
