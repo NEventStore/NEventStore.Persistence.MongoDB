@@ -1,7 +1,22 @@
 NEventStore.Persistence.Mongo
-=============================
+===
 
-Mongo Persistence Engine for NEventStore v6
+Mongo Persistence Engine for NEventStore v6.x
+
+NEventStore.Persistence.MongoDB currently supports:
+
+- dotnet framework 4.5
+- dotnet standard 2.0, dotnet core 2.0 
+
+Build Status
+===
+
+Branches:
+
+- feature/dotnetcore [![Build status](https://ci.appveyor.com/api/projects/status/8euhhjl05lhng8ka/branch/feature/dotnetcore?svg=true)](https://ci.appveyor.com/project/AGiorgetti/neventstore-persistence-mongodb/branch/feature/dotnetcore)
+
+Information
+===
 
 Changelog at https://github.com/NEventStore/NEventStore.Persistence.MongoDB/blob/master/src/NEventStore.Persistence.MongoDB/Readme.txt
 
