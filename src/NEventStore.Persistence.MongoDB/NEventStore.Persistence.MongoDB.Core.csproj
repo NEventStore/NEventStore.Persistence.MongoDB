@@ -8,7 +8,17 @@
     <ApplicationIcon />
     <OutputType>Library</OutputType>
     <StartupObject />
-    <Authors>NEventStore Dev Team 2013</Authors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>NEventStore.Persistence.MongoDB</PackageId>
+    <Title>NEventStore MongoDB Persistence Plugin</Title>
+    <Authors>NEventStore Dev Team</Authors>
+    <PackageProjectUrl>http://neventstore.org</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>Additional persistence provider for NEventStore using MongoDB.</Description>
+    <PackageTags>events, event sourcing, cqrs, storage, persistence, database</PackageTags>
+    <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

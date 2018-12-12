@@ -29,6 +29,10 @@
         <dependency id="MongoDB.Driver" version="2.7.0" />
       </group>
     </dependencies>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework4.5" />
+      <frameworkAssembly assemblyName="System.Transactions" targetFramework=".NETFramework4.5" />
+    </frameworkAssemblies>
   </metadata>
   <files>
     <!--<file src="bin\$configuration$\**" target="lib"/>-->
