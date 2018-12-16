@@ -8,11 +8,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
+using NEventStore.Persistence.AcceptanceTests.BDD;
 #if MSTEST
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-    using NUnit.Framework;	
+using NUnit.Framework;	
 #endif
 #if XUNIT
     using Xunit;
@@ -176,8 +177,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
         }
 
-        // Enable this test manually, it does not get skipped in the build server causing the build to fail
-        // [Fact(Skip = "Run it Manually")]
+        [Fact]
         public void should_correctly_deserialize_headers()
         {
             _persisted.Headers.Keys.Should().Contain("key.1");
