@@ -2,17 +2,14 @@
 using NEventStore.Persistence.AcceptanceTests;
 using NEventStore.Persistence.MongoDB.Support;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NEventStore.Persistence.AcceptanceTests.BDD;
 using FluentAssertions;
 #if MSTEST
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-    using NUnit.Framework;	
+using NUnit.Framework;
 #endif
 #if XUNIT
     using Xunit;
@@ -64,7 +61,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 Persistence.Commit(_streamId.BuildAttempt());
                 throw new Exception("Previous message should throw concurrency exception");
             }
-            catch (ConcurrencyException ex)
+            catch (ConcurrencyException)
             {
                 //do nothing.
             }
@@ -123,7 +120,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 Persistence.Commit(_streamId.BuildAttempt());
                 throw new Exception("Previous message should throw concurrency exception");
             }
-            catch (ConcurrencyException ex)
+            catch (ConcurrencyException)
             {
                 //do nothing.
             }
@@ -191,7 +188,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 Persistence.Commit(_streamId.BuildAttempt());
                 throw new Exception("Previous message should throw concurrency exception");
             }
-            catch (ConcurrencyException ex)
+            catch (ConcurrencyException)
             {
                 //do nothing.
             }
@@ -239,7 +236,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 Persistence.Commit(_streamId.BuildAttempt());
                 throw new Exception("Previous message should throw concurrency exception");
             }
-            catch (ConcurrencyException ex)
+            catch (ConcurrencyException)
             {
                 //do nothing.
             }

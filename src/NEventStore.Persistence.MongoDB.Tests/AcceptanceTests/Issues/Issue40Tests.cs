@@ -65,7 +65,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             public void no_stream_heads_are_saved()
             {
                 var heads = _streamHeads.Find(Builders<BsonDocument>.Filter.Empty);
-                heads.Count().Should().Be(0);
+                heads.CountDocuments().Should().Be(0);
             }
 
             protected override void Cleanup()
