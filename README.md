@@ -13,12 +13,14 @@ Build Status
 
 Branches:
 
-- feature/dotnetcore [![Build status](https://ci.appveyor.com/api/projects/status/8euhhjl05lhng8ka/branch/feature/dotnetcore?svg=true)](https://ci.appveyor.com/project/AGiorgetti/neventstore-persistence-mongodb/branch/feature/dotnetcore)
+- master [![Build status](https://ci.appveyor.com/api/projects/status/8euhhjl05lhng8ka/branch/master?svg=true)](https://ci.appveyor.com/project/AGiorgetti/neventstore-persistence-mongodb/branch/master)
+- develop [![Build status](https://ci.appveyor.com/api/projects/status/8euhhjl05lhng8ka/branch/develop?svg=true)](https://ci.appveyor.com/project/AGiorgetti/neventstore-persistence-mongodb/branch/develop)
+
 
 Information
 ===
 
-Changelog at https://github.com/NEventStore/NEventStore.Persistence.MongoDB/blob/master/src/NEventStore.Persistence.MongoDB/Readme.txt
+ChangeLog can be found [here](Changelog.md)
 
 ## How to Build (locally)
 
@@ -41,18 +43,10 @@ git submodule update
 RestorePackages.bat
 ```
 
-To build the project locally use the following scripts:
+To build the project locally on a Windows Machine:
 
-"RestorePackages.bat": let NuGet download all the packages it needs, you need to do this at least once to download all the tools needed to compile the library outside Visual Studio.
-
-"Build.RunTask.bat TaskName": executes the specified Task, available tasks are:
-
-- Clean - clean up the output and publish folders
-- UpdateVersion - update the assembly version info files 
-- Compile - compiles the solution
-- Test - executes unit tests
-- Build - executes Clean, UpdateVersion, Compile and Test 
-- Package - executes Build and publishes the artifacts
+- Install [Chocolatey](https://chocolatey.org/).
+- Open a Powershell console in Administrative mode and run the build script `build.ps1` in the root of the repository.
 
 ## Configure / Customize Commit Serialization
 
