@@ -96,73 +96,85 @@ namespace NEventStore.Persistence.MongoDB
             TryMongo(() =>
             {
                 PersistedCommits.Indexes.CreateOne(
-                    Builders<BsonDocument>.IndexKeys
-                        .Ascending(MongoCommitFields.Dispatched)
-                        .Ascending(MongoCommitFields.CommitStamp),
-                    new CreateIndexOptions()
-                    {
-                        Name = MongoCommitIndexes.Dispatched,
-                        Unique = false
-                    }
+                    new CreateIndexModel<BsonDocument>(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoCommitFields.Dispatched)
+                            .Ascending(MongoCommitFields.CommitStamp),
+                        new CreateIndexOptions()
+                        {
+                            Name = MongoCommitIndexes.Dispatched,
+                            Unique = false
+                        }
+                    )
                 );
 
                 PersistedCommits.Indexes.CreateOne(
-                    Builders<BsonDocument>.IndexKeys
-                        .Ascending(MongoCommitFields.BucketId)
-                        .Ascending(MongoCommitFields.StreamId)
-                        .Ascending(MongoCommitFields.StreamRevisionFrom)
-                        .Ascending(MongoCommitFields.StreamRevisionTo),
-                    new CreateIndexOptions()
-                    {
-                        Name = MongoCommitIndexes.GetFrom,
-                        Unique = true
-                    }
+                    new CreateIndexModel<BsonDocument>(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoCommitFields.BucketId)
+                            .Ascending(MongoCommitFields.StreamId)
+                            .Ascending(MongoCommitFields.StreamRevisionFrom)
+                            .Ascending(MongoCommitFields.StreamRevisionTo),
+                        new CreateIndexOptions()
+                        {
+                            Name = MongoCommitIndexes.GetFrom,
+                            Unique = true
+                        }
+                    )
                 );
 
                 PersistedCommits.Indexes.CreateOne(
-                    Builders<BsonDocument>.IndexKeys
-                        .Ascending(MongoCommitFields.BucketId)
-                        .Ascending(MongoCommitFields.StreamId)
-                        .Ascending(MongoCommitFields.CommitSequence),
-                    new CreateIndexOptions()
-                    {
-                        Name = MongoCommitIndexes.LogicalKey,
-                        Unique = true
-                    }
+                    new CreateIndexModel<BsonDocument>(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoCommitFields.BucketId)
+                            .Ascending(MongoCommitFields.StreamId)
+                            .Ascending(MongoCommitFields.CommitSequence),
+                        new CreateIndexOptions()
+                        {
+                            Name = MongoCommitIndexes.LogicalKey,
+                            Unique = true
+                        }
+                    )
                 );
 
                 PersistedCommits.Indexes.CreateOne(
-                    Builders<BsonDocument>.IndexKeys
-                        .Ascending(MongoCommitFields.CommitStamp),
-                    new CreateIndexOptions()
-                    {
-                        Name = MongoCommitIndexes.CommitStamp,
-                        Unique = false
-                    }
+                    new CreateIndexModel<BsonDocument>(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoCommitFields.CommitStamp),
+                        new CreateIndexOptions()
+                        {
+                            Name = MongoCommitIndexes.CommitStamp,
+                            Unique = false
+                        }
+                    )
                 );
 
                 PersistedCommits.Indexes.CreateOne(
-                   Builders<BsonDocument>.IndexKeys
-                       .Ascending(MongoCommitFields.BucketId)
-                       .Ascending(MongoCommitFields.StreamId)
-                       .Ascending(MongoCommitFields.CommitId),
-                   new CreateIndexOptions()
-                   {
-                       Name = MongoCommitIndexes.CommitId,
-                       Unique = true
-                   }
+                    new CreateIndexModel<BsonDocument>(
+                       Builders<BsonDocument>.IndexKeys
+                           .Ascending(MongoCommitFields.BucketId)
+                           .Ascending(MongoCommitFields.StreamId)
+                           .Ascending(MongoCommitFields.CommitId),
+                       new CreateIndexOptions()
+                       {
+                           Name = MongoCommitIndexes.CommitId,
+                           Unique = true
+                       }
+                   )
                 );
 
                 if (_options.DisableSnapshotSupport == false)
                 {
                     PersistedStreamHeads.Indexes.CreateOne(
-                        Builders<BsonDocument>.IndexKeys
-                            .Ascending(MongoStreamHeadFields.Unsnapshotted),
-                        new CreateIndexOptions()
-                        {
-                            Name = MongoStreamIndexes.Unsnapshotted,
-                            Unique = false
-                        }
+                        new CreateIndexModel<BsonDocument>(
+                            Builders<BsonDocument>.IndexKeys
+                                .Ascending(MongoStreamHeadFields.Unsnapshotted),
+                            new CreateIndexOptions()
+                            {
+                                Name = MongoStreamIndexes.Unsnapshotted,
+                                Unique = false
+                            }
+                        )
                     );
                 }
 
