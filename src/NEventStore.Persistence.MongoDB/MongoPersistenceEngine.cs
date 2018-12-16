@@ -98,19 +98,6 @@ namespace NEventStore.Persistence.MongoDB
                 PersistedCommits.Indexes.CreateOne(
                     new CreateIndexModel<BsonDocument>(
                         Builders<BsonDocument>.IndexKeys
-                            .Ascending(MongoCommitFields.Dispatched)
-                            .Ascending(MongoCommitFields.CommitStamp),
-                        new CreateIndexOptions()
-                        {
-                            Name = MongoCommitIndexes.Dispatched,
-                            Unique = false
-                        }
-                    )
-                );
-
-                PersistedCommits.Indexes.CreateOne(
-                    new CreateIndexModel<BsonDocument>(
-                        Builders<BsonDocument>.IndexKeys
                             .Ascending(MongoCommitFields.BucketId)
                             .Ascending(MongoCommitFields.StreamId)
                             .Ascending(MongoCommitFields.StreamRevisionFrom)
