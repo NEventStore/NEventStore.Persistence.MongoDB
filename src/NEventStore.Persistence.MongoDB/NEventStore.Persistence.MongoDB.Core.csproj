@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RootNamespace>NEventStore.Persistence.MongoDB</RootNamespace>
+    <AssemblyName>NEventStore.Persistence.MongoDB</AssemblyName>
+    <ApplicationIcon />
+    <OutputType>Library</OutputType>
+    <StartupObject />
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>NEventStore.Persistence.MongoDB</PackageId>
+    <Title>NEventStore MongoDB Persistence Plugin</Title>
+    <Authors>NEventStore Dev Team</Authors>
+    <PackageProjectUrl>http://neventstore.org</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>Additional persistence provider for NEventStore using MongoDB.</Description>
+    <PackageTags>events, event sourcing, cqrs, storage, persistence, database</PackageTags>
+    <PackageReleaseNotes></PackageReleaseNotes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <DefineConstants Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">TRACE;DEBUG;NETSTANDARD2_0</DefineConstants>
+    <DefineConstants Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">NETSTANDARD2_0</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net45'">
+    <DefineConstants Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" Version="2.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\dependencies\NEventStore\src\NEventStore\NEventStore.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="packages.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Messages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Messages.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Messages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Messages.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>NEventStore.Persistence.MongoDB</CustomToolNamespace>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

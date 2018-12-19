@@ -25,6 +25,8 @@
         public const string Payload = "Payload";
         public const string StreamRevision = "StreamRevision";
         public const string FullQualifiedBucketId = Id + "." + BucketId;
+        public const string FullQualifiedStreamId = Id + "." + StreamId;
+        public const string FullQualifiedStreamRevision = Id + "." + StreamRevision;
     }
 
     public static class MongoCommitFields
@@ -42,7 +44,6 @@
         public const string CommitSequence = "CommitSequence";
         public const string Events = "Events";
         public const string Headers = "Headers";
-        public const string Dispatched = "Dispatched";
         public const string Payload = "Payload";
     }
 
@@ -50,14 +51,14 @@
     {
         /// <summary>
         /// the following value is used to determine the index
-        /// that throws exception when a duplicate is found.
+        /// that throws exception when a duplicate is found. 
         /// </summary>
         public const string CheckpointNumberMMApV1 = "$_id_";
         public const string CheckpointNumberWiredTiger = "index: _id_";
 
         public const string CommitStamp = "CommitStamp_Index";
+        public const string CommitId = "CommitId_Index";
         public const string GetFrom = "GetFrom_Index";
-        public const string Dispatched = "Dispatched_Index";
         public const string LogicalKey = "LogicalKey_Index";
     }
 
