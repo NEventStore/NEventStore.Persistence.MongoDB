@@ -15,7 +15,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-    using NUnit.Framework;	
+    using NUnit.Framework;
 #endif
 #if XUNIT
     using Xunit;
@@ -350,7 +350,15 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         protected override void Because()
         {
 #if !NETSTANDARD1_6 && !NETSTANDARD2_0
-            var mongoEngine = (MongoPersistenceEngine)(((NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)Persistence).UnwrapPersistenceEngine());
+            MongoPersistenceEngine mongoEngine;
+            if (Persistence is NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)
+            {
+                mongoEngine = (MongoPersistenceEngine)(((NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)Persistence).UnwrapPersistenceEngine());
+            } 
+            else
+            {
+                mongoEngine = (MongoPersistenceEngine)Persistence;
+            }
 #else
             var mongoEngine = (MongoPersistenceEngine)Persistence;
 #endif
@@ -390,8 +398,16 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         protected override void Because()
         {
-#if !NETSTANDARD1_6 &&!NETSTANDARD2_0
-            var mongoEngine = (MongoPersistenceEngine)(((NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)Persistence).UnwrapPersistenceEngine());
+#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+            MongoPersistenceEngine mongoEngine;
+            if (Persistence is NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)
+            {
+                mongoEngine = (MongoPersistenceEngine)(((NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)Persistence).UnwrapPersistenceEngine());
+            } 
+            else
+            {
+                mongoEngine = (MongoPersistenceEngine)Persistence;
+            }
 #else
             var mongoEngine = (MongoPersistenceEngine)Persistence;
 #endif
