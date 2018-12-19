@@ -1,26 +1,34 @@
-﻿using NEventStore.Persistence.MongoDB.Tests.AcceptanceTests;
-
-namespace NEventStore.Persistence.MongoDB.Tests
+﻿namespace NEventStore.Persistence.MongoDB.Tests
 {
     using System;
     using NEventStore.Serialization;
+    using global::MongoDB.Driver;
 
     public class AcceptanceTestMongoPersistenceFactory : MongoPersistenceFactory
     {
         private const string EnvVarConnectionStringKey = "NEventStore.MongoDB";
-        private const string EnvVarServerSideLoopKey = "NEventStore.MongoDB.ServerSideLoop";
 
         public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions options = null)
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
-                options ?? new MongoPersistenceOptions()
+                configureOptionsForTesting(options ?? new MongoPersistenceOptions())
             )
         { }
 
+        private static MongoPersistenceOptions configureOptionsForTesting(MongoPersistenceOptions mongoPersistenceOptions)
+        {
+            mongoPersistenceOptions.PersistStreamHeadsOnBackgroundThread = false;
+            return mongoPersistenceOptions;
+        }
+
         internal static string GetConnectionString()
         {
+#if !NETSTANDARD1_6
             string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
+#else
+            string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey);
+#endif
 
             if (connectionString == null)
             {
@@ -34,7 +42,16 @@ namespace NEventStore.Persistence.MongoDB.Tests
 
             connectionString = connectionString.TrimStart('"').TrimEnd('"');
 
+#if MSTEST
             return connectionString;
+
+            // quick and dirty solution to avoid tests clashing when executed in parallel
+            var builder = new MongoUrlBuilder(connectionString);
+            builder.DatabaseName += Guid.NewGuid().ToString();
+            return builder.ToString();
+#else
+            return connectionString;
+#endif
         }
     }
 }

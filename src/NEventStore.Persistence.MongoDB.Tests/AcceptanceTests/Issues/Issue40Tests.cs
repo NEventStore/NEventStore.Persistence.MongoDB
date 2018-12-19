@@ -6,13 +6,26 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Xunit;
-using Xunit.Should;
+using NEventStore.Persistence.AcceptanceTests.BDD;
+using FluentAssertions;
+#if MSTEST
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
+#if NUNIT
+    using NUnit.Framework;	
+#endif
+#if XUNIT
+    using Xunit;
+    using Xunit.Should;
+#endif
 
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 {
     public class Issue40Tests
     {
+#if MSTEST
+        [TestClass]
+#endif
         public class verify_ability_to_opt_out_stream_head : PersistenceEngineConcern
         {
             private IMongoCollection<BsonDocument> _streamHeads;
@@ -27,6 +40,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 _streamHeads = db.GetCollection<BsonDocument>("Streams");
 
                 PersistenceEngineFixture.Options = options;
+
+                // workaround for test initialization to have uniform config for all 3 test frameworks
+                // we can't use ClassInitialize, TestFixtureSetup or SetFixture
+                Reinitialize();
+
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -42,22 +62,24 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             }
 
             [Fact]
-            public void holes_are_presents()
+            public void no_stream_heads_are_saved()
             {
                 var heads = _streamHeads.Find(Builders<BsonDocument>.Filter.Empty);
-                Assert.Equal(0, heads.Count());
+                heads.CountDocuments().Should().Be(0);
             }
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }
 
+#if MSTEST
+        [TestClass]
+#endif
         public class calling_AddShapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
         {
-           
+
             public calling_AddShapshot_function_when_snapshot_disabled_throws()
             {
                 var options = new MongoPersistenceOptions();
@@ -67,6 +89,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
 
                 PersistenceEngineFixture.Options = options;
+
+                // workaround for test initialization to have uniform config for all 3 test frameworks
+                // we can't use ClassInitialize, TestFixtureSetup or SetFixture
+                Reinitialize();
+
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -88,19 +117,21 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             [Fact]
             public void exception_was_thrown()
             {
-                _ex.ShouldBeInstanceOf<NotSupportedException>();
+                _ex.Should().BeOfType<NotSupportedException>();
             }
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }
 
+#if MSTEST
+        [TestClass]
+#endif
         public class calling_GetSnapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
         {
-         
+
             public calling_GetSnapshot_function_when_snapshot_disabled_throws()
             {
                 var options = new MongoPersistenceOptions();
@@ -110,6 +141,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
 
                 PersistenceEngineFixture.Options = options;
+
+                // workaround for test initialization to have uniform config for all 3 test frameworks
+                // we can't use ClassInitialize, TestFixtureSetup or SetFixture
+                Reinitialize();
+
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -131,16 +169,18 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             [Fact]
             public void exception_was_thrown()
             {
-                _ex.ShouldBeInstanceOf<NotSupportedException>();
+                _ex.Should().BeOfType<NotSupportedException>();
             }
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }
 
+#if MSTEST
+        [TestClass]
+#endif
         public class calling_GetStreamToSnapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
         {
 
@@ -153,6 +193,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
 
                 PersistenceEngineFixture.Options = options;
+
+                // workaround for test initialization to have uniform config for all 3 test frameworks
+                // we can't use ClassInitialize, TestFixtureSetup or SetFixture
+                Reinitialize();
+                // reset this immediately, hopefully will not impact other tests
+                PersistenceEngineFixture.Options = null;
             }
 
             protected override void Context()
@@ -174,12 +220,11 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             [Fact]
             public void exception_was_thrown()
             {
-                _ex.ShouldBeInstanceOf<NotSupportedException>();
+                _ex.Should().BeOfType<NotSupportedException>();
             }
 
             protected override void Cleanup()
             {
-                PersistenceEngineFixture.Options = null;
                 base.Cleanup();
             }
         }

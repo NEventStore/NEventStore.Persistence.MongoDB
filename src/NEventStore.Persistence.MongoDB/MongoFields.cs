@@ -44,7 +44,6 @@
         public const string CommitSequence = "CommitSequence";
         public const string Events = "Events";
         public const string Headers = "Headers";
-        public const string Dispatched = "Dispatched";
         public const string Payload = "Payload";
     }
 
@@ -60,7 +59,6 @@
         public const string CommitStamp = "CommitStamp_Index";
         public const string CommitId = "CommitId_Index";
         public const string GetFrom = "GetFrom_Index";
-        public const string Dispatched = "Dispatched_Index";
         public const string LogicalKey = "LogicalKey_Index";
     }
 

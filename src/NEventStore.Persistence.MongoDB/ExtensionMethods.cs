@@ -120,7 +120,6 @@ namespace NEventStore.Persistence.MongoDB
 				{MongoCommitFields.CommitStamp, commit.CommitStamp},
 				{MongoCommitFields.Headers, BsonDocumentWrapper.Create(commit.Headers)},
 				{MongoCommitFields.Events, new BsonArray(events)},
-				{MongoCommitFields.Dispatched, false},
 				{MongoCommitFields.StreamRevisionFrom, streamRevisionStart},
 				{MongoCommitFields.StreamRevisionTo, streamRevision - 1},
 				{MongoCommitFields.BucketId, commit.BucketId},
