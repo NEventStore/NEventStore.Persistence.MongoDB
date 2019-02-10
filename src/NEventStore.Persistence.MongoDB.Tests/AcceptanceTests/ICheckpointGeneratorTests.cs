@@ -33,7 +33,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
 
             var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
-            var collection = db.GetCollection<BsonDocument>("Commits");
+            var collection = db.GetCollection<MongoCommit>("Commits");
             options.CheckpointGenerator = new AlwaysQueryDbForNextValueCheckpointGenerator(collection);
 
             PersistenceEngineFixture.Options = options;
@@ -161,7 +161,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
 
             var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
-            var collection = db.GetCollection<BsonDocument>("Commits");
+            var collection = db.GetCollection<MongoCommit>("Commits");
 
             options.CheckpointGenerator = new InMemoryCheckpointGenerator(collection);
             PersistenceEngineFixture.Options = options;

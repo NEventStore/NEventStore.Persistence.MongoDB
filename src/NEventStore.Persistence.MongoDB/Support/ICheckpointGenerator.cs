@@ -26,21 +26,21 @@ namespace NEventStore.Persistence.MongoDB.Support
     {
         protected Int64 _last;
 
-        protected FilterDefinition<BsonDocument> Filter { get; }
+        protected FilterDefinition<MongoCommit> Filter { get; }
 
-        protected FindOptions<BsonDocument, BsonDocument> FindOptions { get; }
+        protected FindOptions<MongoCommit, BsonDocument> FindOptions { get; }
 
-        private readonly IMongoCollection<BsonDocument> _collection;
+        private readonly IMongoCollection<MongoCommit> _collection;
 
-        public InMemoryCheckpointGenerator(IMongoCollection<BsonDocument> collection)
+        public InMemoryCheckpointGenerator(IMongoCollection<MongoCommit> collection)
         {
             _collection = collection;
-            Filter = Builders<BsonDocument>.Filter.Empty;
-            FindOptions = new FindOptions<BsonDocument, BsonDocument>()
+            Filter = Builders<MongoCommit>.Filter.Empty;
+            FindOptions = new FindOptions<MongoCommit, BsonDocument>()
             {
                 Limit = 1,
-                Projection = Builders<BsonDocument>.Projection.Include(MongoCommitFields.CheckpointNumber),
-                Sort = Builders<BsonDocument>.Sort.Descending(MongoCommitFields.CheckpointNumber)
+                Projection = Builders<MongoCommit>.Projection.Include(MongoCommitFields.CheckpointNumber),
+                Sort = Builders<MongoCommit>.Sort.Descending(MongoCommitFields.CheckpointNumber)
             };
             _last = GetLastValue();
         }
@@ -67,7 +67,7 @@ namespace NEventStore.Persistence.MongoDB.Support
 
     public class AlwaysQueryDbForNextValueCheckpointGenerator : InMemoryCheckpointGenerator
     {
-        public AlwaysQueryDbForNextValueCheckpointGenerator(IMongoCollection<BsonDocument> collection)
+        public AlwaysQueryDbForNextValueCheckpointGenerator(IMongoCollection<MongoCommit> collection)
             : base(collection)
         {
         }

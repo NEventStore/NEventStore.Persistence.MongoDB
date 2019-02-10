@@ -62,9 +62,9 @@ namespace NEventStore.Persistence.MongoDB
             _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
         }
 
-        protected virtual IMongoCollection<BsonDocument> PersistedCommits
+        protected virtual IMongoCollection<MongoCommit> PersistedCommits
         {
-            get { return _store.GetCollection<BsonDocument>("Commits", _commitSettings).WithWriteConcern(_insertCommitWriteConcern); }
+            get { return _store.GetCollection<MongoCommit>("Commits", _commitSettings).WithWriteConcern(_insertCommitWriteConcern); }
         }
 
         protected virtual IMongoCollection<BsonDocument> PersistedStreamHeads
@@ -96,8 +96,8 @@ namespace NEventStore.Persistence.MongoDB
             TryMongo(() =>
             {
                 PersistedCommits.Indexes.CreateOne(
-                    new CreateIndexModel<BsonDocument>(
-                        Builders<BsonDocument>.IndexKeys
+                    new CreateIndexModel<MongoCommit>(
+                        Builders<MongoCommit>.IndexKeys
                             .Ascending(MongoCommitFields.BucketId)
                             .Ascending(MongoCommitFields.StreamId)
                             .Ascending(MongoCommitFields.StreamRevisionFrom)
@@ -111,8 +111,8 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 PersistedCommits.Indexes.CreateOne(
-                    new CreateIndexModel<BsonDocument>(
-                        Builders<BsonDocument>.IndexKeys
+                    new CreateIndexModel<MongoCommit>(
+                        Builders<MongoCommit>.IndexKeys
                             .Ascending(MongoCommitFields.BucketId)
                             .Ascending(MongoCommitFields.StreamId)
                             .Ascending(MongoCommitFields.CommitSequence),
@@ -125,8 +125,8 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 PersistedCommits.Indexes.CreateOne(
-                    new CreateIndexModel<BsonDocument>(
-                        Builders<BsonDocument>.IndexKeys
+                    new CreateIndexModel<MongoCommit>(
+                        Builders<MongoCommit>.IndexKeys
                             .Ascending(MongoCommitFields.CommitStamp),
                         new CreateIndexOptions()
                         {
@@ -137,8 +137,8 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 PersistedCommits.Indexes.CreateOne(
-                    new CreateIndexModel<BsonDocument>(
-                       Builders<BsonDocument>.IndexKeys
+                    new CreateIndexModel<MongoCommit>(
+                       Builders<MongoCommit>.IndexKeys
                            .Ascending(MongoCommitFields.BucketId)
                            .Ascending(MongoCommitFields.StreamId)
                            .Ascending(MongoCommitFields.CommitId),
@@ -178,16 +178,16 @@ namespace NEventStore.Persistence.MongoDB
 
             return TryMongo(() =>
             {
-                var query = Builders<BsonDocument>.Filter.And(
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId),
-                    Builders<BsonDocument>.Filter.Lte(MongoCommitFields.StreamRevisionFrom, maxRevision),
-                    Builders<BsonDocument>.Filter.Gte(MongoCommitFields.StreamRevisionTo, minRevision)
+                var query = Builders<MongoCommit>.Filter.And(
+                    Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                    Builders<MongoCommit>.Filter.Eq(MongoCommitFields.StreamId, streamId),
+                    Builders<MongoCommit>.Filter.Lte(MongoCommitFields.StreamRevisionFrom, maxRevision),
+                    Builders<MongoCommit>.Filter.Gte(MongoCommitFields.StreamRevisionTo, minRevision)
                 );
 
                 // @@review -> sort by commit id?
                 return PersistedCommits
-                    .Find(query).Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
+                    .Find(query).Sort(Builders<MongoCommit>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
                     .ToEnumerable()
                     .Select(mc => mc.ToCommit(_serializer));
             });
@@ -199,12 +199,12 @@ namespace NEventStore.Persistence.MongoDB
 
             return TryMongo(() => PersistedCommits
                 .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                        Builders<BsonDocument>.Filter.Gte(MongoCommitFields.CommitStamp, start)
+                    Builders<MongoCommit>.Filter.And(
+                        Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                        Builders<MongoCommit>.Filter.Gte(MongoCommitFields.CommitStamp, start)
                     )
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(Builders<MongoCommit>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer)));
         }
@@ -216,12 +216,12 @@ namespace NEventStore.Persistence.MongoDB
 
             return TryMongo(() => PersistedCommits
                 .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
+                    Builders<MongoCommit>.Filter.And(
+                        Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                        Builders<MongoCommit>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     )
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(Builders<MongoCommit>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer))
             );
@@ -233,12 +233,12 @@ namespace NEventStore.Persistence.MongoDB
 
             return TryMongo(() => PersistedCommits
                 .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
-                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
+                    Builders<MongoCommit>.Filter.And(
+                        Builders<MongoCommit>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
+                        Builders<MongoCommit>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     )
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(Builders<MongoCommit>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer))
             );
@@ -249,12 +249,12 @@ namespace NEventStore.Persistence.MongoDB
             Logger.Debug(Messages.GettingAllCommitsFromTo, start, end, bucketId);
 
             return TryMongo(() => PersistedCommits
-                .Find(Builders<BsonDocument>.Filter.And(
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                    Builders<BsonDocument>.Filter.Gte(MongoCommitFields.CommitStamp, start),
-                    Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CommitStamp, end))
+                .Find(Builders<MongoCommit>.Filter.And(
+                    Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                    Builders<MongoCommit>.Filter.Gte(MongoCommitFields.CommitStamp, start),
+                    Builders<MongoCommit>.Filter.Lt(MongoCommitFields.CommitStamp, end))
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(Builders<MongoCommit>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer)));
         }
@@ -300,7 +300,7 @@ namespace NEventStore.Persistence.MongoDB
                         {
                             Logger.Warn(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                             _checkpointGenerator.SignalDuplicateId(checkpointId);
-                            commitDoc[MongoCommitFields.CheckpointNumber] = checkpointId = _checkpointGenerator.Next();
+                            commitDoc.CheckpointNumber = checkpointId = _checkpointGenerator.Next();
                         }
                         else
                         {
@@ -318,7 +318,7 @@ namespace NEventStore.Persistence.MongoDB
                             ICommit savedCommit = PersistedCommits
                                 .FindSync(attempt.ToMongoCommitIdQuery())
                                 .FirstOrDefault()
-                                .ToCommit(_serializer);
+                                ?.ToCommit(_serializer);
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
@@ -439,7 +439,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             Logger.Warn(Messages.PurgingStorage);
             // @@review -> drop & create?
-            PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Empty);
+            PersistedCommits.DeleteMany(Builders<MongoCommit>.Filter.Empty);
             PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Empty);
             PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Empty);
         }
@@ -451,7 +451,7 @@ namespace NEventStore.Persistence.MongoDB
             {
                 PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
                 PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
-                PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
+                PersistedCommits.DeleteMany(Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
             });
 
         }
@@ -481,11 +481,11 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 PersistedCommits.UpdateMany(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
+                    Builders<MongoCommit>.Filter.And(
+                        Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                        Builders<MongoCommit>.Filter.Eq(MongoCommitFields.StreamId, streamId)
                     ),
-                    Builders<BsonDocument>.Update.Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
+                    Builders<MongoCommit>.Update.Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
                 );
             });
         }
@@ -576,12 +576,12 @@ namespace NEventStore.Persistence.MongoDB
 
         private Int64 GetLastCommittedCheckPointNumber()
         {
-            var filter = Builders<BsonDocument>.Filter.Empty;
-            var findOptions = new FindOptions<BsonDocument, BsonDocument>()
+            var filter = Builders<MongoCommit>.Filter.Empty;
+            var findOptions = new FindOptions<MongoCommit, BsonDocument>()
             {
                 Limit = 1,
-                Projection = Builders<BsonDocument>.Projection.Include(MongoCommitFields.CheckpointNumber),
-                Sort = Builders<BsonDocument>.Sort.Descending(MongoCommitFields.CheckpointNumber)
+                Projection = Builders<MongoCommit>.Projection.Include(MongoCommitFields.CheckpointNumber),
+                Sort = Builders<MongoCommit>.Sort.Descending(MongoCommitFields.CheckpointNumber)
             };
 
             var max = PersistedCommits
@@ -596,9 +596,9 @@ namespace NEventStore.Persistence.MongoDB
             var lastCheckpointNumber = GetLastCommittedCheckPointNumber();
             TryMongo(() =>
             {
-                PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.And(
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
-                    Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CheckpointNumber, lastCheckpointNumber)
+                PersistedCommits.DeleteMany(Builders<MongoCommit>.Filter.And(
+                    Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
+                    Builders<MongoCommit>.Filter.Lt(MongoCommitFields.CheckpointNumber, lastCheckpointNumber)
                 ));
             });
         }
@@ -606,8 +606,8 @@ namespace NEventStore.Persistence.MongoDB
         public IEnumerable<ICommit> GetDeletedCommits()
         {
             return TryMongo(() => PersistedCommits
-                                      .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
-                                      .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                                      .Find(Builders<MongoCommit>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
+                                      .Sort(Builders<MongoCommit>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
                                       .ToEnumerable()
                                       .Select(mc => mc.ToCommit(_serializer)));
         }
