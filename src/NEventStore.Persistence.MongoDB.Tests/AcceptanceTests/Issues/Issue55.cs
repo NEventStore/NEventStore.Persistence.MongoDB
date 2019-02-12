@@ -72,9 +72,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             commit.Contains(MongoCommitFields.CommitStamp).Should().BeTrue();
             commit.Contains(MongoCommitFields.Events).Should().BeTrue();
             commit.Contains(MongoCommitFields.Headers).Should().BeTrue();
-            commit.Contains(MongoCommitFields.Payload).Should().BeTrue();
             commit.Contains(MongoCommitFields.StreamId).Should().BeTrue();
-            commit.Contains(MongoCommitFields.StreamRevision).Should().BeTrue();
             commit.Contains(MongoCommitFields.StreamRevisionFrom).Should().BeTrue();
             commit.Contains(MongoCommitFields.StreamRevisionTo).Should().BeTrue();
         }
