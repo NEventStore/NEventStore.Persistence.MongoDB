@@ -272,7 +272,7 @@ namespace NEventStore.Persistence.MongoDB
                     {
                         if (!e.Message.Contains(ConcurrencyException))
                         {
-                            Logger.Error(Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                            if (Logger.IsErrorEnabled) Logger.Error(Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             throw;
                         }
 
@@ -280,7 +280,7 @@ namespace NEventStore.Persistence.MongoDB
                         if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1)
                             || e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
                         {
-                            Logger.Warn(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                            if (Logger.IsWarnEnabled) Logger.Warn(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                             _checkpointGenerator.SignalDuplicateId(checkpointId);
                             commitDoc[MongoCommitFields.CheckpointNumber] = checkpointId = _checkpointGenerator.Next();
                         }
@@ -334,7 +334,7 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (Exception e)
             {
-                Logger.Warn(Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                if (Logger.IsWarnEnabled) Logger.Warn(Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
             }
 
         }
@@ -422,7 +422,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual void Purge()
         {
-            Logger.Warn(Messages.PurgingStorage);
+            if (Logger.IsWarnEnabled) Logger.Warn(Messages.PurgingStorage);
             // @@review -> drop & create?
             PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Empty);
             PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Empty);
@@ -431,7 +431,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public void Purge(string bucketId)
         {
-            Logger.Warn(Messages.PurgingBucket, bucketId);
+            if (Logger.IsWarnEnabled) Logger.Warn(Messages.PurgingBucket, bucketId);
             TryMongo(() =>
             {
                 PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
@@ -448,7 +448,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public void DeleteStream(string bucketId, string streamId)
         {
-            Logger.Warn(Messages.DeletingStream, streamId, bucketId);
+            if (Logger.IsWarnEnabled) Logger.Warn(Messages.DeletingStream, streamId, bucketId);
             TryMongo(() =>
             {
                 PersistedStreamHeads.DeleteOne(
@@ -509,13 +509,13 @@ namespace NEventStore.Persistence.MongoDB
                 }
                 catch (OutOfMemoryException ex)
                 {
-                    Logger.Error("OutOfMemoryException: {0}", ex);
+                    if (Logger.IsErrorEnabled) Logger.Error("OutOfMemoryException: {0}", ex);
                     throw;
                 }
                 catch (Exception ex)
                 {
                     //It is safe to ignore transient exception updating stream head.
-                    Logger.Warn("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
+                    if (Logger.IsWarnEnabled) Logger.Warn("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
                 }
             });
         }
@@ -541,12 +541,12 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (MongoConnectionException e)
             {
-                Logger.Warn(Messages.StorageUnavailable);
+                if (Logger.IsWarnEnabled) Logger.Warn(Messages.StorageUnavailable);
                 throw new StorageUnavailableException(e.Message, e);
             }
             catch (MongoException e)
             {
-                Logger.Error(Messages.StorageThrewException, e.GetType(), e.ToString());
+                if (Logger.IsErrorEnabled) Logger.Error(Messages.StorageThrewException, e.GetType(), e.ToString());
                 throw new StorageException(e.Message, e);
             }
         }
