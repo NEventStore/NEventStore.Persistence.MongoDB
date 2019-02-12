@@ -27,7 +27,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 #endif
     public class Issue_55_CamelCase_Convention_Should_Not_Be_Applied_To_MongoCommit : PersistenceEngineConcern
     {
-        private IMongoCollection<BsonDocument> _commits;
+        private readonly IMongoCollection<BsonDocument> _commits;
         private CommitAttempt expectedAttempt;
 
         public Issue_55_CamelCase_Convention_Should_Not_Be_Applied_To_MongoCommit()
@@ -46,7 +46,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                            {
                                new CamelCaseElementNameConvention(),
                            };
-            ConventionRegistry.Register("camel case", pack, t => true);
+            ConventionRegistry.Register("camel case", pack, _ => true);
         }
 
         /// <summary>

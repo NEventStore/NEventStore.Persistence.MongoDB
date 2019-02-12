@@ -61,7 +61,6 @@ namespace NEventStore.Persistence.MongoDB
 
         public void Dispose()
         {
-
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -263,7 +262,7 @@ namespace NEventStore.Persistence.MongoDB
                         retry = false;
                         if (!_options.DisableSnapshotSupport)
                         {
-                            UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
+                            UpdateStreamHeadInBackgroundThread(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
                         }
 
                         if (Logger.IsDebugEnabled) Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
@@ -336,7 +335,6 @@ namespace NEventStore.Persistence.MongoDB
             {
                 if (Logger.IsWarnEnabled) Logger.Warn(Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
             }
-
         }
 
         public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
@@ -438,7 +436,6 @@ namespace NEventStore.Persistence.MongoDB
                 PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
                 PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
             });
-
         }
 
         public void Drop()
@@ -491,7 +488,7 @@ namespace NEventStore.Persistence.MongoDB
             _disposed = true;
         }
 
-        private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
+        private void UpdateStreamHeadInBackgroundThread(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
             StartBackgroundThread(() =>
             {
@@ -520,12 +517,12 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-
-
         protected virtual T TryMongo<T>(Func<T> callback)
         {
             T results = default(T);
-            TryMongo(() => results = callback());
+#pragma warning disable RCS1021 // Simplify lambda expression.
+            TryMongo(() => { results = callback(); }); // do not remove the { } or you'll get recursive calls!
+#pragma warning restore RCS1021 // Simplify lambda expression.
             return results;
         }
 
@@ -575,7 +572,7 @@ namespace NEventStore.Persistence.MongoDB
                .FindSync(filter, findOptions)
                .FirstOrDefault();
 
-            return max != null ? max[MongoCommitFields.CheckpointNumber].AsInt64 : 0L;
+            return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
         }
 
         public void EmptyRecycleBin()
@@ -609,8 +606,10 @@ namespace NEventStore.Persistence.MongoDB
         {
             if (threadStart != null && _options.PersistStreamHeadsOnBackgroundThread)
             {
-                var thread = new Thread(threadStart);
-                thread.IsBackground = true;
+                var thread = new Thread(threadStart)
+                {
+                    IsBackground = true
+                };
                 thread.Start();
             }
             else
