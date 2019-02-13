@@ -14,7 +14,6 @@ namespace NEventStore.Persistence.MongoDB
     public class MongoPersistenceEngine : IPersistStreams
     {
         private const string ConcurrencyException = "E1100";
-        private const int ConcurrencyExceptionCode = 11000;
         private static readonly ILog Logger = LogFactory.BuildLogger(typeof(MongoPersistenceEngine));
         private readonly MongoCollectionSettings _commitSettings;
         private readonly IDocumentSerializer _serializer;
@@ -23,36 +22,19 @@ namespace NEventStore.Persistence.MongoDB
         private readonly MongoCollectionSettings _streamSettings;
         private bool _disposed;
         private int _initialized;
-
         private readonly MongoPersistenceOptions _options;
         private readonly WriteConcern _insertCommitWriteConcern;
-
         private readonly string _systemBucketName;
-
         private ICheckpointGenerator _checkpointGenerator;
+
         public MongoPersistenceEngine(
             IMongoDatabase store,
             IDocumentSerializer serializer,
             MongoPersistenceOptions options)
         {
-            if (store == null)
-            {
-                throw new ArgumentNullException("store");
-            }
-
-            if (serializer == null)
-            {
-                throw new ArgumentNullException("serializer");
-            }
-
-            if (options == null)
-            {
-                throw new ArgumentNullException("options");
-            }
-
-            _store = store;
-            _serializer = serializer;
-            _options = options;
+            _store = store ?? throw new ArgumentNullException(nameof(store));
+            _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+            _options = options ?? throw new ArgumentNullException(nameof(options));
             _systemBucketName = options.SystemBucketName;
 
             // set config options
@@ -79,7 +61,6 @@ namespace NEventStore.Persistence.MongoDB
 
         public void Dispose()
         {
-
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -91,7 +72,7 @@ namespace NEventStore.Persistence.MongoDB
                 return;
             }
 
-            Logger.Debug(Messages.InitializingStorage);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.InitializingStorage);
 
             TryMongo(() =>
             {
@@ -150,7 +131,7 @@ namespace NEventStore.Persistence.MongoDB
                    )
                 );
 
-                if (_options.DisableSnapshotSupport == false)
+                if (!_options.DisableSnapshotSupport)
                 {
                     PersistedStreamHeads.Indexes.CreateOne(
                         new CreateIndexModel<BsonDocument>(
@@ -174,7 +155,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
-            Logger.Debug(Messages.GettingAllCommitsBetween, streamId, bucketId, minRevision, maxRevision);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsBetween, streamId, bucketId, minRevision, maxRevision);
 
             return TryMongo(() =>
             {
@@ -195,7 +176,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
         {
-            Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
 
             return TryMongo(() => PersistedCommits
                 .Find(
@@ -211,8 +192,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public IEnumerable<ICommit> GetFrom(string bucketId, Int64 checkpointToken)
         {
-
-            Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, checkpointToken);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, checkpointToken);
 
             return TryMongo(() => PersistedCommits
                 .Find(
@@ -229,7 +209,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public IEnumerable<ICommit> GetFrom(Int64 checkpointToken)
         {
-            Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
 
             return TryMongo(() => PersistedCommits
                 .Find(
@@ -246,7 +226,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
         {
-            Logger.Debug(Messages.GettingAllCommitsFromTo, start, end, bucketId);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromTo, start, end, bucketId);
 
             return TryMongo(() => PersistedCommits
                 .Find(Builders<BsonDocument>.Filter.And(
@@ -261,7 +241,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual ICommit Commit(CommitAttempt attempt)
         {
-            Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
 
             return TryMongo(() =>
             {
@@ -282,23 +262,24 @@ namespace NEventStore.Persistence.MongoDB
                         retry = false;
                         if (!_options.DisableSnapshotSupport)
                         {
-                            UpdateStreamHeadAsync(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
+                            UpdateStreamHeadInBackgroundThread(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count);
                         }
-                        Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
+
+                        if (Logger.IsDebugEnabled) Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
                     }
                     catch (MongoException e)
                     {
                         if (!e.Message.Contains(ConcurrencyException))
                         {
-                            Logger.Error(Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                            if (Logger.IsErrorEnabled) Logger.Error(Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             throw;
                         }
 
                         // checkpoint index? 
-                        if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1) ||
-                            e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
+                        if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1)
+                            || e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
                         {
-                            Logger.Warn(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                            if (Logger.IsWarnEnabled) Logger.Warn(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                             _checkpointGenerator.SignalDuplicateId(checkpointId);
                             commitDoc[MongoCommitFields.CheckpointNumber] = checkpointId = _checkpointGenerator.Next();
                         }
@@ -311,7 +292,7 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (e.Message.Contains(MongoCommitIndexes.CommitId))
                             {
-                                Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                                if (Logger.IsInfoEnabled) Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                                 throw new DuplicateCommitException();
                             }
 
@@ -322,11 +303,11 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
-                                Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                                if (Logger.IsInfoEnabled) Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                                 throw new DuplicateCommitException();
                             }
 
-                            Logger.Info(Messages.ConcurrencyExceptionError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                            if (Logger.IsInfoEnabled) Logger.Info(Messages.ConcurrencyExceptionError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             throw new ConcurrencyException();
                         }
                     }
@@ -342,7 +323,6 @@ namespace NEventStore.Persistence.MongoDB
             {
                 var holeFillDoc = attempt.ToEmptyCommit(
                    checkpointId,
-                   _serializer,
                    _systemBucketName
                 );
                 PersistedCommits.InsertOne(holeFillDoc);
@@ -353,15 +333,15 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (Exception e)
             {
-                Logger.Warn(Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                if (Logger.IsWarnEnabled) Logger.Warn(Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
             }
-
         }
 
         public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
         {
             CheckIfSnapshotEnabled();
-            Logger.Debug(Messages.GettingStreamsToSnapshot);
+
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingStreamsToSnapshot);
 
             return TryMongo(() =>
             {
@@ -378,7 +358,8 @@ namespace NEventStore.Persistence.MongoDB
         {
             CheckIfSnapshotEnabled();
 
-            Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
+
             var query = ExtensionMethods.GetSnapshotQuery(bucketId, streamId, maxRevision);
 
             return TryMongo(() => PersistedSnapshots
@@ -398,7 +379,9 @@ namespace NEventStore.Persistence.MongoDB
             {
                 return false;
             }
-            Logger.Debug(Messages.AddingSnapshot, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision);
+
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.AddingSnapshot, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision);
+
             try
             {
                 BsonDocument mongoSnapshot = snapshot.ToMongoSnapshot(_serializer);
@@ -437,7 +420,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public virtual void Purge()
         {
-            Logger.Warn(Messages.PurgingStorage);
+            if (Logger.IsWarnEnabled) Logger.Warn(Messages.PurgingStorage);
             // @@review -> drop & create?
             PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Empty);
             PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Empty);
@@ -446,14 +429,13 @@ namespace NEventStore.Persistence.MongoDB
 
         public void Purge(string bucketId)
         {
-            Logger.Warn(Messages.PurgingBucket, bucketId);
+            if (Logger.IsWarnEnabled) Logger.Warn(Messages.PurgingBucket, bucketId);
             TryMongo(() =>
             {
                 PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
                 PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
                 PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
             });
-
         }
 
         public void Drop()
@@ -463,7 +445,7 @@ namespace NEventStore.Persistence.MongoDB
 
         public void DeleteStream(string bucketId, string streamId)
         {
-            Logger.Warn(Messages.DeletingStream, streamId, bucketId);
+            if (Logger.IsWarnEnabled) Logger.Warn(Messages.DeletingStream, streamId, bucketId);
             TryMongo(() =>
             {
                 PersistedStreamHeads.DeleteOne(
@@ -502,11 +484,11 @@ namespace NEventStore.Persistence.MongoDB
                 return;
             }
 
-            Logger.Debug(Messages.ShuttingDownPersistence);
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.ShuttingDownPersistence);
             _disposed = true;
         }
 
-        private void UpdateStreamHeadAsync(string bucketId, string streamId, int streamRevision, int eventsCount)
+        private void UpdateStreamHeadInBackgroundThread(string bucketId, string streamId, int streamRevision, int eventsCount)
         {
             StartBackgroundThread(() =>
             {
@@ -524,23 +506,23 @@ namespace NEventStore.Persistence.MongoDB
                 }
                 catch (OutOfMemoryException ex)
                 {
-                    Logger.Error("OutOfMemoryException: {0}", ex);
+                    if (Logger.IsErrorEnabled) Logger.Error("OutOfMemoryException: {0}", ex);
                     throw;
                 }
                 catch (Exception ex)
                 {
                     //It is safe to ignore transient exception updating stream head.
-                    Logger.Warn("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
+                    if (Logger.IsWarnEnabled) Logger.Warn("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
                 }
             });
         }
 
-
-
         protected virtual T TryMongo<T>(Func<T> callback)
         {
             T results = default(T);
-            TryMongo(() => { results = callback(); });
+#pragma warning disable RCS1021 // Simplify lambda expression.
+            TryMongo(() => { results = callback(); }); // do not remove the { } or you'll get recursive calls!
+#pragma warning restore RCS1021 // Simplify lambda expression.
             return results;
         }
 
@@ -556,21 +538,23 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (MongoConnectionException e)
             {
-                Logger.Warn(Messages.StorageUnavailable);
+                if (Logger.IsWarnEnabled) Logger.Warn(Messages.StorageUnavailable);
                 throw new StorageUnavailableException(e.Message, e);
             }
             catch (MongoException e)
             {
-                Logger.Error(Messages.StorageThrewException, e.GetType(), e.ToString());
+                if (Logger.IsErrorEnabled) Logger.Error(Messages.StorageThrewException, e.GetType(), e.ToString());
                 throw new StorageException(e.Message, e);
             }
         }
 
         private static BsonDocument GetStreamHeadId(string bucketId, string streamId)
         {
-            var id = new BsonDocument();
-            id[MongoStreamHeadFields.BucketId] = bucketId;
-            id[MongoStreamHeadFields.StreamId] = streamId;
+            var id = new BsonDocument
+            {
+                [MongoStreamHeadFields.BucketId] = bucketId,
+                [MongoStreamHeadFields.StreamId] = streamId
+            };
             return id;
         }
 
@@ -588,7 +572,7 @@ namespace NEventStore.Persistence.MongoDB
                .FindSync(filter, findOptions)
                .FirstOrDefault();
 
-            return max != null ? max[MongoCommitFields.CheckpointNumber].AsInt64 : 0L;
+            return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
         }
 
         public void EmptyRecycleBin()
@@ -622,8 +606,10 @@ namespace NEventStore.Persistence.MongoDB
         {
             if (threadStart != null && _options.PersistStreamHeadsOnBackgroundThread)
             {
-                var thread = new Thread(threadStart);
-                thread.IsBackground = true;
+                var thread = new Thread(threadStart)
+                {
+                    IsBackground = true
+                };
                 thread.Start();
             }
             else

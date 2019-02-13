@@ -12,7 +12,7 @@ namespace NEventStore // ReSharper restore CheckNamespace
 
     public class MongoPersistenceWireup : PersistenceWireup
     {
-        private static readonly ILog Logger = LogFactory.BuildLogger(typeof (MongoPersistenceWireup));
+        private static readonly ILog Logger = LogFactory.BuildLogger(typeof(MongoPersistenceWireup));
 
         public MongoPersistenceWireup(Wireup inner, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions persistenceOptions)
             : base(inner)
@@ -27,7 +27,7 @@ namespace NEventStore // ReSharper restore CheckNamespace
             }
 #endif
 
-            Container.Register(c => new MongoPersistenceFactory(connectionStringProvider, serializer, persistenceOptions).Build());
+            Container.Register(_ => new MongoPersistenceFactory(connectionStringProvider, serializer, persistenceOptions).Build());
         }
     }
 }
