@@ -20,6 +20,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".core", ".core", "{976BF24B-2C42-4078-B83A-F3A4E06F6FA6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Persistence.MongoDB.Benchmark", "NEventStore.Persistence.MongoDB.Benchmark\NEventStore.Persistence.MongoDB.Benchmark.csproj", "{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -90,6 +92,18 @@ Global
 		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|x64.Build.0 = Release|Any CPU
 		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|x86.ActiveCfg = Release|Any CPU
 		{EDB69D5E-4C94-49C4-888E-A63C264E8CDE}.Release|x86.Build.0 = Release|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Debug|x64.Build.0 = Debug|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Debug|x86.Build.0 = Debug|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Release|x64.ActiveCfg = Release|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Release|x64.Build.0 = Release|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Release|x86.ActiveCfg = Release|Any CPU
+		{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
