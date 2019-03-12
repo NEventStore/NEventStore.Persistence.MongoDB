@@ -1,7 +1,6 @@
 ﻿namespace NEventStore.Persistence.MongoDB
 {
     using System;
-    using global::MongoDB.Driver;
     using NEventStore.Serialization;
 
     public class MongoPersistenceFactory : IPersistenceFactory
@@ -17,7 +16,7 @@
 	        _options = options ?? new MongoPersistenceOptions();
         }
 
-        public virtual IPersistStreams Build()
+        public IPersistStreams Build()
         {
             string connectionString = _connectionStringProvider();
 	        var database = _options.

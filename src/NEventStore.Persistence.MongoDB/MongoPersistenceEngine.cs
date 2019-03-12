@@ -44,17 +44,17 @@ namespace NEventStore.Persistence.MongoDB
             _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
         }
 
-        protected virtual IMongoCollection<BsonDocument> PersistedCommits
+        protected IMongoCollection<BsonDocument> PersistedCommits
         {
             get { return _store.GetCollection<BsonDocument>("Commits", _commitSettings).WithWriteConcern(_insertCommitWriteConcern); }
         }
 
-        protected virtual IMongoCollection<BsonDocument> PersistedStreamHeads
+        protected IMongoCollection<BsonDocument> PersistedStreamHeads
         {
             get { return _store.GetCollection<BsonDocument>("Streams", _streamSettings); }
         }
 
-        protected virtual IMongoCollection<BsonDocument> PersistedSnapshots
+        protected IMongoCollection<BsonDocument> PersistedSnapshots
         {
             get { return _store.GetCollection<BsonDocument>("Snapshots", _snapshotSettings); }
         }
@@ -65,7 +65,7 @@ namespace NEventStore.Persistence.MongoDB
             GC.SuppressFinalize(this);
         }
 
-        public virtual void Initialize()
+        public void Initialize()
         {
             if (Interlocked.Increment(ref _initialized) > 1)
             {
@@ -153,7 +153,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsBetween, streamId, bucketId, minRevision, maxRevision);
 
@@ -174,7 +174,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public virtual IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
+        public IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
 
@@ -224,7 +224,7 @@ namespace NEventStore.Persistence.MongoDB
             );
         }
 
-        public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
+        public IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromTo, start, end, bucketId);
 
@@ -239,7 +239,7 @@ namespace NEventStore.Persistence.MongoDB
                 .Select(x => x.ToCommit(_serializer)));
         }
 
-        public virtual ICommit Commit(CommitAttempt attempt)
+        public ICommit Commit(CommitAttempt attempt)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
 
@@ -337,7 +337,7 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
-        public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
+        public IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
         {
             CheckIfSnapshotEnabled();
 
@@ -354,7 +354,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
+        public ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
         {
             CheckIfSnapshotEnabled();
 
@@ -371,7 +371,7 @@ namespace NEventStore.Persistence.MongoDB
                 .FirstOrDefault());
         }
 
-        public virtual bool AddSnapshot(ISnapshot snapshot)
+        public bool AddSnapshot(ISnapshot snapshot)
         {
             CheckIfSnapshotEnabled();
 
@@ -418,7 +418,7 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
-        public virtual void Purge()
+        public void Purge()
         {
             if (Logger.IsWarnEnabled) Logger.Warn(Messages.PurgingStorage);
             // @@review -> drop & create?
@@ -477,7 +477,7 @@ namespace NEventStore.Persistence.MongoDB
             get { return _disposed; }
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected void Dispose(bool disposing)
         {
             if (!disposing || _disposed)
             {
@@ -517,7 +517,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        protected virtual T TryMongo<T>(Func<T> callback)
+        protected T TryMongo<T>(Func<T> callback)
         {
             T results = default(T);
 #pragma warning disable RCS1021 // Simplify lambda expression.
@@ -526,7 +526,7 @@ namespace NEventStore.Persistence.MongoDB
             return results;
         }
 
-        protected virtual void TryMongo(Action callback)
+        protected void TryMongo(Action callback)
         {
             if (_disposed)
             {
@@ -599,7 +599,9 @@ namespace NEventStore.Persistence.MongoDB
         private void CheckIfSnapshotEnabled()
         {
             if (_options.DisableSnapshotSupport)
+            {
                 throw new NotSupportedException("Snapshot is disabled from MongoPersistenceOptions");
+            }
         }
 
         private void StartBackgroundThread(ThreadStart threadStart)
