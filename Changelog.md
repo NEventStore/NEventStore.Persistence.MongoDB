@@ -1,8 +1,18 @@
 # NEventStore.Persistence.MongoDB
 
+## 6.0.0
+
+__Version 6.x is not backwards compatible with version 5.x.__ Updating to NEventStore 6.x without doing some preparation work will result in problems.
+
+Please read all the previous 6.x release notes.
+
 ## 6.0.0-rc-0
 
 __Version 6.x is not backwards compatible with version 5.x.__ Updating to NEventStore 6.x without doing some preparation work will result in problems.
+
+### New Features
+
+- .Net Standard 2.0 / .Net Core 2.0 support.
 
 ### Breaking Changes
 
