@@ -25,6 +25,7 @@ namespace NEventStore.Persistence.MongoDB
         private readonly WriteConcern _insertCommitWriteConcern;
         private readonly string _systemBucketName;
         private ICheckpointGenerator _checkpointGenerator;
+        private static readonly SortDefinition<BsonDocument> SortByAscendingCheckpointNumber = Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber);
 
         public MongoPersistenceEngine(
             IMongoDatabase store,
@@ -158,16 +159,30 @@ namespace NEventStore.Persistence.MongoDB
 
             return TryMongo(() =>
             {
-                var query = Builders<BsonDocument>.Filter.And(
+                var filters = new List<FilterDefinition<BsonDocument>>()
+                {
                     Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId),
-                    Builders<BsonDocument>.Filter.Lte(MongoCommitFields.StreamRevisionFrom, maxRevision),
-                    Builders<BsonDocument>.Filter.Gte(MongoCommitFields.StreamRevisionTo, minRevision)
-                );
+                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
+                };
+                if (minRevision > 0)
+                {
+                    filters.Add(
+                        Builders<BsonDocument>.Filter.Gte(MongoCommitFields.StreamRevisionTo, minRevision)
+                        );
+                }
+                if (maxRevision < int.MaxValue)
+                {
+                    filters.Add(
+                        Builders<BsonDocument>.Filter.Lte(MongoCommitFields.StreamRevisionFrom, maxRevision)
+                        );
+                }
 
-                // @@review -> sort by commit id?
+                var query = Builders<BsonDocument>.Filter.And(filters);
+
                 return PersistedCommits
-                    .Find(query).Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
+                    .Find(query)
+                    // .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
+                    .Sort(SortByAscendingCheckpointNumber)
                     .ToEnumerable()
                     .Select(mc => mc.ToCommit(_serializer));
             });
@@ -177,100 +192,168 @@ namespace NEventStore.Persistence.MongoDB
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
 
-            return TryMongo(() => PersistedCommits
-                .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+            return TryMongo(() =>
+            {
+                var query = Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId);
+                if (start != DateTime.MinValue)
+                {
+                    query = Builders<BsonDocument>.Filter.And(
+                        query,
                         Builders<BsonDocument>.Filter.Gte(MongoCommitFields.CommitStamp, start)
-                    )
-                )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
-                .ToEnumerable()
-                .Select(x => x.ToCommit(_serializer)));
+                    );
+                }
+
+                return PersistedCommits
+                    .Find(query)
+                    .Sort(SortByAscendingCheckpointNumber)
+                    .ToEnumerable()
+                    .Select(x => x.ToCommit(_serializer));
+            });
         }
 
         public IEnumerable<ICommit> GetFrom(string bucketId, Int64 checkpointToken)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, checkpointToken);
 
-            return TryMongo(() => PersistedCommits
-                .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+            return TryMongo(() =>
+            {
+                var query = Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId);
+                if (checkpointToken > 0)
+                {
+                    query = Builders<BsonDocument>.Filter.And(
+                        query,
                         Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
-                    )
-                )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
-                .ToEnumerable()
-                .Select(x => x.ToCommit(_serializer))
-            );
+                    );
+                }
+
+                return PersistedCommits
+                    .Find(query)
+                    .Sort(SortByAscendingCheckpointNumber)
+                    .ToEnumerable()
+                    .Select(x => x.ToCommit(_serializer));
+            });
         }
 
         public IEnumerable<ICommit> GetFromTo(string bucketId, long from, long to)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingCommitsFromBucketAndFromToCheckpoint, bucketId, from, to);
 
-            return TryMongo(() => PersistedCommits
-                .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, from),
+            return TryMongo(() =>
+            {
+                var filters = new List<FilterDefinition<BsonDocument>>()
+                {
+                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId)
+                };
+                if (from > 0)
+                {
+                    filters.Add(
+                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, from)
+                        );
+                }
+                if (to < long.MaxValue)
+                {
+                    filters.Add(
                         Builders<BsonDocument>.Filter.Lte(MongoCommitFields.CheckpointNumber, to)
-                    )
-                )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
-                .ToEnumerable()
-                .Select(x => x.ToCommit(_serializer))
-            );
+                        );
+                }
+
+                var query = Builders<BsonDocument>.Filter.And(filters);
+
+                return PersistedCommits
+                    .Find(query)
+                    .Sort(SortByAscendingCheckpointNumber)
+                    .ToEnumerable()
+                    .Select(x => x.ToCommit(_serializer));
+            });
         }
 
         public IEnumerable<ICommit> GetFrom(Int64 checkpointToken)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
 
-            return TryMongo(() => PersistedCommits
-                .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
+            return TryMongo(() =>
+            {
+                var query = Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin);
+                if (checkpointToken > 0)
+                {
+                    query = Builders<BsonDocument>.Filter.And(
+                        query,
                         Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
-                    )
-                )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
-                .ToEnumerable()
-                .Select(x => x.ToCommit(_serializer))
-            );
+                    );
+                }
+
+                return PersistedCommits
+                    .Find(query)
+                    .Sort(SortByAscendingCheckpointNumber)
+                    .ToEnumerable()
+                    .Select(x => x.ToCommit(_serializer));
+            });
         }
 
         public IEnumerable<ICommit> GetFromTo(long from, long to)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingCommitsFromToCheckpoint, from, to);
 
-            return TryMongo(() => PersistedCommits
-                .Find(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, from),
+            return TryMongo(() =>
+            {
+                var filters = new List<FilterDefinition<BsonDocument>>()
+                {
+                    Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
+                };
+                if (from > 0)
+                {
+                    filters.Add(
+                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, from)
+                        );
+                }
+                if (to < long.MaxValue)
+                {
+                    filters.Add(
                         Builders<BsonDocument>.Filter.Lte(MongoCommitFields.CheckpointNumber, to)
-                    )
-                )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
-                .ToEnumerable()
-                .Select(x => x.ToCommit(_serializer))
-            );
+                        );
+                }
+
+                var query = Builders<BsonDocument>.Filter.And(filters);
+
+                return PersistedCommits
+                    .Find(query)
+                    .Sort(SortByAscendingCheckpointNumber)
+                    .ToEnumerable()
+                    .Select(x => x.ToCommit(_serializer));
+            });
         }
 
         public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromTo, start, end, bucketId);
 
-            return TryMongo(() => PersistedCommits
-                .Find(Builders<BsonDocument>.Filter.And(
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                    Builders<BsonDocument>.Filter.Gte(MongoCommitFields.CommitStamp, start),
-                    Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CommitStamp, end))
-                )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
-                .ToEnumerable()
-                .Select(x => x.ToCommit(_serializer)));
+            return TryMongo(() =>
+            {
+                var filters = new List<FilterDefinition<BsonDocument>>()
+                {
+                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId)
+                };
+                if (start > DateTime.MinValue)
+                {
+                    filters.Add(
+                        Builders<BsonDocument>.Filter.Gte(MongoCommitFields.CommitStamp, start)
+                        );
+                }
+                if (end < DateTime.MaxValue)
+                {
+                    filters.Add(
+                        Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CommitStamp, end)
+                        );
+                }
+
+                var query = Builders<BsonDocument>.Filter.And(filters);
+
+                return PersistedCommits
+                    .Find(query)
+                    .Sort(SortByAscendingCheckpointNumber)
+                    .ToEnumerable()
+                    .Select(x => x.ToCommit(_serializer));
+            });
         }
 
         public virtual ICommit Commit(CommitAttempt attempt)
@@ -394,15 +477,18 @@ namespace NEventStore.Persistence.MongoDB
 
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
 
-            var query = ExtensionMethods.GetSnapshotQuery(bucketId, streamId, maxRevision);
+            return TryMongo(() =>
+            {
+                var query = ExtensionMethods.GetSnapshotQuery(bucketId, streamId, maxRevision);
 
-            return TryMongo(() => PersistedSnapshots
-                .Find(query)
-                .Sort(Builders<BsonDocument>.Sort.Descending(MongoShapshotFields.Id))
-                .Limit(1)
-                .ToEnumerable()
-                .Select(mc => mc.ToSnapshot(_serializer))
-                .FirstOrDefault());
+                return PersistedSnapshots
+                    .Find(query)
+                    .Sort(Builders<BsonDocument>.Sort.Descending(MongoShapshotFields.Id))
+                    .Limit(1)
+                    .ToEnumerable()
+                    .Select(mc => mc.ToSnapshot(_serializer))
+                    .FirstOrDefault();
+            });
         }
 
         public virtual bool AddSnapshot(ISnapshot snapshot)
@@ -622,7 +708,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             return TryMongo(() => PersistedCommits
                                       .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
-                                      .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                                      .Sort(SortByAscendingCheckpointNumber)
                                       .ToEnumerable()
                                       .Select(mc => mc.ToCommit(_serializer)));
         }

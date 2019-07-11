@@ -16,11 +16,14 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6B3F0D5A-6C8E-44A5-A118-C58B0EB834A0}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		..\Changelog.md = ..\Changelog.md
+		.nuget\NEventStore.Persistence.MongoDB.nuspec = .nuget\NEventStore.Persistence.MongoDB.nuspec
+		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".core", ".core", "{976BF24B-2C42-4078-B83A-F3A4E06F6FA6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Persistence.MongoDB.Benchmark", "NEventStore.Persistence.MongoDB.Benchmark\NEventStore.Persistence.MongoDB.Benchmark.csproj", "{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.Persistence.MongoDB.Benchmark", "NEventStore.Persistence.MongoDB.Benchmark\NEventStore.Persistence.MongoDB.Benchmark.csproj", "{1137B1E4-C0A3-46C9-9443-6068C64B8D2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
