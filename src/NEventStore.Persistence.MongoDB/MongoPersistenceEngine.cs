@@ -20,7 +20,6 @@ namespace NEventStore.Persistence.MongoDB
         private readonly MongoCollectionSettings _snapshotSettings;
         private readonly IMongoDatabase _store;
         private readonly MongoCollectionSettings _streamSettings;
-        private bool _disposed;
         private int _initialized;
         private readonly MongoPersistenceOptions _options;
         private readonly WriteConcern _insertCommitWriteConcern;
@@ -207,6 +206,24 @@ namespace NEventStore.Persistence.MongoDB
             );
         }
 
+        public IEnumerable<ICommit> GetFromTo(string bucketId, long from, long to)
+        {
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingCommitsFromBucketAndFromToCheckpoint, bucketId, from, to);
+
+            return TryMongo(() => PersistedCommits
+                .Find(
+                    Builders<BsonDocument>.Filter.And(
+                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, from),
+                        Builders<BsonDocument>.Filter.Lte(MongoCommitFields.CheckpointNumber, to)
+                    )
+                )
+                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .ToEnumerable()
+                .Select(x => x.ToCommit(_serializer))
+            );
+        }
+
         public IEnumerable<ICommit> GetFrom(Int64 checkpointToken)
         {
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
@@ -216,6 +233,23 @@ namespace NEventStore.Persistence.MongoDB
                     Builders<BsonDocument>.Filter.And(
                         Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
                         Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
+                    )
+                )
+                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .ToEnumerable()
+                .Select(x => x.ToCommit(_serializer))
+            );
+        }
+
+        public IEnumerable<ICommit> GetFromTo(long from, long to)
+        {
+            if (Logger.IsDebugEnabled) Logger.Debug(Messages.GettingCommitsFromToCheckpoint, from, to);
+
+            return TryMongo(() => PersistedCommits
+                .Find(
+                    Builders<BsonDocument>.Filter.And(
+                        Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, from),
+                        Builders<BsonDocument>.Filter.Lte(MongoCommitFields.CheckpointNumber, to)
                     )
                 )
                 .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
@@ -472,20 +506,17 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public bool IsDisposed
-        {
-            get { return _disposed; }
-        }
+        public bool IsDisposed { get; private set; }
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposing || _disposed)
+            if (!disposing || IsDisposed)
             {
                 return;
             }
 
             if (Logger.IsDebugEnabled) Logger.Debug(Messages.ShuttingDownPersistence);
-            _disposed = true;
+            IsDisposed = true;
         }
 
         private void UpdateStreamHeadInBackgroundThread(string bucketId, string streamId, int streamRevision, int eventsCount)
@@ -528,7 +559,7 @@ namespace NEventStore.Persistence.MongoDB
 
         protected virtual void TryMongo(Action callback)
         {
-            if (_disposed)
+            if (IsDisposed)
             {
                 throw new ObjectDisposedException("Attempt to use storage after it has been disposed.");
             }

@@ -19,7 +19,7 @@ namespace NEventStore.Persistence.MongoDB {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Messages {
@@ -210,6 +210,24 @@ namespace NEventStore.Persistence.MongoDB {
         internal static string GettingAllCommitsFromTo {
             get {
                 return ResourceManager.GetString("GettingAllCommitsFromTo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Getting all commits from bucket &apos;{0}&apos; from checkpoint &apos;{1}&apos; (excluded) up to &apos;{2}&apos; (included)..
+        /// </summary>
+        internal static string GettingCommitsFromBucketAndFromToCheckpoint {
+            get {
+                return ResourceManager.GetString("GettingCommitsFromBucketAndFromToCheckpoint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Getting all commits from checkpoint &apos;{0}&apos; (excluded) up to &apos;{1}&apos; (included)..
+        /// </summary>
+        internal static string GettingCommitsFromToCheckpoint {
+            get {
+                return ResourceManager.GetString("GettingCommitsFromToCheckpoint", resourceCulture);
             }
         }
         
