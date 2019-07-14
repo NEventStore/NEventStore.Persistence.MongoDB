@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\dependencies\NEventStore\src\NEventStore.Persistence.AcceptanceTests\NEventStore.Persistence.AcceptanceTests.Core.csproj" />
+    <ProjectReference Include="..\..\dependencies\NEventStore\src\NEventStore.PollingClient\NEventStore.PollingClient.csproj" />
     <ProjectReference Include="..\..\dependencies\NEventStore\src\NEventStore\NEventStore.Core.csproj" />
     <ProjectReference Include="..\NEventStore.Persistence.MongoDB\NEventStore.Persistence.MongoDB.Core.csproj" />
   </ItemGroup>
