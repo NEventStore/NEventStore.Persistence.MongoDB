@@ -194,7 +194,7 @@
     <value>Duplicated checkpoint Token commit {0} [{1}] - Bucket {2} - StreamId {3}</value>
   </data>
   <data name="DuplicatedCommitError" xml:space="preserve">
-    <value>Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}</value>
+    <value>[NEventStore.Persistence.MongoDB] Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}</value>
   </data>
   <data name="FillHoleError" xml:space="preserve">
     <value>Error filling hole commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}</value>

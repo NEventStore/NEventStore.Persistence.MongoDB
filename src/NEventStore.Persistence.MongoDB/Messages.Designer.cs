@@ -142,7 +142,7 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}.
+        ///   Looks up a localized string similar to [NEventStore.Persistence.MongoDB] Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}.
         /// </summary>
         internal static string DuplicatedCommitError {
             get {

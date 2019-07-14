@@ -409,8 +409,9 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (e.Message.Contains(MongoCommitIndexes.CommitId))
                             {
-                                if (Logger.IsInfoEnabled) Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
-                                throw new DuplicateCommitException();
+                                var msg = String.Format(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                                if (Logger.IsInfoEnabled) Logger.Info(msg);
+                                throw new DuplicateCommitException(msg);
                             }
 
                             ICommit savedCommit = PersistedCommits
@@ -420,8 +421,9 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
-                                if (Logger.IsInfoEnabled) Logger.Info(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
-                                throw new DuplicateCommitException();
+                                var msg = String.Format(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                                if (Logger.IsInfoEnabled) Logger.Info(msg);
+                                throw new DuplicateCommitException(msg);
                             }
 
                             if (Logger.IsInfoEnabled) Logger.Info(Messages.ConcurrencyExceptionError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
