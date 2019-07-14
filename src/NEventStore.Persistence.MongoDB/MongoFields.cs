@@ -60,6 +60,7 @@
         public const string CommitId = "CommitId_Index";
         public const string GetFrom = "GetFrom_Index";
         public const string LogicalKey = "LogicalKey_Index";
+        public const string GetFromCheckpoint = "GetFrom_Checkpoint_Index";
     }
 
     public static class MongoStreamIndexes

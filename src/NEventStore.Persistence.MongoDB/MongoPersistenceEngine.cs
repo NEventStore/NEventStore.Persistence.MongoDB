@@ -15,49 +15,42 @@ namespace NEventStore.Persistence.MongoDB
     {
         private const string ConcurrencyException = "E1100";
         private static readonly ILog Logger = LogFactory.BuildLogger(typeof(MongoPersistenceEngine));
-        private readonly MongoCollectionSettings _commitSettings;
         private readonly IDocumentSerializer _serializer;
-        private readonly MongoCollectionSettings _snapshotSettings;
-        private readonly IMongoDatabase _store;
-        private readonly MongoCollectionSettings _streamSettings;
         private bool _disposed;
         private int _initialized;
         private readonly MongoPersistenceOptions _options;
-        private readonly WriteConcern _insertCommitWriteConcern;
         private readonly string _systemBucketName;
         private ICheckpointGenerator _checkpointGenerator;
+
+        protected static SortDefinition<BsonDocument> SortAscendingCheckpointNumber = Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber);
 
         public MongoPersistenceEngine(
             IMongoDatabase store,
             IDocumentSerializer serializer,
             MongoPersistenceOptions options)
         {
-            _store = store ?? throw new ArgumentNullException(nameof(store));
+            var db = store ?? throw new ArgumentNullException(nameof(store));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _systemBucketName = options.SystemBucketName;
 
             // set config options
-            _commitSettings = _options.GetCommitSettings();
-            _snapshotSettings = _options.GetSnapshotSettings();
-            _streamSettings = _options.GetStreamSettings();
-            _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
+            var commitSettings = _options.GetCommitSettings();
+            var snapshotSettings = _options.GetSnapshotSettings();
+            var streamSettings = _options.GetStreamSettings();
+            var insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
+
+            // from the docs: IMongoCollection is thread safe and safe to be stored globally
+            PersistedCommits = db.GetCollection<BsonDocument>("Commits", commitSettings).WithWriteConcern(insertCommitWriteConcern);
+            PersistedStreamHeads = db.GetCollection<BsonDocument>("Streams", streamSettings);
+            PersistedSnapshots = db.GetCollection<BsonDocument>("Snapshots", snapshotSettings);
         }
 
-        protected IMongoCollection<BsonDocument> PersistedCommits
-        {
-            get { return _store.GetCollection<BsonDocument>("Commits", _commitSettings).WithWriteConcern(_insertCommitWriteConcern); }
-        }
+        protected IMongoCollection<BsonDocument> PersistedCommits { get; }
 
-        protected IMongoCollection<BsonDocument> PersistedStreamHeads
-        {
-            get { return _store.GetCollection<BsonDocument>("Streams", _streamSettings); }
-        }
+        protected IMongoCollection<BsonDocument> PersistedStreamHeads { get; }
 
-        protected IMongoCollection<BsonDocument> PersistedSnapshots
-        {
-            get { return _store.GetCollection<BsonDocument>("Snapshots", _snapshotSettings); }
-        }
+        protected IMongoCollection<BsonDocument> PersistedSnapshots { get; }
 
         public void Dispose()
         {
@@ -76,6 +69,19 @@ namespace NEventStore.Persistence.MongoDB
 
             TryMongo(() =>
             {
+                PersistedCommits.Indexes.CreateOne(
+                    new CreateIndexModel<BsonDocument>(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoCommitFields.BucketId)
+                            .Ascending(MongoCommitFields.CheckpointNumber),
+                        new CreateIndexOptions()
+                        {
+                            Name = MongoCommitIndexes.GetFromCheckpoint,
+                            Unique = true
+                        }
+                    )
+                );
+
                 PersistedCommits.Indexes.CreateOne(
                     new CreateIndexModel<BsonDocument>(
                         Builders<BsonDocument>.IndexKeys
@@ -168,7 +174,9 @@ namespace NEventStore.Persistence.MongoDB
 
                 // @@review -> sort by commit id?
                 return PersistedCommits
-                    .Find(query).Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
+.Find(query)
+                    //.Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
+                    .Sort(SortAscendingCheckpointNumber)
                     .ToEnumerable()
                     .Select(mc => mc.ToCommit(_serializer));
             });
@@ -185,7 +193,7 @@ namespace NEventStore.Persistence.MongoDB
                         Builders<BsonDocument>.Filter.Gte(MongoCommitFields.CommitStamp, start)
                     )
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(SortAscendingCheckpointNumber)
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer)));
         }
@@ -201,7 +209,7 @@ namespace NEventStore.Persistence.MongoDB
                         Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     )
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(SortAscendingCheckpointNumber)
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer))
             );
@@ -218,7 +226,7 @@ namespace NEventStore.Persistence.MongoDB
                         Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     )
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(SortAscendingCheckpointNumber)
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer))
             );
@@ -234,7 +242,7 @@ namespace NEventStore.Persistence.MongoDB
                     Builders<BsonDocument>.Filter.Gte(MongoCommitFields.CommitStamp, start),
                     Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CommitStamp, end))
                 )
-                .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                .Sort(SortAscendingCheckpointNumber)
                 .ToEnumerable()
                 .Select(x => x.ToCommit(_serializer)));
         }
@@ -519,7 +527,7 @@ namespace NEventStore.Persistence.MongoDB
 
         protected T TryMongo<T>(Func<T> callback)
         {
-            T results = default(T);
+            T results = default;
 #pragma warning disable RCS1021 // Simplify lambda expression.
             TryMongo(() => { results = callback(); }); // do not remove the { } or you'll get recursive calls!
 #pragma warning restore RCS1021 // Simplify lambda expression.
@@ -550,12 +558,11 @@ namespace NEventStore.Persistence.MongoDB
 
         private static BsonDocument GetStreamHeadId(string bucketId, string streamId)
         {
-            var id = new BsonDocument
+            return new BsonDocument
             {
                 [MongoStreamHeadFields.BucketId] = bucketId,
                 [MongoStreamHeadFields.StreamId] = streamId
             };
-            return id;
         }
 
         private Int64 GetLastCommittedCheckPointNumber()
@@ -591,7 +598,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             return TryMongo(() => PersistedCommits
                                       .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
-                                      .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber))
+                                      .Sort(SortAscendingCheckpointNumber)
                                       .ToEnumerable()
                                       .Select(mc => mc.ToCommit(_serializer)));
         }
