@@ -40,7 +40,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
             // workaround for test initialization to have uniform config for all 3 test frameworks
             // we can't use ClassInitialize, TestFixtureSetup or SetFixture
-            Reinitialize();
+            Fixture.Initialize(ConfiguredPageSizeForTesting);
 
             // reset this immediately, hopefully will not impact other tests
             PersistenceEngineFixture.Options = null;
@@ -100,7 +100,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
             // workaround for test initialization to have uniform config for all 3 test frameworks
             // we can't use ClassInitialize, TestFixtureSetup or SetFixture
-            Reinitialize();
+            Fixture.Initialize(ConfiguredPageSizeForTesting);
 
             // reset this immediately, hopefully will not impact other tests
             PersistenceEngineFixture.Options = null;
@@ -168,7 +168,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
             // workaround for test initialization to have uniform config for all 3 test frameworks
             // we can't use ClassInitialize, TestFixtureSetup or SetFixture
-            Reinitialize();
+            Fixture.Initialize(ConfiguredPageSizeForTesting);
 
             // reset this immediately, hopefully will not impact other tests
             PersistenceEngineFixture.Options = null;
