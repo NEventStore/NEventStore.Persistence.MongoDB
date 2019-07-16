@@ -3,7 +3,7 @@
 ## 7.0.0
 
 - Updated NEventStore to 7.0.0.
-- Updated the Persistence.Engine to implement new IPersistsStreams.GetFromTo interface methods.
+- Updated the Persistence.Engine to implement new IPersistsStreams.GetFromTo(Int64, Int64) and IPersistsStreams.GetFromTo(String, Int64, Int64) interface methods.
 - Optimized the query construction to remove edge cases from GetFrom methods (0, Int.MinValue. Int.MaxValue, DateTime.MinValue, DateTime.MaxValue)
 
 ## 6.0.0
