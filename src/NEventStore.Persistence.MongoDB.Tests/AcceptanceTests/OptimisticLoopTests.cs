@@ -7,7 +7,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     using System.Text;
     using System.Threading;
     using System.Diagnostics;
-    using NEventStore.Client;
+    using NEventStore.PollingClient;
     using NEventStore.Persistence.AcceptanceTests;
     using NEventStore.Persistence.AcceptanceTests.BDD;
     using FluentAssertions;

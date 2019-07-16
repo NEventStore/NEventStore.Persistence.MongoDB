@@ -98,6 +98,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         // Enable this test manually, it does not get skipped in the build server causing the build to fail
         // [Fact(Skip = "Run it Manually")]
+#if NUNIT
+        [Fact]
+        [Explicit("Run as Standalone due to MongoDb mapping configuration being static")]
+#endif
         public void should_throw_serialization_exception_due_to_invalid_key()
         {
             // _persisted.Headers.Keys.ShouldContain("key.1");
@@ -140,6 +144,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         // Enable this test manually, it does not get skipped in the build server causing the build to fail
         // [Fact(Skip = "Run it Manually")]
+#if NUNIT
+        [Fact]
+        [Explicit("Run as Standalone due to MongoDb mapping configuration being static")]
+#endif
         public void should_correctly_deserialize_headers()
         {
             _persisted.Headers.Keys.Should().Contain("key");

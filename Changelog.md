@@ -1,5 +1,11 @@
 # NEventStore.Persistence.MongoDB
 
+## 7.0.0
+
+- Updated NEventStore to 7.0.0.
+- Updated the Persistence.Engine to implement new IPersistsStreams.GetFromTo(Int64, Int64) and IPersistsStreams.GetFromTo(String, Int64, Int64) interface methods.
+- Optimized the query construction to remove edge cases from GetFrom methods (0, Int.MinValue. Int.MaxValue, DateTime.MinValue, DateTime.MaxValue)
+
 ## 6.0.0
 
 __Version 6.x is not backwards compatible with version 5.x.__ Updating to NEventStore 6.x without doing some preparation work will result in problems.
