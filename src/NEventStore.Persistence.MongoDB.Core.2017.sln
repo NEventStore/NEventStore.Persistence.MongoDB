@@ -16,6 +16,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6B3F0D5A-6C8E-44A5-A118-C58B0EB834A0}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		..\appveyor.yml = ..\appveyor.yml
 		..\Changelog.md = ..\Changelog.md
 		.nuget\NEventStore.Persistence.MongoDB.nuspec = .nuget\NEventStore.Persistence.MongoDB.nuspec
 		..\README.md = ..\README.md

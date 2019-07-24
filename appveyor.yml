@@ -1,8 +1,4 @@
 version: 1.0.{build}
-branches:
-  only:
-  - develop
-  - master
 image: Visual Studio 2017
 configuration: Release
 assembly_info:
@@ -37,7 +33,9 @@ before_build:
 
     dotnet restore ./src/NEventStore.Persistence.MongoDB.Core.2017.sln --verbosity m
 
-    gitversion /l console /output buildserver /updateAssemblyInfo
+    gitversion /l console /output buildserver /updateassemblyinfo
+
+    gitversion ".\dependencies\NEventStore" /l console /updateassemblyinfo
 build:
   project: src/NEventStore.Persistence.MongoDB.Core.2017.sln
   verbosity: minimal
