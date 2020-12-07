@@ -1,5 +1,14 @@
 # NEventStore.Persistence.MongoDB
 
+## 8.0.0
+
+- Updated NEventStore to 8.0.0.
+- Added support for net5.0, net461.
+
+### Breaking Changes
+
+- dropped net45 support.
+
 ## 7.0.0
 
 - Updated NEventStore to 7.0.0.

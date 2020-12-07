@@ -17,12 +17,10 @@ namespace NEventStore.Persistence.MongoDB
         {
         }
 
-#if !NETSTANDARD1_6
         protected ConfigurationException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)
         {
         }
-#endif
     }
 }
