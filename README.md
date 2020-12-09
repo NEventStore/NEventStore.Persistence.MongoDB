@@ -1,12 +1,13 @@
 NEventStore.Persistence.Mongo
 ===
 
-Mongo Persistence Engine for NEventStore v6.x
+Mongo Persistence Engine for NEventStore
 
 NEventStore.Persistence.MongoDB currently supports:
 
-- dotnet framework 4.5
-- dotnet standard 2.0, dotnet core 2.0 
+- .net framework 4.6.1
+- .net standard 2.0
+- .net 5.0
 
 Build Status
 ===
