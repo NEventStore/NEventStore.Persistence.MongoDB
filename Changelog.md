@@ -4,6 +4,7 @@
 
 - Updated NEventStore to 8.0.0.
 - Added support for net5.0, net461.
+- Updated MongoDB driver to 2.11.x.
 
 ### Breaking Changes
 
