@@ -4,7 +4,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using System.Threading;
     using System.Diagnostics;
     using NEventStore.PollingClient;
@@ -54,12 +53,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_a_reader_observe_commits_from_a_lot_of_writers : SpecificationBase
+    public class When_a_reader_observe_commits_from_a_lot_of_writers : SpecificationBase
     {
         protected const int IterationsPerWriter = 40;
         protected const int ParallelWriters = 8;
         protected const int PollingInterval = 100;
-        readonly IList<IPersistStreams> _writers = new List<IPersistStreams>();
+        private readonly IList<IPersistStreams> _writers = new List<IPersistStreams>();
         private PollingClient2 _client;
         private Observer _observer;
 
@@ -135,7 +134,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void should_never_miss_a_commit()
+        public void Should_never_miss_a_commit()
         {
             _observer.Counter.Should().Be(IterationsPerWriter * ParallelWriters);
         }
@@ -155,9 +154,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_first_commit_is_persisted : PersistenceEngineConcern
+    public class When_first_commit_is_persisted : PersistenceEngineConcern
     {
-        ICommit _commit;
+        private ICommit _commit;
+
         protected override void Context()
         {
         }
@@ -168,7 +168,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void should_have_checkpoint_equal_to_one()
+        public void Should_have_checkpoint_equal_to_one()
         {
             _commit.CheckpointToken.Should().Be(1);
         }
@@ -177,9 +177,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_second_commit_is_persisted : PersistenceEngineConcern
+    public class When_second_commit_is_persisted : PersistenceEngineConcern
     {
-        ICommit _commit;
+        private ICommit _commit;
+
         protected override void Context()
         {
             Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt());
@@ -191,19 +192,19 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void should_have_checkpoint_equal_to_two()
+        public void Should_have_checkpoint_equal_to_two()
         {
             _commit.CheckpointToken.Should().Be(2);
         }
-
     }
 
 #if MSTEST
     [TestClass]
 #endif
-    public class when_commit_is_persisted_after_a_stream_deletion : PersistenceEngineConcern
+    public class When_commit_is_persisted_after_a_stream_deletion : PersistenceEngineConcern
     {
-        ICommit _commit;
+        private ICommit _commit;
+
         protected override void Context()
         {
             var commit = Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt());
@@ -216,7 +217,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void should_have_checkpoint_equal_to_two()
+        public void Should_have_checkpoint_equal_to_two()
         {
             _commit.CheckpointToken.Should().Be(2);
         }
@@ -225,11 +226,11 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_commit_is_persisted_after_concurrent_insertions_and_deletions : PersistenceEngineConcern
+    public class When_commit_is_persisted_after_concurrent_insertions_and_deletions : PersistenceEngineConcern
     {
-        const int Iterations = 10;
-        const int Clients = 10;
-        Int64 _checkpointToken;
+        private const int Iterations = 10;
+        private const int Clients = 10;
+        private Int64 _checkpointToken;
 
         protected override void Context()
         {
@@ -262,7 +263,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                     Interlocked.Increment(ref counter);
                     if (counter >= Clients)
                         stop.Set();
-
                 }).Start();
             }
 
@@ -276,18 +276,18 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void should_have_correct_checkpoint()
+        public void Should_have_correct_checkpoint()
         {
-            _checkpointToken.Should().Be(Clients * Iterations + 1);
+            _checkpointToken.Should().Be((Clients * Iterations) + 1);
         }
     }
 
 #if MSTEST
     [TestClass]
 #endif
-    public class when_a_stream_is_deleted : PersistenceEngineConcern
+    public class When_a_stream_is_deleted : PersistenceEngineConcern
     {
-        ICommit _commit;
+        private ICommit _commit;
 
         protected override void Context()
         {
@@ -300,31 +300,31 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void the_commits_cannot_be_loaded_from_the_stream()
+        public void The_commits_cannot_be_loaded_from_the_stream()
         {
             Persistence.GetFrom(_commit.StreamId, int.MinValue, int.MaxValue).Should().BeEmpty();
         }
 
         [Fact]
-        public void the_commits_cannot_be_loaded_from_the_bucket()
+        public void The_commits_cannot_be_loaded_from_the_bucket()
         {
             Persistence.GetFrom(_commit.BucketId, DateTime.MinValue).Should().BeEmpty();
         }
 
         [Fact]
-        public void the_commits_cannot_be_loaded_from_the_checkpoint()
+        public void The_commits_cannot_be_loaded_from_the_checkpoint()
         {
             Persistence.GetFrom(0).Should().BeEmpty();
         }
 
         [Fact]
-        public void the_commits_cannot_be_loaded_from_bucket_and_start_date()
+        public void The_commits_cannot_be_loaded_from_bucket_and_start_date()
         {
             Persistence.GetFrom(_commit.BucketId, DateTime.MinValue).Should().BeEmpty();
         }
 
         [Fact]
-        public void the_commits_cannot_be_loaded_from_bucket_and_date_range()
+        public void The_commits_cannot_be_loaded_from_bucket_and_date_range()
         {
             Persistence.GetFromTo(_commit.BucketId, DateTime.MinValue, DateTime.MaxValue).Should().BeEmpty();
         }
@@ -333,9 +333,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_deleted_streams_are_purged_and_last_commit_is_marked_as_deleted : PersistenceEngineConcern
+    public class When_deleted_streams_are_purged_and_last_commit_is_marked_as_deleted : PersistenceEngineConcern
     {
-        ICommit[] _commits;
+        private ICommit[] _commits;
 
         protected override void Context()
         {
@@ -349,7 +349,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         protected override void Because()
         {
-#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+#if NET461
             MongoPersistenceEngine mongoEngine;
             if (Persistence is NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)
             {
@@ -367,13 +367,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void last_deleted_commit_is_not_purged_to_preserve_checkpoint_numbering()
+        public void Last_deleted_commit_is_not_purged_to_preserve_checkpoint_numbering()
         {
             _commits.Length.Should().Be(1);
         }
 
         [Fact]
-        public void last_deleted_commit_has_the_higher_checkpoint_number()
+        public void Last_deleted_commit_has_the_higher_checkpoint_number()
         {
             _commits[0].CheckpointToken.Should().Be(4);
         }
@@ -382,9 +382,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_deleted_streams_are_purged : PersistenceEngineConcern
+    public class When_deleted_streams_are_purged : PersistenceEngineConcern
     {
-        ICommit[] _commits;
+        private ICommit[] _commits;
 
         protected override void Context()
         {
@@ -398,7 +398,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         protected override void Because()
         {
-#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+#if NET461
             MongoPersistenceEngine mongoEngine;
             if (Persistence is NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)
             {
@@ -416,7 +416,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void all_deleted_commits_are_purged()
+        public void All_deleted_commits_are_purged()
         {
             _commits.Length.Should().Be(0);
         }
@@ -425,10 +425,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_stream_is_added_after_a_bucket_purge : PersistenceEngineConcern
+    public class When_stream_is_added_after_a_bucket_purge : PersistenceEngineConcern
     {
-        Int64 _checkpointBeforePurge;
-        Int64 _checkpointAfterPurge;
+        private Int64 _checkpointBeforePurge;
+        private Int64 _checkpointAfterPurge;
 
         protected override void Context()
         {
@@ -445,7 +445,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void checkpoint_number_must_be_greater_than()
+        public void Checkpoint_number_must_be_greater_than()
         {
             _checkpointAfterPurge.Should().BeGreaterThan(_checkpointBeforePurge);
         }
@@ -454,7 +454,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_a_stream_with_two_or_more_commits_is_deleted : PersistenceEngineConcern
+    public class When_a_stream_with_two_or_more_commits_is_deleted : PersistenceEngineConcern
     {
         private string _streamId;
         private string _bucketId;
@@ -474,7 +474,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void all_commits_are_deleted()
+        public void All_commits_are_deleted()
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
 

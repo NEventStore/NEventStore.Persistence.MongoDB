@@ -9,11 +9,7 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Support
 
         internal static string GetConnectionString()
         {
-#if !NETSTANDARD1_6
             string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
-#else
-            string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey);
-#endif
 
             if (connectionString == null)
             {
@@ -35,7 +31,7 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Support
                // .LogToConsoleWindow(LogLevel.Verbose)
                .UsingMongoPersistence(GetConnectionString(), new DocumentObjectSerializer())
                .InitializeStorageEngine()
-#if !NETSTANDARD1_6 && !NETSTANDARD2_0
+#if NET461
                .TrackPerformanceInstance("example")
 #endif
                // .HookIntoPipelineUsing(new[] { new AuthorizationPipelineHook() })
