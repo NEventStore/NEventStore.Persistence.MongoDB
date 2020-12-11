@@ -28,6 +28,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.Persistence.Mon
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NEventStore.PollingClient", "..\dependencies\NEventStore\src\NEventStore.PollingClient\NEventStore.PollingClient.csproj", "{147B4B92-A36F-4846-BA6F-B8F3AEE33A21}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{5F951C21-7346-44F4-9E8A-2A54C8D77067}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NEventStore.Persistence.MongoDB.nuspec = .nuget\NEventStore.Persistence.MongoDB.nuspec
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
