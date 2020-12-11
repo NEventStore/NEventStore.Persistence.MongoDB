@@ -2,7 +2,9 @@
 {
     using System;
     using NEventStore.Serialization;
+#if MSTEST
     using global::MongoDB.Driver;
+#endif
 
     public class AcceptanceTestMongoPersistenceFactory : MongoPersistenceFactory
     {
@@ -12,11 +14,11 @@
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
-                configureOptionsForTesting(options ?? new MongoPersistenceOptions())
+                ConfigureOptionsForTesting(options ?? new MongoPersistenceOptions())
             )
         { }
 
-        private static MongoPersistenceOptions configureOptionsForTesting(MongoPersistenceOptions mongoPersistenceOptions)
+        private static MongoPersistenceOptions ConfigureOptionsForTesting(MongoPersistenceOptions mongoPersistenceOptions)
         {
             mongoPersistenceOptions.PersistStreamHeadsOnBackgroundThread = false;
             return mongoPersistenceOptions;
@@ -24,11 +26,7 @@
 
         internal static string GetConnectionString()
         {
-#if !NETSTANDARD1_6
             string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
-#else
-            string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey);
-#endif
 
             if (connectionString == null)
             {
@@ -43,8 +41,6 @@
             connectionString = connectionString.TrimStart('"').TrimEnd('"');
 
 #if MSTEST
-            return connectionString;
-
             // quick and dirty solution to avoid tests clashing when executed in parallel
             var builder = new MongoUrlBuilder(connectionString);
             builder.DatabaseName += Guid.NewGuid().ToString();

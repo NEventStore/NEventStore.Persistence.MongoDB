@@ -1,12 +1,13 @@
 NEventStore.Persistence.Mongo
 ===
 
-Mongo Persistence Engine for NEventStore v6.x
+Mongo Persistence Engine for NEventStore
 
 NEventStore.Persistence.MongoDB currently supports:
 
-- dotnet framework 4.5
-- dotnet standard 2.0, dotnet core 2.0 
+- .net framework 4.6.1
+- .net standard 2.0
+- .net 5.0
 
 Build Status
 ===
@@ -37,16 +38,18 @@ git clone https://github.com/NEventStore/NEventStore.Persistence.MongoDB.git
 git submodule update
 ```
 
-- execute 'RestorePackages.bat' to restore the NuGet packages for the main project and any submodule
-
-```
-RestorePackages.bat
-```
-
 To build the project locally on a Windows Machine:
 
 - Install [Chocolatey](https://chocolatey.org/).
 - Open a Powershell console in Administrative mode and run the build script `build.ps1` in the root of the repository.
+
+## Run Tests in Visual Studio
+
+To run tests in visual studio using NUnit as a Test Runner you need to explicitly exclude "Explicit Tests" from running adding the following filter in the test explorer section:
+
+```
+-Trait:"Explicit"
+```
 
 ## Configure / Customize Commit Serialization
 
@@ -160,7 +163,3 @@ This means, that we need a NEventStore greater than the latest published, but le
 5.4.1
 6.0.0-unstable00001
 6.0.0
-
-
-
-
