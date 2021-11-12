@@ -1,5 +1,11 @@
 # NEventStore.Persistence.MongoDB
 
+## 9.0.0
+
+- Updated NEventStore 9.0.0.
+- Added support for net6.0.
+- Updated MongoDB driver to 2.12.4.
+
 ## 8.0.0
 
 - Updated NEventStore to 8.0.0.

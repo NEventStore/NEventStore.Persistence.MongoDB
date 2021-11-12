@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netcoreapp3.1;net461;net5.0</TargetFrameworks>
+        <TargetFrameworks>net6.0;net5.0;netcoreapp3.1;net461</TargetFrameworks>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <ApplicationIcon />
         <OutputTypeEx>exe</OutputTypeEx>
@@ -16,7 +16,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
+        <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
     </ItemGroup>
 
     <ItemGroup>
