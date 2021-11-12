@@ -62,8 +62,8 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <summary>
-        /// This is the instance of the Id Generator I want to use to 
-        /// generate checkpoint. 
+        /// This is the instance of the Id Generator I want to use to
+        /// generate checkpoint.
         /// </summary>
         public ICheckpointGenerator CheckpointGenerator { get; set; }
 
@@ -72,7 +72,7 @@ namespace NEventStore.Persistence.MongoDB
         public String SystemBucketName { get; set; }
 
         /// <summary>
-        /// Set this property to true to ask Persistence Engine to disable 
+        /// Set this property to true to ask Persistence Engine to disable
         /// snapshot support. If you are not using snapshot functionalities
         /// this options allows you to save the extra insert to insert Stream Heads.
         /// </summary>
@@ -108,7 +108,7 @@ namespace NEventStore.Persistence.MongoDB
 
         /// <summary>
         /// When a <see cref="ConcurrencyException"/> is thrown, generate an empty
-        /// commit with current <see cref="LongCheckpoint"/>, then ask to 
+        /// commit with current <see cref="LongCheckpoint"/>, then ask to
         /// <see cref="ICheckpointGenerator"/> implementation new id.
         /// </summary>
         FillHole = 1,
