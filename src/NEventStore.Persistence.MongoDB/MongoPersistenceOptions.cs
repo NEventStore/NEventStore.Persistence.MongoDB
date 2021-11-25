@@ -11,6 +11,8 @@ namespace NEventStore.Persistence.MongoDB
     /// </summary>
     public class MongoPersistenceOptions
     {
+        public Action<MongoClientSettings> ConfigureClientSettingsAction { get; set; }
+
         /// <summary>
         /// Get the  <see href="http://docs.mongodb.org/manual/core/write-concern/#write-concern">WriteConcern</see> for the commit insert operation.
         /// Concurrency / duplicate commit detection require a safe mode so level should be at least Acknowledged
@@ -58,7 +60,9 @@ namespace NEventStore.Persistence.MongoDB
         public virtual IMongoDatabase ConnectToDatabase(string connectionString)
         {
             var builder = new MongoUrlBuilder(connectionString);
-            return (new MongoClient(connectionString)).GetDatabase(builder.DatabaseName);
+            var clientSettings = MongoClientSettings.FromConnectionString(connectionString);
+            ConfigureClientSettingsAction?.Invoke(clientSettings);
+            return (new MongoClient(clientSettings)).GetDatabase(builder.DatabaseName);
         }
 
         /// <summary>
@@ -91,8 +95,17 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public Boolean PersistStreamHeadsOnBackgroundThread { get; set; } = true;
 
-        public MongoPersistenceOptions()
+        /// <summary>
+        /// Creates an instance of the NEventStore MongoDB persistence configuration class.
+        /// </summary>
+        /// <param name="configureClientSettingsAction">
+        /// Allows to customize Driver's specific client connection settings.
+        /// </param>
+        public MongoPersistenceOptions(
+            Action<MongoClientSettings> configureClientSettingsAction = null
+            )
         {
+            ConfigureClientSettingsAction = configureClientSettingsAction;
             SystemBucketName = "system";
             ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
         }
