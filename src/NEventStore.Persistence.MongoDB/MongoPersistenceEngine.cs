@@ -389,7 +389,7 @@ namespace NEventStore.Persistence.MongoDB
                     {
                         if (!e.Message.Contains(ConcurrencyException))
                         {
-                            Logger.LogError(Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                            Logger.LogError(e, Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             throw;
                         }
 
@@ -397,7 +397,7 @@ namespace NEventStore.Persistence.MongoDB
                         if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1)
                             || e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
                         {
-                            Logger.LogWarning(Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                            Logger.LogWarning(e, Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                             _checkpointGenerator.SignalDuplicateId(checkpointId);
                             commitDoc[MongoCommitFields.CheckpointNumber] = checkpointId = _checkpointGenerator.Next();
                         }
@@ -453,7 +453,7 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (Exception e)
             {
-                Logger.LogWarning(Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                Logger.LogWarning(e, Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
             }
         }
 
@@ -626,13 +626,13 @@ namespace NEventStore.Persistence.MongoDB
                 }
                 catch (OutOfMemoryException ex)
                 {
-                    Logger.LogError("OutOfMemoryException: {0}", ex);
+                    Logger.LogError(ex, "OutOfMemoryException:");
                     throw;
                 }
                 catch (Exception ex)
                 {
                     //It is safe to ignore transient exception updating stream head.
-                    Logger.LogWarning("Ignored Exception '{0}' when upserting the stream head Bucket Id [{1}] StreamId[{2}].\n {3}", ex.GetType().Name, bucketId, streamId, ex.ToString());
+                    Logger.LogWarning(ex, "Ignored Exception '{exception}' when upserting the stream head Bucket Id [{id}] StreamId[{streamId}].\n", ex.GetType().Name, bucketId, streamId);
                 }
             });
         }
@@ -658,12 +658,12 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (MongoConnectionException e)
             {
-                Logger.LogWarning(Messages.StorageUnavailable);
+                Logger.LogWarning(e, Messages.StorageUnavailable);
                 throw new StorageUnavailableException(e.Message, e);
             }
             catch (MongoException e)
             {
-                Logger.LogError(Messages.StorageThrewException, e.GetType(), e.ToString());
+                Logger.LogError(e, Messages.StorageThrewException, e.GetType(), e.ToString());
                 throw new StorageException(e.Message, e);
             }
         }

@@ -21,16 +21,18 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class verify_safe_generator_not_create_hole : PersistenceEngineConcern
+    public class Verify_safe_generator_not_create_hole : PersistenceEngineConcern
     {
         private string _streamId;
         private string _bucketId;
         private CommitAttempt _attempt;
 
-        public verify_safe_generator_not_create_hole()
+        public Verify_safe_generator_not_create_hole()
         {
-            var options = new MongoPersistenceOptions();
-            options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
+            var options = new MongoPersistenceOptions
+            {
+                ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue
+            };
 
             var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
             var collection = db.GetCollection<BsonDocument>("Commits");
@@ -69,33 +71,30 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void holes_are_presents()
+        public void Holes_are_presents()
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             commits.Length.Should().Be(2);
             commits[0].CheckpointToken.Should().Be(1);
             commits[1].CheckpointToken.Should().Be(2);
         }
-
-        protected override void Cleanup()
-        {
-            base.Cleanup();
-        }
     }
 
 #if MSTEST
     [TestClass]
 #endif
-    public class holes_are_filled_after_concurrency_exception : PersistenceEngineConcern
+    public class Holes_are_filled_after_concurrency_exception : PersistenceEngineConcern
     {
         private string _streamId;
         private string _bucketId;
         private CommitAttempt _attempt;
 
-        public holes_are_filled_after_concurrency_exception()
+        public Holes_are_filled_after_concurrency_exception()
         {
-            var options = new MongoPersistenceOptions();
-            options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.FillHole;
+            var options = new MongoPersistenceOptions
+            {
+                ConcurrencyStrategy = ConcurrencyExceptionStrategy.FillHole
+            };
             PersistenceEngineFixture.Options = options;
 
             // workaround for test initialization to have uniform config for all 3 test frameworks
@@ -128,7 +127,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void holes_are_not_presents()
+        public void Holes_are_not_presents()
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             commits.Length.Should().Be(2);
@@ -139,26 +138,23 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             commits.Length.Should().Be(1);
             commits[0].CheckpointToken.Should().Be(2);
         }
-
-        protected override void Cleanup()
-        {
-            base.Cleanup();
-        }
     }
 
 #if MSTEST
     [TestClass]
 #endif
-    public class holes_are_not_filled_as_default_behavior : PersistenceEngineConcern
+    public class Holes_are_not_filled_as_default_behavior : PersistenceEngineConcern
     {
         private string _streamId;
         private string _bucketId;
         private CommitAttempt _attempt;
 
-        public holes_are_not_filled_as_default_behavior()
+        public Holes_are_not_filled_as_default_behavior()
         {
-            var options = new MongoPersistenceOptions();
-            options.ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
+            var options = new MongoPersistenceOptions
+            {
+                ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue
+            };
 
             var db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
             var collection = db.GetCollection<BsonDocument>("Commits");
@@ -196,7 +192,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void holes_are_presents()
+        public void Holes_are_presents()
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             commits.Length.Should().Be(2);
@@ -206,17 +202,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
             commits.Length.Should().Be(0);
         }
-
-        protected override void Cleanup()
-        {
-            base.Cleanup();
-        }
     }
 
 #if MSTEST
     [TestClass]
 #endif
-    public class default_behavior_after_concurrency_exception : PersistenceEngineConcern
+    public class Default_behavior_after_concurrency_exception : PersistenceEngineConcern
     {
         private string _streamId;
         private string _bucketId;
@@ -244,7 +235,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void holes_are_not_presents()
+        public void Holes_are_not_presents()
         {
             var commits = Persistence.GetFrom(_bucketId, _streamId, int.MinValue, int.MaxValue).ToArray();
             commits.Length.Should().Be(2);
@@ -254,6 +245,5 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
             commits.Length.Should().Be(0);
         }
-
     }
 }

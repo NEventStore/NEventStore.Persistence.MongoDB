@@ -8,7 +8,7 @@
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-    using NUnit.Framework;	
+    using NUnit.Framework;
 #endif
 #if XUNIT
     using Xunit;
@@ -18,7 +18,7 @@
 #if MSTEST
     [TestClass]
 #endif
-    public class when_a_commit_is_persisted_from_a_second_process : SpecificationBase
+    public class When_a_commit_is_persisted_from_a_second_process : SpecificationBase
     {
         private ICommit _commit1;
         private ICommit _commit2;
@@ -41,7 +41,7 @@
         }
 
         [Fact]
-        public void should_have_a_checkpoint_greater_than_the_previous_commit_on_the_other_process()
+        public void Should_have_a_checkpoint_greater_than_the_previous_commit_on_the_other_process()
         {
             long chkNum1 = _commit1.CheckpointToken;
             long chkNum2 = _commit2.CheckpointToken;
