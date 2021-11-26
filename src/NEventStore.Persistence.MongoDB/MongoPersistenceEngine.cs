@@ -16,14 +16,9 @@ namespace NEventStore.Persistence.MongoDB
     {
         private const string ConcurrencyException = "E1100";
         private static readonly ILogger Logger = LogFactory.BuildLogger(typeof(MongoPersistenceEngine));
-        private readonly MongoCollectionSettings _commitSettings;
         private readonly IDocumentSerializer _serializer;
-        private readonly MongoCollectionSettings _snapshotSettings;
-        private readonly IMongoDatabase _store;
-        private readonly MongoCollectionSettings _streamSettings;
         private int _initialized;
         private readonly MongoPersistenceOptions _options;
-        private readonly WriteConcern _insertCommitWriteConcern;
         private readonly string _systemBucketName;
         private ICheckpointGenerator _checkpointGenerator;
         private static readonly SortDefinition<BsonDocument> SortByAscendingCheckpointNumber = Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber);
@@ -33,32 +28,28 @@ namespace NEventStore.Persistence.MongoDB
             IDocumentSerializer serializer,
             MongoPersistenceOptions options)
         {
-            _store = store ?? throw new ArgumentNullException(nameof(store));
+            var db = store ?? throw new ArgumentNullException(nameof(store));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _systemBucketName = options.SystemBucketName;
 
             // set config options
-            _commitSettings = _options.GetCommitSettings();
-            _snapshotSettings = _options.GetSnapshotSettings();
-            _streamSettings = _options.GetStreamSettings();
-            _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
+            var _commitSettings = _options.GetCommitSettings();
+            var _snapshotSettings = _options.GetSnapshotSettings();
+            var _streamSettings = _options.GetStreamSettings();
+            var _insertCommitWriteConcern = _options.GetInsertCommitWriteConcern();
+
+            // from the docs: IMongoCollection is thread safe and safe to be stored globally
+            PersistedCommits = db.GetCollection<BsonDocument>("Commits", _commitSettings).WithWriteConcern(_insertCommitWriteConcern);
+            PersistedStreamHeads = db.GetCollection<BsonDocument>("Streams", _streamSettings);
+            PersistedSnapshots = db.GetCollection<BsonDocument>("Snapshots", _snapshotSettings);
         }
 
-        protected virtual IMongoCollection<BsonDocument> PersistedCommits
-        {
-            get { return _store.GetCollection<BsonDocument>("Commits", _commitSettings).WithWriteConcern(_insertCommitWriteConcern); }
-        }
+        protected virtual IMongoCollection<BsonDocument> PersistedCommits { get; }
 
-        protected virtual IMongoCollection<BsonDocument> PersistedStreamHeads
-        {
-            get { return _store.GetCollection<BsonDocument>("Streams", _streamSettings); }
-        }
+        protected virtual IMongoCollection<BsonDocument> PersistedStreamHeads { get; }
 
-        protected virtual IMongoCollection<BsonDocument> PersistedSnapshots
-        {
-            get { return _store.GetCollection<BsonDocument>("Snapshots", _snapshotSettings); }
-        }
+        protected virtual IMongoCollection<BsonDocument> PersistedSnapshots { get; }
 
         public void Dispose()
         {
@@ -77,6 +68,19 @@ namespace NEventStore.Persistence.MongoDB
 
             TryMongo(() =>
             {
+                PersistedCommits.Indexes.CreateOne(
+                    new CreateIndexModel<BsonDocument>(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoCommitFields.BucketId)
+                            .Ascending(MongoCommitFields.CheckpointNumber),
+                        new CreateIndexOptions()
+                        {
+                            Name = MongoCommitIndexes.GetFromCheckpoint,
+                            Unique = true
+                        }
+                    )
+                );
+
                 PersistedCommits.Indexes.CreateOne(
                     new CreateIndexModel<BsonDocument>(
                         Builders<BsonDocument>.IndexKeys
@@ -639,7 +643,7 @@ namespace NEventStore.Persistence.MongoDB
 
         protected virtual T TryMongo<T>(Func<T> callback)
         {
-            T results = default(T);
+            T results = default;
 #pragma warning disable RCS1021 // Simplify lambda expression.
             TryMongo(() => { results = callback(); }); // do not remove the { } or you'll get recursive calls!
 #pragma warning restore RCS1021 // Simplify lambda expression.
