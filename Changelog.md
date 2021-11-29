@@ -6,6 +6,7 @@
 - Added support for net6.0.
 - Updated MongoDB driver to 2.14.0.
 - Configuration: allow to configure MongoClientSettings to edit driver specific client connection settings [#60](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/60).
+- Added a new [BucketId, CheckpointNumber] index to speed up some queries.
 
 ### Breaking Change
 

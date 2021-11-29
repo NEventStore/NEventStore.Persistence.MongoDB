@@ -158,6 +158,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             Logger.LogDebug(Messages.GettingAllCommitsBetween, streamId, bucketId, minRevision, maxRevision);
@@ -193,6 +194,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public virtual IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
         {
             Logger.LogDebug(Messages.GettingAllCommitsFrom, start, bucketId);
@@ -216,7 +218,8 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, Int64 checkpointToken)
+        /// <inheritdoc/>
+        public virtual IEnumerable<ICommit> GetFrom(string bucketId, Int64 checkpointToken)
         {
             Logger.LogDebug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, checkpointToken);
 
@@ -239,7 +242,8 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public IEnumerable<ICommit> GetFromTo(string bucketId, long from, long to)
+        /// <inheritdoc/>
+        public virtual IEnumerable<ICommit> GetFromTo(string bucketId, long from, long to)
         {
             Logger.LogDebug(Messages.GettingCommitsFromBucketAndFromToCheckpoint, bucketId, from, to);
 
@@ -272,7 +276,8 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public IEnumerable<ICommit> GetFrom(Int64 checkpointToken)
+        /// <inheritdoc/>
+        public virtual IEnumerable<ICommit> GetFrom(Int64 checkpointToken)
         {
             Logger.LogDebug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
 
@@ -295,7 +300,8 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
-        public IEnumerable<ICommit> GetFromTo(long from, long to)
+        /// <inheritdoc/>
+        public virtual IEnumerable<ICommit> GetFromTo(long from, long to)
         {
             Logger.LogDebug(Messages.GettingCommitsFromToCheckpoint, from, to);
 
@@ -328,6 +334,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
         {
             Logger.LogDebug(Messages.GettingAllCommitsFromTo, start, end, bucketId);
@@ -361,6 +368,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public virtual ICommit Commit(CommitAttempt attempt)
         {
             Logger.LogDebug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
@@ -461,6 +469,7 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
+        /// <inheritdoc/>
         public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
         {
             CheckIfSnapshotEnabled();
@@ -478,6 +487,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
         {
             CheckIfSnapshotEnabled();
@@ -498,6 +508,7 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public virtual bool AddSnapshot(ISnapshot snapshot)
         {
             CheckIfSnapshotEnabled();
@@ -545,6 +556,7 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
+        /// <inheritdoc/>
         public virtual void Purge()
         {
             Logger.LogWarning(Messages.PurgingStorage);
@@ -554,6 +566,7 @@ namespace NEventStore.Persistence.MongoDB
             PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Empty);
         }
 
+        /// <inheritdoc/>
         public void Purge(string bucketId)
         {
             Logger.LogWarning(Messages.PurgingBucket, bucketId);
@@ -565,11 +578,13 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public void Drop()
         {
             Purge();
         }
 
+        /// <inheritdoc/>
         public void DeleteStream(string bucketId, string streamId)
         {
             Logger.LogWarning(Messages.DeletingStream, streamId, bucketId);
