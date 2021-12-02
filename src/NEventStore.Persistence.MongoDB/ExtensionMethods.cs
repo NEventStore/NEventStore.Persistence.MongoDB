@@ -76,7 +76,7 @@ namespace NEventStore.Persistence.MongoDB
                 CommitId = commit.CommitId,
                 CommitStamp = commit.CommitStamp,
                 Headers = new Dictionary<String, Object>(),
-                Events = new BsonArray(new object[] { }),
+                Events = new BsonArray(Array.Empty<object>()),
                 StreamRevisionFrom = 0,
                 StreamRevisionTo = 0,
                 BucketId = systemBucketName,
@@ -138,11 +138,11 @@ namespace NEventStore.Persistence.MongoDB
                 mc.Headers,
                 mc.Events.Select(e =>
                 {
-                    BsonValue payload = e.AsBsonDocument[MongoCommitFields.Payload];
+                    BsonValue payload = e[MongoCommitFields.Payload];
                     return payload.IsBsonDocument
                            ? BsonSerializer.Deserialize<EventMessage>(payload.ToBsonDocument())
                            : serializer.Deserialize<EventMessage>(payload.AsByteArray); // ByteStreamDocumentSerializer ?!?! doesn't work this way!
-                }));
+                }).ToArray());
         }
 
         [Obsolete("Original code, not used anymore, replaced by the new configurable version")]
@@ -157,7 +157,7 @@ namespace NEventStore.Persistence.MongoDB
             string streamId = doc[MongoCommitFields.StreamId].AsString;
             int commitSequence = doc[MongoCommitFields.CommitSequence].AsInt32;
 
-            IEnumerable<EventMessage> events = doc[MongoCommitFields.Events]
+            var events = doc[MongoCommitFields.Events]
                 .AsBsonArray
                 .Select(e =>
                 {
@@ -165,7 +165,8 @@ namespace NEventStore.Persistence.MongoDB
                     return payload.IsBsonDocument
                            ? BsonSerializer.Deserialize<EventMessage>(payload.ToBsonDocument())
                            : serializer.Deserialize<EventMessage>(payload.AsByteArray);
-                });
+                })
+                .ToArray();
 
             //int streamRevision = doc[MongoCommitFields.Events].AsBsonArray.Last().AsBsonDocument[MongoCommitFields.StreamRevision].AsInt32;
             int streamRevision = doc[MongoCommitFields.StreamRevisionTo].AsInt32;

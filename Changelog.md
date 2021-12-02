@@ -1,5 +1,17 @@
 # NEventStore.Persistence.MongoDB
 
+## 9.0.0
+
+- Updated NEventStore 9.0.0.
+- Added support for net6.0.
+- Updated MongoDB driver to 2.14.0.
+- Configuration: allow to configure MongoClientSettings to edit driver specific client connection settings [#60](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/60).
+- Added a new [BucketId, CheckpointNumber] index to speed up some queries.
+
+### Breaking Change
+
+- Minimum server version is now MongoDB 3.6+ (due to MongoDB C# driver update).
+
 ## 8.0.0
 
 - Updated NEventStore to 8.0.0.

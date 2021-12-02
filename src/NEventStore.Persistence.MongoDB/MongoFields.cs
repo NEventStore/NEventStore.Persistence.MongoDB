@@ -16,7 +16,6 @@
         public const string FullQualifiedBucketId = Id + "." + BucketId;
     }
 
-
     public static class MongoShapshotFields
     {
         public const string Id = "_id";
@@ -51,7 +50,7 @@
     {
         /// <summary>
         /// the following value is used to determine the index
-        /// that throws exception when a duplicate is found. 
+        /// that throws exception when a duplicate is found.
         /// </summary>
         public const string CheckpointNumberMMApV1 = "$_id_";
         public const string CheckpointNumberWiredTiger = "index: _id_";
@@ -60,6 +59,7 @@
         public const string CommitId = "CommitId_Index";
         public const string GetFrom = "GetFrom_Index";
         public const string LogicalKey = "LogicalKey_Index";
+        public const string GetFromCheckpoint = "GetFrom_Checkpoint_Index";
     }
 
     public static class MongoStreamIndexes

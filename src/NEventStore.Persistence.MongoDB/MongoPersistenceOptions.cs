@@ -11,6 +11,8 @@ namespace NEventStore.Persistence.MongoDB
     /// </summary>
     public class MongoPersistenceOptions
     {
+        public Action<MongoClientSettings> ConfigureClientSettingsAction { get; set; }
+
         /// <summary>
         /// Get the  <see href="http://docs.mongodb.org/manual/core/write-concern/#write-concern">WriteConcern</see> for the commit insert operation.
         /// Concurrency / duplicate commit detection require a safe mode so level should be at least Acknowledged
@@ -58,12 +60,14 @@ namespace NEventStore.Persistence.MongoDB
         public virtual IMongoDatabase ConnectToDatabase(string connectionString)
         {
             var builder = new MongoUrlBuilder(connectionString);
-            return (new MongoClient(connectionString)).GetDatabase(builder.DatabaseName);
+            var clientSettings = MongoClientSettings.FromConnectionString(connectionString);
+            ConfigureClientSettingsAction?.Invoke(clientSettings);
+            return (new MongoClient(clientSettings)).GetDatabase(builder.DatabaseName);
         }
 
         /// <summary>
-        /// This is the instance of the Id Generator I want to use to 
-        /// generate checkpoint. 
+        /// This is the instance of the Id Generator I want to use to
+        /// generate checkpoint.
         /// </summary>
         public ICheckpointGenerator CheckpointGenerator { get; set; }
 
@@ -72,7 +76,7 @@ namespace NEventStore.Persistence.MongoDB
         public String SystemBucketName { get; set; }
 
         /// <summary>
-        /// Set this property to true to ask Persistence Engine to disable 
+        /// Set this property to true to ask Persistence Engine to disable
         /// snapshot support. If you are not using snapshot functionalities
         /// this options allows you to save the extra insert to insert Stream Heads.
         /// </summary>
@@ -91,8 +95,17 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public Boolean PersistStreamHeadsOnBackgroundThread { get; set; } = true;
 
-        public MongoPersistenceOptions()
+        /// <summary>
+        /// Creates an instance of the NEventStore MongoDB persistence configuration class.
+        /// </summary>
+        /// <param name="configureClientSettingsAction">
+        /// Allows to customize Driver's specific client connection settings.
+        /// </param>
+        public MongoPersistenceOptions(
+            Action<MongoClientSettings> configureClientSettingsAction = null
+            )
         {
+            ConfigureClientSettingsAction = configureClientSettingsAction;
             SystemBucketName = "system";
             ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
         }
@@ -108,7 +121,7 @@ namespace NEventStore.Persistence.MongoDB
 
         /// <summary>
         /// When a <see cref="ConcurrencyException"/> is thrown, generate an empty
-        /// commit with current <see cref="LongCheckpoint"/>, then ask to 
+        /// commit with current <see cref="LongCheckpoint"/>, then ask to
         /// <see cref="ICheckpointGenerator"/> implementation new id.
         /// </summary>
         FillHole = 1,
