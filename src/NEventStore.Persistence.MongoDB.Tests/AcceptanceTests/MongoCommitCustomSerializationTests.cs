@@ -13,7 +13,7 @@ using NEventStore.Persistence.AcceptanceTests.BDD;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-using NUnit.Framework;	
+using NUnit.Framework;
 #endif
 #if XUNIT
     using Xunit;
@@ -25,11 +25,11 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #warning due to problems with the xUnit test runner (it does not skip the tests marked with Fact(Skip="...") in the build server) we have actually disabled these tests commenting out the [Fact] attrubute, to run them you need to add it back manually
 
     /// <summary>
-    /// the problem here is that this is 'static', no way to change it once it it defined, so the tests need to be run
-    /// manually :(	
+    /// the problem here is that this is 'static', no way to change it once it defined, so the tests need to be run
+    /// manually :(
     /// or I need to implement a fully featured serializer specifically designed for testing
     /// </summary>
-    static class MapMongoCommit
+    internal static class MapMongoCommit
     {
         public static void MapMongoCommit_Header_as_Document()
         {
@@ -53,7 +53,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         // this is the default behavior
         public static void MapMongoCommit_Header_as_ArrayOfArray()
         {
-
         }
     }
 
@@ -63,14 +62,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_serializing_headers_as_Document_and_a_commit_header_has_a_name_that_contains_a_period : PersistenceEngineConcern
+    public class When_serializing_headers_as_Document_and_a_commit_header_has_a_name_that_contains_a_period : PersistenceEngineConcern
     {
         // private ICommit _persisted;
         private string _streamId;
 
         private Exception _thrown;
 
-        public when_serializing_headers_as_Document_and_a_commit_header_has_a_name_that_contains_a_period()
+        public When_serializing_headers_as_Document_and_a_commit_header_has_a_name_that_contains_a_period()
         {
             MapMongoCommit.MapMongoCommit_Header_as_Document();
         }
@@ -102,7 +101,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         [Explicit("Run as Standalone due to MongoDb mapping configuration being static")]
 #endif
-        public void should_throw_serialization_exception_due_to_invalid_key()
+        public void Should_throw_serialization_exception_due_to_invalid_key()
         {
             // _persisted.Headers.Keys.ShouldContain("key.1");
 
@@ -114,12 +113,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_serializing_headers_as_Document_and_a_commit_header_has_a_valid_name : PersistenceEngineConcern
+    public class When_serializing_headers_as_Document_and_a_commit_header_has_a_valid_name : PersistenceEngineConcern
     {
         private ICommit _persisted;
         private string _streamId;
 
-        public when_serializing_headers_as_Document_and_a_commit_header_has_a_valid_name()
+        public When_serializing_headers_as_Document_and_a_commit_header_has_a_valid_name()
         {
             MapMongoCommit.MapMongoCommit_Header_as_Document();
         }
@@ -148,7 +147,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         [Explicit("Run as Standalone due to MongoDb mapping configuration being static")]
 #endif
-        public void should_correctly_deserialize_headers()
+        public void Should_correctly_deserialize_headers()
         {
             _persisted.Headers.Keys.Should().Contain("key");
         }
@@ -157,12 +156,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #if MSTEST
     [TestClass]
 #endif
-    public class when_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_name_that_contains_a_period : PersistenceEngineConcern
+    public class When_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_name_that_contains_a_period : PersistenceEngineConcern
     {
         private ICommit _persisted;
         private string _streamId;
 
-        public when_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_name_that_contains_a_period()
+        public When_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_name_that_contains_a_period()
         {
             // the default is ArrayOfArray defined using an attribute.
         }
@@ -186,7 +185,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
 
         [Fact]
-        public void should_correctly_deserialize_headers()
+        public void Should_correctly_deserialize_headers()
         {
             _persisted.Headers.Keys.Should().Contain("key.1");
         }

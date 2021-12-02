@@ -1,7 +1,6 @@
 ﻿namespace NEventStore.Persistence.MongoDB
 {
     using System;
-    using global::MongoDB.Driver;
     using NEventStore.Serialization;
 
     public class MongoPersistenceFactory : IPersistenceFactory
