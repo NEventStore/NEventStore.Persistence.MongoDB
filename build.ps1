@@ -1,6 +1,5 @@
 $configurationdefault = "Release"
 $artifacts = "../../artifacts"
-$nugetartifacts = "artifacts"
 
 $configuration = Read-Host 'Configuration to build [default: Release] ?'
 if ($configuration -eq '') {
@@ -48,4 +47,4 @@ Write-Host "NuGet Packages creation"
 #dotnet pack ./src/NEventStore.Persistence.MongoDB/NEventStore.Persistence.MongoDB.Core.csproj --no-build -c $configuration -o $artifacts -p:NuspecFile="" -p:NuspecProperties="pippo=$configuration;version=$nugetversion"
 
 #Write-Host nuget pack ./src/.nuget/NEventStore.Persistence.MongoDB.nuspec -properties "version=$nugetversion;configuration=$configuration"
-nuget pack ./src/.nuget/NEventStore.Persistence.MongoDB.nuspec -properties "version=$nugetversion;configuration=$configuration" -OutputDirectory $nugetartifacts
+nuget pack ./src/.nuget/NEventStore.Persistence.MongoDB.nuspec -properties "version=$nugetversion;configuration=$configuration" -OutputDirectory $artifacts
