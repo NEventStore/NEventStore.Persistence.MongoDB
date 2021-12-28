@@ -1,5 +1,10 @@
 # NEventStore.Persistence.MongoDB
 
+## 9.0.1
+
+- Updated NEventStore reference to version 9.0.1
+- Added documentation files to NuGet packages (improved intellisense support) [#61](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/61)
+
 ## 9.0.0
 
 - Updated NEventStore 9.0.0.

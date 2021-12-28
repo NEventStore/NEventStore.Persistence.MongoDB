@@ -49,5 +49,6 @@
   <files>
     <!--<file src="bin\$configuration$\**" target="lib"/>-->
     <file src="..\NEventStore.Persistence.MongoDB\bin\$configuration$\**\NEventStore.Persistence.MongoDB.dll" target="lib"/>
+    <file src="..\NEventStore.Persistence.MongoDB\bin\$configuration$\**\NEventStore.Persistence.MongoDB.xml" target="lib"/>
   </files>
 </package>
