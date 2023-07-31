@@ -31,7 +31,7 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Support
                // .LogToConsoleWindow(LogLevel.Verbose)
                .UsingMongoPersistence(GetConnectionString(), new DocumentObjectSerializer())
                .InitializeStorageEngine()
-#if NET461
+#if NET462
                .TrackPerformanceInstance("example")
 #endif
                // .HookIntoPipelineUsing(new[] { new AuthorizationPipelineHook() })

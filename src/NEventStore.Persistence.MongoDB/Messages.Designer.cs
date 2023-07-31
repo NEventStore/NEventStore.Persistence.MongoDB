@@ -19,7 +19,7 @@ namespace NEventStore.Persistence.MongoDB {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Messages {
@@ -70,6 +70,15 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error Adding snapshot to stream &apos;{0}&apos; in bucket &apos;{1}&apos; at position {2} - Ex: {3}..
+        /// </summary>
+        internal static string AddingSnapshotError {
+            get {
+                return ResourceManager.GetString("AddingSnapshotError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Attempting to commit {0} events on stream &apos;{1}&apos; at sequence {2}..
         /// </summary>
         internal static string AttemptingToCommit {
@@ -88,7 +97,7 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Concurrency Exception commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.
+        ///   Looks up a localized string similar to Concurrency Exception commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}..
         /// </summary>
         internal static string ConcurrencyExceptionError {
             get {
@@ -133,7 +142,7 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicated checkpoint Token commit {0} [{1}] - Bucket {2} - StreamId {3}.
+        ///   Looks up a localized string similar to Duplicated checkpoint Token commit {0} [{1}] - Bucket {2} - StreamId {3}..
         /// </summary>
         internal static string DuplicatedCheckpointTokenError {
             get {
@@ -142,7 +151,7 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [NEventStore.Persistence.MongoDB] Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}.
+        ///   Looks up a localized string similar to [NEventStore.Persistence.MongoDB] Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}..
         /// </summary>
         internal static string DuplicatedCommitError {
             get {
@@ -151,7 +160,7 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error filling hole commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.
+        ///   Looks up a localized string similar to Error filling hole commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}..
         /// </summary>
         internal static string FillHoleError {
             get {
@@ -160,7 +169,7 @@ namespace NEventStore.Persistence.MongoDB {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Generic error persisting commit {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.
+        ///   Looks up a localized string similar to Generic error persisting commit {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}..
         /// </summary>
         internal static string GenericPersistingError {
             get {
