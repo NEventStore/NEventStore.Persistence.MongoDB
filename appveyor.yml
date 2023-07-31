@@ -21,7 +21,7 @@ environment:
 services: mongodb
 install:
 - cmd: >-
-    choco install gitversion.portable -pre -y
+    choco install gitversion.portable -y
 
     git submodule update --init --recursive
 before_build:
@@ -38,7 +38,7 @@ before_build:
 
     gitversion ".\dependencies\NEventStore" /l console /updateassemblyinfo
 build:
-  project: src/NEventStore.Persistence.MongoDB.Core.2017.sln
+  project: src/NEventStore.Persistence.MongoDB.Core.sln
   verbosity: minimal
 after_build:
 - cmd: >-

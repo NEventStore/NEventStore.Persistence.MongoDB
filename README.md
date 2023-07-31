@@ -5,10 +5,8 @@ Mongo Persistence Engine for NEventStore
 
 NEventStore.Persistence.MongoDB currently supports:
 
-- .net framework 4.6.1
+- .net framework 4.6.2
 - .net standard 2.0
-- .net 5.0
-- .net 6.0
 
 Build Status
 ===
@@ -41,9 +39,17 @@ git submodule update
 
 To build the project locally on a Windows Machine:
 
-- Install [Chocolatey](https://chocolatey.org/).
 - Optional: update `.\src\.nuget\NEventStore.Persistence.MongoDB.nuspec` file if needed (before creating relase packages).
 - Open a Powershell console in Administrative mode and run the build script `build.ps1` in the root of the repository.
+
+## How to Run Unit Tests (locally)
+
+- Install Database engines or use Docker to run them in a container (you can use the scripts in `./docker` folder).
+- Define the following environment variables:
+
+  ```
+  NEventStore.MongoDB="mongodb://localhost:50002/NEventStore"
+  ```
 
 ## Run Tests in Visual Studio
 

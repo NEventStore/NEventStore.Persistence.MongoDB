@@ -1,35 +1,38 @@
-﻿namespace NEventStore.Persistence.MongoDB.Tests
-{
+﻿namespace NEventStore.Persistence.MongoDB.Tests {
     using System;
+    using global::MongoDB.Bson.Serialization.Serializers;
+    using global::MongoDB.Bson.Serialization;
     using NEventStore.Serialization;
 #if MSTEST
     using global::MongoDB.Driver;
 #endif
 
-    public class AcceptanceTestMongoPersistenceFactory : MongoPersistenceFactory
-    {
+    public class AcceptanceTestMongoPersistenceFactory : MongoPersistenceFactory {
         private const string EnvVarConnectionStringKey = "NEventStore.MongoDB";
+
+        static AcceptanceTestMongoPersistenceFactory() {
+            // MongoDb serialization changed
+            // What Object Types Can Be Serialized?
+            // https://www.mongodb.com/docs/drivers/csharp/current/faq/#what-object-types-can-be-serialized-
+            BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
+        }
 
         public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions options = null)
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
                 ConfigureOptionsForTesting(options ?? new MongoPersistenceOptions())
-            )
-        { }
+            ) { }
 
-        private static MongoPersistenceOptions ConfigureOptionsForTesting(MongoPersistenceOptions mongoPersistenceOptions)
-        {
+        private static MongoPersistenceOptions ConfigureOptionsForTesting(MongoPersistenceOptions mongoPersistenceOptions) {
             mongoPersistenceOptions.PersistStreamHeadsOnBackgroundThread = false;
             return mongoPersistenceOptions;
         }
 
-        internal static string GetConnectionString()
-        {
+        internal static string GetConnectionString() {
             string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
 
-            if (connectionString == null)
-            {
+            if (connectionString == null) {
                 string message = string.Format(
                     "Cannot initialize acceptance tests for Mongo. Cannot find the '{0}' environment variable. Please ensure " +
                     "you have correctly setup the connection string environment variables. Refer to the " +

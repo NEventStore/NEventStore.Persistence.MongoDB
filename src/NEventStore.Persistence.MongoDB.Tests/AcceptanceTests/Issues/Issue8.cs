@@ -39,9 +39,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             });
         }
 
-#if NET461
+#if NET462
         /// <summary>
-        /// in net461, UsingMongoPersistence will look for a connection string name in the app.config
+        /// in net462, UsingMongoPersistence will look for a connection string name in the app.config
         /// and it will not find anything
         /// </summary>
         [Fact]
@@ -51,7 +51,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         }
 #endif
 
-#if !NET461
+#if !NET462
         /// <summary>
         /// in netstandard2.0, UsingMongoPersistence will accept a connectionString which will be invalid
         /// </summary>

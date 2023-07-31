@@ -188,24 +188,27 @@
     <value>Could not find connection name '{0}' in the configuration file.</value>
   </data>
   <data name="ConcurrencyExceptionError" xml:space="preserve">
-    <value>Concurrency Exception commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}</value>
+    <value>Concurrency Exception commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.</value>
   </data>
   <data name="DuplicatedCheckpointTokenError" xml:space="preserve">
-    <value>Duplicated checkpoint Token commit {0} [{1}] - Bucket {2} - StreamId {3}</value>
+    <value>Duplicated checkpoint Token commit {0} [{1}] - Bucket {2} - StreamId {3}.</value>
   </data>
   <data name="DuplicatedCommitError" xml:space="preserve">
-    <value>[NEventStore.Persistence.MongoDB] Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}</value>
+    <value>[NEventStore.Persistence.MongoDB] Duplicated commitId {0} [{1}] - Bucket {2} - StreamId {3}.</value>
   </data>
   <data name="FillHoleError" xml:space="preserve">
-    <value>Error filling hole commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}</value>
+    <value>Error filling hole commitId {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.</value>
   </data>
   <data name="GenericPersistingError" xml:space="preserve">
-    <value>Generic error persisting commit {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}</value>
+    <value>Generic error persisting commit {0} [{1}] - Bucket {2} - StreamId {3} - Ex: {4}.</value>
   </data>
   <data name="GettingCommitsFromBucketAndFromToCheckpoint" xml:space="preserve">
     <value>Getting all commits from bucket '{0}' from checkpoint '{1}' (excluded) up to '{2}' (included).</value>
   </data>
   <data name="GettingCommitsFromToCheckpoint" xml:space="preserve">
     <value>Getting all commits from checkpoint '{0}' (excluded) up to '{1}' (included).</value>
+  </data>
+  <data name="AddingSnapshotError" xml:space="preserve">
+    <value>Error Adding snapshot to stream '{0}' in bucket '{1}' at position {2} - Ex: {3}.</value>
   </data>
 </root>

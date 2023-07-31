@@ -2,7 +2,7 @@
 namespace NEventStore
 {
     using System;
-#if NET461
+#if NET462
     using System.Configuration;
 #endif
     using NEventStore.Persistence.MongoDB;
@@ -11,7 +11,7 @@ namespace NEventStore
     public static class MongoPersistenceWireupExtensions
     {
         // System.Configuration will not be ported to dotnet core
-#if NET461
+#if NET462
         public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
         {
             return new MongoPersistenceWireup(wireup, () =>

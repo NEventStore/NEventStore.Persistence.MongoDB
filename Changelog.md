@@ -1,5 +1,16 @@
 # NEventStore.Persistence.MongoDB
 
+## 9.1.1
+
+- Target Frameworks supported: netstandard2.0, net462
+- Updated MongoDB driver to 2.20.0
+- MongoDB initialization changed: MongoPersistenceOptions allows to specify a MongoClient instance to connect to MongoDB;
+  due to [MongoDB Connection Guide](https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/connection/connect/#connection-guide)
+  and [How Does Connection Pooling Work in the .NET/C# Driver?](https://www.mongodb.com/docs/drivers/csharp/current/faq/#how-does-connection-pooling-work-in-the-.net-c--driver-)
+  we should have just one instance of MongoClient per application.
+  If we let the deriver to creates its own instance of MongoClient, that instance will be cached.
+- Fix: Log exceptions from AddSnapshot [#63](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/63)
+
 ## 9.0.1
 
 - Updated NEventStore reference to version 9.0.1
