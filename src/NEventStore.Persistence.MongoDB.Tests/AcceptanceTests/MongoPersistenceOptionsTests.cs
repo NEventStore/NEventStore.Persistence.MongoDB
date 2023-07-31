@@ -59,16 +59,16 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class When_customizing_MongoPersistenceOptions_passing_correct_IMongoClient : PersistenceEngineConcern
     {
+        private IMongoClient _mongoClient;
         private IMongoDatabase _db;
-
         private Exception _ex;
 
         protected override void Because()
         {
-            var client = new MongoClient(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+            _mongoClient = new MongoClient(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
 
             var options = new MongoPersistenceOptions(
-                mongoClient: client);
+                mongoClient: _mongoClient);
 
             _ex = Catch.Exception(
                 () => _db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString())
@@ -85,6 +85,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         public void Database_was_correctly_created()
         {
             Assert.IsNotNull(_db);
+            Assert.AreEqual(_mongoClient, _db.Client);
         }
     }
 
@@ -116,6 +117,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         public void Exception_is_thrown()
         {
             Assert.IsNotNull(_ex);
+            Assert.AreEqual("MongoClient instance was created with a different connection string", _ex.Message);
         }
 
         [Fact]
