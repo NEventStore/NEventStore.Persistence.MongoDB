@@ -550,7 +550,7 @@ namespace NEventStore.Persistence.MongoDB
 
                 return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 return false;
             }

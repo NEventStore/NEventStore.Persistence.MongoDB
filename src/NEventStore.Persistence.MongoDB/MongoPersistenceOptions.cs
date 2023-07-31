@@ -1,16 +1,33 @@
 ﻿using NEventStore.Persistence.MongoDB.Support;
+using System;
+using global::MongoDB.Driver;
 
 namespace NEventStore.Persistence.MongoDB
 {
-    using System;
-    using global::MongoDB.Driver;
-
     /// <summary>
-    /// Options for the MongoPersistence engine.
+    /// <para>Options for the MongoPersistence engine.</para>
+    /// <para>
+    /// links to check:
+    /// https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/connection/connect/#connection-guide
+    /// https://www.mongodb.com/docs/drivers/csharp/current/faq/#how-does-connection-pooling-work-in-the-.net-c--driver-
     /// http://docs.mongodb.org/manual/core/write-concern/#write-concern
+    /// </para>
     /// </summary>
     public class MongoPersistenceOptions
     {
+        /// <summary>
+        /// <para>
+        /// The <see cref="IMongoClient"/> instance to use to connect to the Mongo server.
+        /// According to MongoDB best practices, a single MongoClient instance should be used for the entire application.
+        /// </para>
+        /// <para>If you specify a MongoClient instance, the ConfigureClientSettingsAction will not be used.</para>
+        /// </summary>
+        public IMongoClient MongoClient { get; set; }
+
+        /// <summary>
+        /// A delegate to configure the <see cref="MongoClientSettings"/> used to connect to the Mongo server.
+        /// A new MongoClient instance will be created for each MongoPersistenceEngine instance.
+        /// </summary>
         public Action<MongoClientSettings> ConfigureClientSettingsAction { get; set; }
 
         /// <summary>
@@ -25,6 +42,9 @@ namespace NEventStore.Persistence.MongoDB
             return WriteConcern.Acknowledged;
         }
 
+        /// <summary>
+        /// Get the MongoCollectionSettings for the Commits collection.
+        /// </summary>
         public virtual MongoCollectionSettings GetCommitSettings()
         {
             return new MongoCollectionSettings
@@ -34,6 +54,9 @@ namespace NEventStore.Persistence.MongoDB
             };
         }
 
+        /// <summary>
+        /// Get the MongoCollectionSettings for the Snapshots collection.
+        /// </summary>
         public virtual MongoCollectionSettings GetSnapshotSettings()
         {
             return new MongoCollectionSettings
@@ -43,6 +66,9 @@ namespace NEventStore.Persistence.MongoDB
             };
         }
 
+        /// <summary>
+        /// Get the MongoCollectionSettings for the Streams collection.
+        /// </summary>
         public virtual MongoCollectionSettings GetStreamSettings()
         {
             return new MongoCollectionSettings
@@ -52,6 +78,8 @@ namespace NEventStore.Persistence.MongoDB
             };
         }
 
+        private static readonly object _connectToDatabaseLock = new object();
+
         /// <summary>
         /// Connects to NEvenstore Mongo database
         /// </summary>
@@ -60,9 +88,40 @@ namespace NEventStore.Persistence.MongoDB
         public virtual IMongoDatabase ConnectToDatabase(string connectionString)
         {
             var builder = new MongoUrlBuilder(connectionString);
-            var clientSettings = MongoClientSettings.FromConnectionString(connectionString);
-            ConfigureClientSettingsAction?.Invoke(clientSettings);
-            return (new MongoClient(clientSettings)).GetDatabase(builder.DatabaseName);
+            // if there's a MongoClient instance, use it
+            IMongoClient client = MongoClient;
+            if (client == null)
+            {
+                var cacheKey = new MongoClientCache.MongoClientCacheKey(
+                    connectionString,
+                    ConfigureClientSettingsAction
+                    );
+                client = MongoClientCache.GetClient(cacheKey);
+                if (client == null)
+                {
+                    lock (_connectToDatabaseLock)
+                    {
+                        client = MongoClientCache.GetClient(cacheKey);
+                        if (client == null)
+                        {
+                            var clientSettings = MongoClientSettings.FromConnectionString(connectionString);
+                            ConfigureClientSettingsAction?.Invoke(clientSettings);
+                            client = new MongoClient(clientSettings);
+                            MongoClientCache.TryAddClient(cacheKey, client);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // check that the connection string matches the client settings
+                var clientSettings = client.Settings;
+                if (clientSettings.Server.Host != builder.Server.Host)
+                {
+                    throw new ArgumentException("MongoClient instance was created with a different connection string");
+                }
+            }
+            return client.GetDatabase(builder.DatabaseName);
         }
 
         /// <summary>
@@ -71,8 +130,14 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public ICheckpointGenerator CheckpointGenerator { get; set; }
 
+        /// <summary>
+        /// The strategy to use when a concurrency exception is detected.
+        /// </summary>
         public ConcurrencyExceptionStrategy ConcurrencyStrategy { get; set; }
 
+        /// <summary>
+        /// Name of the bucket that will contain the system streams.
+        /// </summary>
         public String SystemBucketName { get; set; }
 
         /// <summary>
@@ -100,17 +165,28 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         /// <param name="configureClientSettingsAction">
         /// Allows to customize Driver's specific client connection settings.
+        /// The function should be static and thread safe, so it will
+        /// allow for a correct caching of the generated <see cref="IMongoClient"/> instance.
+        /// </param>
+        /// <param name="mongoClient">
+        /// The <see cref="IMongoClient"/> to use to connect to MongoDB database. 
+        /// If specified <paramref name="configureClientSettingsAction"/> will be ignored.
         /// </param>
         public MongoPersistenceOptions(
-            Action<MongoClientSettings> configureClientSettingsAction = null
+            Action<MongoClientSettings> configureClientSettingsAction = null,
+            IMongoClient mongoClient = null
             )
         {
             ConfigureClientSettingsAction = configureClientSettingsAction;
+            MongoClient = mongoClient;
             SystemBucketName = "system";
             ConcurrencyStrategy = ConcurrencyExceptionStrategy.Continue;
         }
     }
 
+    /// <summary>
+    /// The strategy to use when a concurrency exception is detected.
+    /// </summary>
     public enum ConcurrencyExceptionStrategy
     {
         /// <summary>
@@ -121,7 +197,7 @@ namespace NEventStore.Persistence.MongoDB
 
         /// <summary>
         /// When a <see cref="ConcurrencyException"/> is thrown, generate an empty
-        /// commit with current <see cref="LongCheckpoint"/>, then ask to
+        /// commit with current Checkpoint, then ask to
         /// <see cref="ICheckpointGenerator"/> implementation new id.
         /// </summary>
         FillHole = 1,

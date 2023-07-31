@@ -50,4 +50,78 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             Assert.AreEqual(TestReplicaSetName, settings.ReplicaSetName);
         }
     }
+
+    /// <summary>
+    /// Create a MongoPersistenceOptions with a custom IMongoClient that match the connection string
+    /// </summary>
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_customizing_MongoPersistenceOptions_passing_correct_IMongoClient : PersistenceEngineConcern
+    {
+        private IMongoDatabase _db;
+
+        private Exception _ex;
+
+        protected override void Because()
+        {
+            var client = new MongoClient(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+
+            var options = new MongoPersistenceOptions(
+                mongoClient: client);
+
+            _ex = Catch.Exception(
+                () => _db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString())
+                );
+        }
+
+        [Fact]
+        public void No_exception_is_thrown()
+        {
+            Assert.Null(_ex);
+        }
+
+        [Fact]
+        public void Database_was_correctly_created()
+        {
+            Assert.IsNotNull(_db);
+        }
+    }
+
+    /// <summary>
+    /// Create a MongoPersistenceOptions with a custom IMongoClient that does not match the connection string
+    /// </summary>
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_customizing_MongoPersistenceOptions_passing_incorrect_IMongoClient : PersistenceEngineConcern
+    {
+        private IMongoDatabase _db;
+
+        private Exception _ex;
+
+        protected override void Because()
+        {
+            var client = new MongoClient("mongodb://127.0.0.2");
+
+            var options = new MongoPersistenceOptions(
+                mongoClient: client);
+
+            _ex = Catch.Exception(
+                () => _db = options.ConnectToDatabase(AcceptanceTestMongoPersistenceFactory.GetConnectionString())
+                );
+        }
+
+        [Fact]
+        public void Exception_is_thrown()
+        {
+            Assert.IsNotNull(_ex);
+        }
+
+        [Fact]
+        public void Database_was_not_created()
+        {
+            Assert.IsNull(_db);
+        }
+    }
 }

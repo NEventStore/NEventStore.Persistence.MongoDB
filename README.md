@@ -42,6 +42,15 @@ To build the project locally on a Windows Machine:
 - Optional: update `.\src\.nuget\NEventStore.Persistence.MongoDB.nuspec` file if needed (before creating relase packages).
 - Open a Powershell console in Administrative mode and run the build script `build.ps1` in the root of the repository.
 
+## How to Run Unit Tests (locally)
+
+- Install Database engines or use Docker to run them in a container (you can use the scripts in `./docker` folder).
+- Define the following environment variables:
+
+  ```
+  NEventStore.MongoDB="mongodb://localhost:50002/NEventStore"
+  ```
+
 ## Run Tests in Visual Studio
 
 To run tests in visual studio using NUnit as a Test Runner you need to explicitly exclude "Explicit Tests" from running adding the following filter in the test explorer section:
