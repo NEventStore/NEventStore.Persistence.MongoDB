@@ -9,6 +9,7 @@
   and [How Does Connection Pooling Work in the .NET/C# Driver?](https://www.mongodb.com/docs/drivers/csharp/current/faq/#how-does-connection-pooling-work-in-the-.net-c--driver-)
   we should have just one instance of MongoClient per application.
   If we let the deriver to creates its own instance of MongoClient, that instance will be cached.
+- Fix: Log exceptions from AddSnapshot [#63](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/63)
 
 ## 9.0.1
 

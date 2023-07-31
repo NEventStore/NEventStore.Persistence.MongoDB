@@ -552,6 +552,7 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (Exception e)
             {
+                Logger.LogWarning(e, Messages.AddingSnapshotError, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision, e);
                 return false;
             }
         }
