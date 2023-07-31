@@ -20,30 +20,20 @@
 	6.x.x versions
 	-->
     <dependencies>
-      <group targetFramework=".NETFramework4.6.1">
-        <dependency id="NEventStore" version="[9.0.0,10.0.0)" exclude="Build,Analyzers"/>
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="6.0.0" exclude="Build,Analyzers"/>
-        <dependency id="MongoDB.Driver" version="2.14.0" exclude="Build,Analyzers"/>
-      </group>
-      <group targetFramework="net6.0">
-        <dependency id="NEventStore" version="[9.0.0,10.0.0)" exclude="Build,Analyzers"/>
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="6.0.0" exclude="Build,Analyzers"/>
-        <dependency id="MongoDB.Driver" version="2.14.0" exclude="Build,Analyzers"/>
-      </group>
-      <group targetFramework="net5.0">
-        <dependency id="NEventStore" version="[9.0.0,10.0.0)" exclude="Build,Analyzers"/>
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="6.0.0" exclude="Build,Analyzers"/>
+      <group targetFramework=".NETFramework4.6.2">
+        <dependency id="NEventStore" version="[9.1.1,10.0.0)" exclude="Build,Analyzers"/>
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.1" exclude="Build,Analyzers"/>
         <dependency id="MongoDB.Driver" version="2.14.0" exclude="Build,Analyzers"/>
       </group>
       <group targetFramework=".NETStandard2.0">
-        <dependency id="NEventStore" version="[9.0.0,10.0.0)" exclude="Build,Analyzers"/>
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="6.0.0" exclude="Build,Analyzers"/>
+        <dependency id="NEventStore" version="[9.1.1,10.0.0)" exclude="Build,Analyzers"/>
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.1" exclude="Build,Analyzers"/>
         <dependency id="MongoDB.Driver" version="2.14.0" exclude="Build,Analyzers"/>
       </group>
     </dependencies>
     <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework4.6.1" />
-      <frameworkAssembly assemblyName="System.Transactions" targetFramework=".NETFramework4.6.1" />
+      <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework4.6.2" />
+      <frameworkAssembly assemblyName="System.Transactions" targetFramework=".NETFramework4.6.2" />
     </frameworkAssemblies>
   </metadata>
   <files>

@@ -349,7 +349,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         protected override void Because()
         {
-#if NET461
+#if NET462
             MongoPersistenceEngine mongoEngine;
             if (Persistence is NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)
             {
@@ -398,7 +398,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 
         protected override void Because()
         {
-#if NET461
+#if NET462
             MongoPersistenceEngine mongoEngine;
             if (Persistence is NEventStore.Diagnostics.PerformanceCounterPersistenceEngine)
             {

@@ -1,5 +1,9 @@
 # NEventStore.Persistence.MongoDB
 
+## 9.1.1
+
+- Target Frameworks supported: netstandard2.0, net462
+
 ## 9.0.1
 
 - Updated NEventStore reference to version 9.0.1
