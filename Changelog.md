@@ -1,5 +1,9 @@
 # NEventStore.Persistence.MongoDB
 
+## 9.1.2
+
+- Fixed connectionString validation when connecting to a replica set using an already built MongoClient instance.
+
 ## 9.1.1
 
 - Target Frameworks supported: netstandard2.0, net462
