@@ -1,6 +1,7 @@
 ﻿using NEventStore.Persistence.MongoDB.Support;
 using System;
 using global::MongoDB.Driver;
+using System.Linq;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -114,11 +115,31 @@ namespace NEventStore.Persistence.MongoDB
             }
             else
             {
-                // check that the connection string matches the client settings
+                // check that the connection string matches the client settings (to some degree)
                 var clientSettings = client.Settings;
-                if (clientSettings.Server.Host != builder.Server.Host)
+                // check if we are connected to a single node or to a cluster
+                // hosts and ports should match
+                if (clientSettings.Servers.Count() > 1)
                 {
-                    throw new ArgumentException("MongoClient instance was created with a different connection string");
+                    var servers = clientSettings.Servers;
+                    var hosts = servers.Select(s => s.Host);
+                    var ports = servers.Select(s => s.Port);
+                    var builderServers = builder.Servers;
+                    var builderHosts = builderServers.Select(s => s.Host);
+                    var builderPorts = builderServers.Select(s => s.Port);
+                    if (!hosts.SequenceEqual(builderHosts))
+                    {
+                        throw new ArgumentException("MongoClient instance was created with a different connection string: hosts and ports should match.");
+                    }
+                    if (!ports.SequenceEqual(builderPorts))
+                    {
+                        throw new ArgumentException("MongoClient instance was created with a different connection string: hosts and ports should match.");
+                    }
+                }
+                else if (clientSettings.Server.Host != builder.Server.Host
+                    || clientSettings.Server.Port != builder.Server.Port)
+                {
+                    throw new ArgumentException("MongoClient instance was created with a different connection string: host and port should match.");
                 }
             }
             return client.GetDatabase(builder.DatabaseName);
