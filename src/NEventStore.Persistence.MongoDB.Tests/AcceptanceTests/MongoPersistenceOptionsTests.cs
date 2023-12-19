@@ -90,6 +90,45 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
     }
 
     /// <summary>
+    /// Create a MongoPersistenceOptions with a custom IMongoClient that match the connection string
+    /// </summary>
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_customizing_MongoPersistenceOptions_passing_correct_IMongoClient_cluster : PersistenceEngineConcern
+    {
+        private IMongoClient _mongoClient;
+        private IMongoDatabase _db;
+        private Exception _ex;
+        private string connectionstring = "mongodb://localhost:50001,localhost:50002/NEventStore";
+
+        protected override void Because()
+        {
+            _mongoClient = new MongoClient(connectionstring);
+
+            var options = new MongoPersistenceOptions(
+                mongoClient: _mongoClient);
+
+            _ex = Catch.Exception(
+                () => _db = options.ConnectToDatabase(connectionstring)
+                );
+        }
+
+        [Fact]
+        public void No_exception_is_thrown()
+        {
+            Assert.Null(_ex);
+        }
+
+        [Fact]
+        public void Database_was_correctly_created()
+        {
+            Assert.IsNotNull(_db);
+            Assert.AreEqual(_mongoClient, _db.Client);
+        }
+    }
+
+    /// <summary>
     /// Create a MongoPersistenceOptions with a custom IMongoClient that does not match the connection string
     /// </summary>
 #if MSTEST
@@ -117,7 +156,47 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         public void Exception_is_thrown()
         {
             Assert.IsNotNull(_ex);
-            Assert.AreEqual("MongoClient instance was created with a different connection string", _ex.Message);
+            Assert.AreEqual("MongoClient instance was created with a different connection string: host and port should match.", _ex.Message);
+        }
+
+        [Fact]
+        public void Database_was_not_created()
+        {
+            Assert.IsNull(_db);
+        }
+    }
+
+    /// <summary>
+    /// Create a MongoPersistenceOptions with a custom IMongoClient that does not match the connection string
+    /// </summary>
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_customizing_MongoPersistenceOptions_passing_incorrect_IMongoClient_cluster : PersistenceEngineConcern
+    {
+        private IMongoClient _mongoClient;
+        private IMongoDatabase _db;
+        private Exception _ex;
+        private string connectionstring1 = "mongodb://localhost:50001,localhost:50002/NEventStore";
+        private string connectionstring2 = "mongodb://localhost,localhost:50002/NEventStore";
+
+        protected override void Because()
+        {
+            _mongoClient = new MongoClient(connectionstring1);
+
+            var options = new MongoPersistenceOptions(
+                mongoClient: _mongoClient);
+
+            _ex = Catch.Exception(
+                () => _db = options.ConnectToDatabase(connectionstring2)
+                );
+        }
+
+        [Fact]
+        public void Exception_is_thrown()
+        {
+            Assert.IsNotNull(_ex);
+            Assert.AreEqual("MongoClient instance was created with a different connection string: hosts and ports should match.", _ex.Message);
         }
 
         [Fact]
