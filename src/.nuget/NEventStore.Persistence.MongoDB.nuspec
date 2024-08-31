@@ -12,6 +12,8 @@
     <summary>MongoDB persistence provider for NEventStore.</summary>
     <language>es-US</language>
     <tags>events, event sourcing, cqrs, storage, persistence, database, mongodb</tags>
+    <license type="file">LICENSE.md</license>
+    <readme>README.md</readme>
     <!-- 
     Until this is on develop branch, this version should be the previous version, so it made it compatible
 	with pre-release of the actual version. Ex, if we are on 6.0.0 unstable, dependency from NEventStore should
@@ -40,5 +42,7 @@
     <!--<file src="bin\$configuration$\**" target="lib"/>-->
     <file src="..\NEventStore.Persistence.MongoDB\bin\$configuration$\**\NEventStore.Persistence.MongoDB.dll" target="lib"/>
     <file src="..\NEventStore.Persistence.MongoDB\bin\$configuration$\**\NEventStore.Persistence.MongoDB.xml" target="lib"/>
+    <file src="..\..\README.md" target="" />
+    <file src="..\..\LICENSE.md" target="" />
   </files>
 </package>
