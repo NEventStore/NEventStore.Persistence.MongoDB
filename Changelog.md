@@ -1,5 +1,14 @@
 # NEventStore.Persistence.MongoDB
 
+## vNext
+
+- Updated MongoDB drivers to 2.28.0
+
+### Breaking Changes
+
+- MongoDB drivers are now strogly signed, binary compatibility with previous versions is now broken. If you update to this version of NEventStore.Persistence.MongoDB package
+  you are forced to use the same version of MongoDB drivers (or setup assembly binding redirects).
+
 ## 9.1.2
 
 - Fixed connectionString validation when connecting to a replica set using an already built MongoClient instance.
