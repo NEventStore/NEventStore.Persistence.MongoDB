@@ -1,6 +1,6 @@
 # NEventStore.Persistence.MongoDB
 
-## vNext
+## 10.0.0
 
 - Updated MongoDB drivers to 2.28.0
 
