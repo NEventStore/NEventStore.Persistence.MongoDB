@@ -17,7 +17,7 @@ dotnet restore ./src/NEventStore.Persistence.MongoDB.Core.sln --verbosity m
 Write-Host "Running GitVersion for the Project"
 $str = dotnet tool run dotnet-gitversion /updateAssemblyInfo | out-string
 $json = convertFrom-json $str
-$nugetversion = $json.NuGetVersion
+$nugetversion = $json.SemVer
 
 # Now we need to patch the AssemblyInfo for submodules
 Write-Host "Running GitVersion for the Dependencies"
