@@ -8,7 +8,15 @@ services:
     platform: windows
     image: mongo
     ports:
-      - "50002:27017"
+      - "50002:50002"
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "50002"]
+    healthcheck:
+      test: echo "try { rs.status() } catch (err) { rs.initiate() }" | mongosh --port 50002 --quiet
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      start_interval: 1s
+      retries: 30
 #    volumes:
 #      - nes_mongodata_windows_ci:/data/db
 #      - nes_mongoconfig_windows_ci:/data/configdb

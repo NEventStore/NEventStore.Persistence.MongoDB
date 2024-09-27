@@ -48,7 +48,7 @@ To build the project locally on a Windows Machine:
 - Define the following environment variables:
 
   ```
-  NEventStore.MongoDB="mongodb://localhost:50002/NEventStore"
+  NEventStore.MongoDB="mongodb://localhost:50002/NEventStore?replicaSet=rs0"
   ```
 
 ## Run Tests in Visual Studio
@@ -120,6 +120,13 @@ class MongoCommitSerializer : SerializerBase<MongoCommit>
 ```
 
 you can then register the serialization provider using: [```BsonSerializer.RegisterSerializationProvider```](http://api.mongodb.com/csharp/2.2/html/M_MongoDB_Bson_Serialization_BsonSerializer_RegisterSerializationProvider.htm)
+
+## Transactions
+
+To use MongoDb transactions...
+
+Todo: complete instructions... see tests, we need overloads for anything that accepts the session object, they can be used only if the client was passed from outside, otherwise we need a way to expose it.
+
 
 ## How to contribute
 
