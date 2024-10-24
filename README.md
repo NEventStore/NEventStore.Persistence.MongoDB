@@ -5,8 +5,9 @@ Mongo Persistence Engine for NEventStore
 
 NEventStore.Persistence.MongoDB currently supports:
 
-- .net framework 4.6.2
-- .net standard 2.0
+- .net6.0+
+- .net standard 2.1
+- .net framework 4.7.2
 
 Build Status
 ===
@@ -59,13 +60,42 @@ To run tests in visual studio using NUnit as a Test Runner you need to explicitl
 -Trait:"Explicit"
 ```
 
+## GUID
+
+Pay attention to GUID serialization and deserialization, MongoDB driver uses a specific representation for GUIDs.
+
+Up to MongoDb 2.30.0 the driver uses the `CSharpLegacy` representation for GUIDs (drivers for other languages use a different byte ordering).
+
+From 3.0.0 the driver default to the `Standard` representation (which has the same byte ordering in all the different drivers).
+
+The `CommitId` of each `CommitAttempt` is actually a GUID, to guarantee compatibility for old projects you should to use the `CSharpLegacy` representation,
+you can do this either by:
+
+- Configuring a GUID Serializer globally for the MongoDB driver:
+  ```csharp
+  BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+  ```
+
+- Customizing the serialization for the `CommitId` property of the `MongoCommit` class (see below):
+  ```csharp
+  BsonClassMap.RegisterClassMap<MongoCommit>(cm =>
+  {
+    cm.AutoMap();
+    cm.GetMemberMap(c => c.CommitId).SetSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+  });
+  ```
+
+
+Reference: [GUIDs](https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/serialization/guid-serialization/)
+
+
 ## Configure / Customize Commit Serialization
 
 You can configure the serialization process using the standard methods offered by the MongoDB C# driver.
 
-You'll need to specify the class mapping or implement an IBsonSerializationProvider for the ```MongoCommit``` class and registerm them before you start using any database operation.
+You'll need to specify the class mapping or implement an `IBsonSerializationProvider` for the `MongoCommit` class and register it before you start using any database operation.
 
-For detailed information on how to configure the serialization in MongoDB head to the official [Serialization documentation](http://mongodb.github.io/mongo-csharp-driver/2.2/reference/bson/serialization/) 
+For detailed information on how to configure the serialization in MongoDB head to the official [Serialization](https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/serialization/) page.
 
 ### BsonClassMap
 
@@ -119,7 +149,7 @@ class MongoCommitSerializer : SerializerBase<MongoCommit>
 }
 ```
 
-you can then register the serialization provider using: [```BsonSerializer.RegisterSerializationProvider```](http://api.mongodb.com/csharp/2.2/html/M_MongoDB_Bson_Serialization_BsonSerializer_RegisterSerializationProvider.htm)
+You can then register the serialization provider using: [```BsonSerializer.RegisterSerializationProvider```](http://api.mongodb.com/csharp/2.2/html/M_MongoDB_Bson_Serialization_BsonSerializer_RegisterSerializationProvider.htm)
 
 ## How to contribute
 
@@ -143,7 +173,7 @@ Build machine uses [GitVersion](https://github.com/GitTools/GitVersion) to manag
 
 A commit on master can be done only following the [Git-Flow](http://nvie.com/posts/a-successful-git-branching-model/) model, as a result of a new release coming from develop, or with an hotfix. 
 
-### Quick Info for NEventstore projects
+### Quick Info for NEventStore projects
 
 Just clone the repository and from command line checkout develop branch with 
 
