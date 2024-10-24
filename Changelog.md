@@ -1,12 +1,16 @@
 # NEventStore.Persistence.MongoDB
 
+## 10.0.1
+
+- Limit MongoDb allowed versions from 2.28.0 to anything less than 3.0.0 (which has many breaking changes to take care of).
+
 ## 10.0.0
 
 - Updated MongoDB drivers to 2.28.0
 
 ### Breaking Changes
 
-- MongoDB drivers are now strogly signed, binary compatibility with previous versions is now broken. If you update to this version of NEventStore.Persistence.MongoDB package
+- MongoDB drivers are now strongly signed, binary compatibility with previous versions is now broken. If you update to this version of NEventStore.Persistence.MongoDB package
   you are forced to use the same version of MongoDB drivers (or setup assembly binding redirects).
 
 ## 9.1.2
