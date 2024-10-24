@@ -3,6 +3,7 @@
 ## 10.0.1
 
 - Limit MongoDb allowed versions from 2.28.0 to anything less than 3.0.0 (which has many breaking changes to take care of).
+- Added NuGet Symbol package generation.
 
 ## 10.0.0
 
