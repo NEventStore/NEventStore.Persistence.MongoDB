@@ -1,5 +1,14 @@
 # NEventStore.Persistence.MongoDB
 
+## vNext
+
+- support: net6.0, netstandard2.1, net472
+
+### Breaking Changes
+
+- dropped netstandard2.0 support.
+- dropped net461 support.
+
 ## 10.0.1
 
 - Limit MongoDb allowed versions from 2.28.0 to anything less than 3.0.0 (which has many breaking changes to take care of).

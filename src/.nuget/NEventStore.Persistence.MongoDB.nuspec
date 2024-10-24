@@ -22,26 +22,29 @@
 	6.x.x versions
 	-->
     <dependencies>
-      <group targetFramework=".NETFramework4.6.2">
+      <group targetFramework=".NETFramework4.7.2">
         <dependency id="NEventStore" version="[9.1.1,10.0.0)" exclude="Build,Analyzers"/>
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.1" exclude="Build,Analyzers"/>
         <dependency id="MongoDB.Driver" version="[2.28.0,3.0.0)" exclude="Build,Analyzers"/>
       </group>
-      <group targetFramework=".NETStandard2.0">
+      <group targetFramework=".NETStandard2.1">
         <dependency id="NEventStore" version="[9.1.1,10.0.0)" exclude="Build,Analyzers"/>
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.1" exclude="Build,Analyzers"/>
+        <dependency id="MongoDB.Driver" version="[2.28.0,3.0.0)" exclude="Build,Analyzers"/>
+      </group>
+      <group targetFramework=".net6.0">
+        <dependency id="NEventStore" version="[9.1.1,10.0.0)" exclude="Build,Analyzers"/>
         <dependency id="MongoDB.Driver" version="[2.28.0,3.0.0)" exclude="Build,Analyzers"/>
       </group>
     </dependencies>
     <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework4.6.2" />
-      <frameworkAssembly assemblyName="System.Transactions" targetFramework=".NETFramework4.6.2" />
+      <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework4.7.2" />
+      <frameworkAssembly assemblyName="System.Transactions" targetFramework=".NETFramework4.7.2" />
     </frameworkAssemblies>
   </metadata>
   <files>
     <!--<file src="bin\$configuration$\**" target="lib"/>-->
     <file src="..\NEventStore.Persistence.MongoDB\bin\$configuration$\**\NEventStore.Persistence.MongoDB.dll" target="lib"/>
     <file src="..\NEventStore.Persistence.MongoDB\bin\$configuration$\**\NEventStore.Persistence.MongoDB.xml" target="lib"/>
+    <file src="..\NEventStore.Persistence.MongoDB\bin\$configuration$\**\NEventStore.Persistence.MongoDB.pdb" target="lib"/>
     <file src="..\..\README.md" target="" />
     <file src="..\..\LICENSE.md" target="" />
   </files>
