@@ -1,6 +1,6 @@
-// ReSharper disable CheckNamespace
-
-namespace NEventStore // ReSharper restore CheckNamespace
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+namespace NEventStore
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
     using System;
     using System.Transactions;
@@ -9,10 +9,16 @@ namespace NEventStore // ReSharper restore CheckNamespace
     using NEventStore.Persistence.MongoDB;
     using NEventStore.Serialization;
 
+    /// <summary>
+    /// Represents the persistence wire-up for MongoDB.
+    /// </summary>
     public class MongoPersistenceWireup : PersistenceWireup
     {
         private static readonly ILogger Logger = LogFactory.BuildLogger(typeof(MongoPersistenceWireup));
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MongoPersistenceWireup"/> class.
+        /// </summary>
         public MongoPersistenceWireup(Wireup inner, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions persistenceOptions)
             : base(inner)
         {

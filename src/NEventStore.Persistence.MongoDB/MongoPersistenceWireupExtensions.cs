@@ -1,5 +1,6 @@
-// ReSharper disable once CheckNamespace
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace NEventStore
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
     using System;
 #if NET462
@@ -8,6 +9,9 @@ namespace NEventStore
     using NEventStore.Persistence.MongoDB;
     using NEventStore.Serialization;
 
+    /// <summary>
+    /// Provides a set of extension methods to configure the MongoDB persistence engine.
+    /// </summary>
     public static class MongoPersistenceWireupExtensions
     {
         // System.Configuration will not be ported to dotnet core
@@ -24,7 +28,10 @@ namespace NEventStore
             }, serializer, options);
         }
 #else
-        // little API change, let's pass in the connection string, do not assume we are reading from standard config files
+        /// <summary>
+        /// Configures the persistence engine to use MongoDB.
+        /// </summary>
+        /// <exception cref="NEventStore.Persistence.MongoDB.ConfigurationException"></exception>
         public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionString, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
         {
             return new MongoPersistenceWireup(wireup, () =>
@@ -37,6 +44,9 @@ namespace NEventStore
         }
 #endif
 
+        /// <summary>
+        /// Configures the persistence engine to use MongoDB.
+        /// </summary>
         public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
         {
             return new MongoPersistenceWireup(wireup, connectionStringProvider, serializer, options);

@@ -2,11 +2,12 @@
 
 ## vNext
 
-- support: net6.0, netstandard2.1, net472
+- Support: net6.0, netstandard2.1, net472
 - Updated MongoDb driver to 3.0.0
 
 ### Breaking Changes
 
+- Carefully read the [MongoDB C# Driver 3.0 Migration Guide](https://www.mongodb.com/docs/drivers/csharp/v3.0/upgrade/v3/)
 - dropped netstandard2.0 support.
 - dropped net461 support.
 - Removed Obsolete Extension methods: `ExtensionMethods.ToMongoCommit_original()`, `ExtensionMethods.ToCommit_original()`, `ExtensionMethods.AsDictionary<Tkey, Tvalue>()`, `ExtensionMethods.ToMongoCommitIdQuery()`
@@ -19,7 +20,7 @@
       BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
       ```
       see README.md for more information.
-- Carefully read the [MongoDB C# Driver 3.0 Migration Guide](https://www.mongodb.com/docs/drivers/csharp/v3.0/upgrade/v3/)
+- `MongoShapshotFields` renamed to: `MongoSnapshotFields`
 
 ## 10.0.1
 

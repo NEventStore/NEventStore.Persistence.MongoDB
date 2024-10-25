@@ -112,14 +112,14 @@ namespace NEventStore.Persistence.MongoDB
         {
             return new BsonDocument
             {
-                { MongoShapshotFields.Id, new BsonDocument
+                { MongoSnapshotFields.Id, new BsonDocument
                     {
-                        {MongoShapshotFields.BucketId, snapshot.BucketId},
-                        {MongoShapshotFields.StreamId, snapshot.StreamId},
-                        {MongoShapshotFields.StreamRevision, snapshot.StreamRevision}
+                        {MongoSnapshotFields.BucketId, snapshot.BucketId},
+                        {MongoSnapshotFields.StreamId, snapshot.StreamId},
+                        {MongoSnapshotFields.StreamRevision, snapshot.StreamRevision}
                     }
                 },
-                { MongoShapshotFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(snapshot.Payload)) }
+                { MongoSnapshotFields.Payload, BsonDocumentWrapper.Create(serializer.Serialize(snapshot.Payload)) }
             };
         }
 
@@ -133,11 +133,11 @@ namespace NEventStore.Persistence.MongoDB
                 return null;
             }
 
-            BsonDocument id = doc[MongoShapshotFields.Id].AsBsonDocument;
-            string bucketId = id[MongoShapshotFields.BucketId].AsString;
-            string streamId = id[MongoShapshotFields.StreamId].AsString;
-            int streamRevision = id[MongoShapshotFields.StreamRevision].AsInt32;
-            BsonValue bsonPayload = doc[MongoShapshotFields.Payload];
+            BsonDocument id = doc[MongoSnapshotFields.Id].AsBsonDocument;
+            string bucketId = id[MongoSnapshotFields.BucketId].AsString;
+            string streamId = id[MongoSnapshotFields.StreamId].AsString;
+            int streamRevision = id[MongoSnapshotFields.StreamRevision].AsInt32;
+            BsonValue bsonPayload = doc[MongoSnapshotFields.Payload];
 
             object payload;
             switch (bsonPayload.BsonType)
@@ -188,9 +188,9 @@ namespace NEventStore.Persistence.MongoDB
             var builder = Builders<BsonDocument>.Filter;
 
             return builder.And(
-                builder.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId),
-                builder.Eq(MongoShapshotFields.FullQualifiedStreamId, streamId),
-                builder.Lte(MongoShapshotFields.FullQualifiedStreamRevision, maxRevision)
+                builder.Eq(MongoSnapshotFields.FullQualifiedBucketId, bucketId),
+                builder.Eq(MongoSnapshotFields.FullQualifiedStreamId, streamId),
+                builder.Lte(MongoSnapshotFields.FullQualifiedStreamRevision, maxRevision)
             );
         }
     }

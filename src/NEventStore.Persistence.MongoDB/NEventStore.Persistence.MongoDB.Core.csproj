@@ -6,6 +6,7 @@
     <RootNamespace>NEventStore.Persistence.MongoDB</RootNamespace>
     <AssemblyName>NEventStore.Persistence.MongoDB</AssemblyName>
     <OutputType>Library</OutputType>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
