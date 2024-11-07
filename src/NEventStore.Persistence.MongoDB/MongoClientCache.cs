@@ -39,19 +39,23 @@ namespace NEventStore.Persistence.MongoDB
                 ConfigureClientSettingsAction = configureClientSettingsAction;
             }
 
-            public override bool Equals(object obj)
+            public override readonly bool Equals(object obj)
             {
                 return obj is MongoClientCacheKey key &&
                        ConnectionString == key.ConnectionString &&
                        EqualityComparer<Action<MongoClientSettings>>.Default.Equals(ConfigureClientSettingsAction, key.ConfigureClientSettingsAction);
             }
 
-            public override int GetHashCode()
+            public override readonly int GetHashCode()
             {
+#if NET471_OR_GREATER
                 int hashCode = -1168874633;
-                hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(ConnectionString);
-                hashCode = hashCode * -1521134295 + EqualityComparer<Action<MongoClientSettings>>.Default.GetHashCode(ConfigureClientSettingsAction);
+                hashCode = (hashCode * -1521134295) + EqualityComparer<string>.Default.GetHashCode(ConnectionString);
+                hashCode = (hashCode * -1521134295) + EqualityComparer<Action<MongoClientSettings>>.Default.GetHashCode(ConfigureClientSettingsAction);
                 return hashCode;
+#else
+                return HashCode.Combine(ConnectionString, ConfigureClientSettingsAction);
+#endif
             }
         }
     }

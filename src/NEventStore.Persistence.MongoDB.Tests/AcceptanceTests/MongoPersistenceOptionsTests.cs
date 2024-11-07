@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using NEventStore.Persistence.AcceptanceTests.BDD;
+using Microsoft.ApplicationInsights.Extensibility.Implementation.Tracing;
+
 #if MSTEST
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
@@ -27,7 +29,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class When_customizing_MongoClientSettings : PersistenceEngineConcern
     {
-        private IMongoDatabase _db;
+        private IMongoDatabase? _db;
         private readonly string TestReplicaSetName = Guid.NewGuid().ToString();
         private readonly string TestApplicationName = Guid.NewGuid().ToString();
 
@@ -45,9 +47,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Settings_are_correctly_applied()
         {
-            var settings = _db.Client.Settings;
-            Assert.AreEqual(TestApplicationName, settings.ApplicationName);
-            Assert.AreEqual(TestReplicaSetName, settings.ReplicaSetName);
+            var settings = _db!.Client.Settings;
+            Assert.That(TestApplicationName, Is.EqualTo(settings.ApplicationName));
+            Assert.That(TestReplicaSetName, Is.EqualTo(settings.ReplicaSetName));
         }
     }
 
@@ -59,9 +61,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class When_customizing_MongoPersistenceOptions_passing_correct_IMongoClient : PersistenceEngineConcern
     {
-        private IMongoClient _mongoClient;
-        private IMongoDatabase _db;
-        private Exception _ex;
+        private IMongoClient? _mongoClient;
+        private IMongoDatabase? _db;
+        private Exception? _ex;
 
         protected override void Because()
         {
@@ -78,14 +80,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void No_exception_is_thrown()
         {
-            Assert.Null(_ex);
+            Assert.That(_ex, Is.Null);
         }
 
         [Fact]
         public void Database_was_correctly_created()
         {
-            Assert.IsNotNull(_db);
-            Assert.AreEqual(_mongoClient, _db.Client);
+            Assert.That(_db, Is.Not.Null);
+            Assert.That(_mongoClient, Is.EqualTo(_db!.Client));
         }
     }
 
@@ -97,34 +99,34 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class When_customizing_MongoPersistenceOptions_passing_correct_IMongoClient_cluster : PersistenceEngineConcern
     {
-        private IMongoClient _mongoClient;
-        private IMongoDatabase _db;
-        private Exception _ex;
-        private string connectionstring = "mongodb://localhost:50001,localhost:50002/NEventStore";
+        private IMongoClient? _mongoClient;
+        private IMongoDatabase? _db;
+        private Exception? _ex;
+        private const string connectionString = "mongodb://localhost:50001,localhost:50002/NEventStore";
 
         protected override void Because()
         {
-            _mongoClient = new MongoClient(connectionstring);
+            _mongoClient = new MongoClient(connectionString);
 
             var options = new MongoPersistenceOptions(
                 mongoClient: _mongoClient);
 
             _ex = Catch.Exception(
-                () => _db = options.ConnectToDatabase(connectionstring)
+                () => _db = options.ConnectToDatabase(connectionString)
                 );
         }
 
         [Fact]
         public void No_exception_is_thrown()
         {
-            Assert.Null(_ex);
+            Assert.That(_ex, Is.Null);
         }
 
         [Fact]
         public void Database_was_correctly_created()
         {
-            Assert.IsNotNull(_db);
-            Assert.AreEqual(_mongoClient, _db.Client);
+            Assert.That(_db, Is.Not.Null);
+            Assert.That(_mongoClient, Is.EqualTo(_db!.Client));
         }
     }
 
@@ -136,9 +138,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class When_customizing_MongoPersistenceOptions_passing_incorrect_IMongoClient : PersistenceEngineConcern
     {
-        private IMongoDatabase _db;
+        private IMongoDatabase? _db;
 
-        private Exception _ex;
+        private Exception? _ex;
 
         protected override void Because()
         {
@@ -155,14 +157,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Exception_is_thrown()
         {
-            Assert.IsNotNull(_ex);
-            Assert.AreEqual("MongoClient instance was created with a different connection string: host and port should match.", _ex.Message);
+            Assert.That(_ex, Is.Not.Null);
+            Assert.That(_ex!.Message, Is.EqualTo("MongoClient instance was created with a different connection string: host and port should match."));
         }
 
         [Fact]
         public void Database_was_not_created()
         {
-            Assert.IsNull(_db);
+            Assert.That(_db, Is.Null);
         }
     }
 
@@ -174,35 +176,35 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class When_customizing_MongoPersistenceOptions_passing_incorrect_IMongoClient_cluster : PersistenceEngineConcern
     {
-        private IMongoClient _mongoClient;
-        private IMongoDatabase _db;
-        private Exception _ex;
-        private string connectionstring1 = "mongodb://localhost:50001,localhost:50002/NEventStore";
-        private string connectionstring2 = "mongodb://localhost,localhost:50002/NEventStore";
+        private IMongoClient? _mongoClient;
+        private IMongoDatabase? _db;
+        private Exception? _ex;
+        private const string connectionString1 = "mongodb://localhost:50001,localhost:50002/NEventStore";
+        private const string connectionString2 = "mongodb://localhost,localhost:50002/NEventStore";
 
         protected override void Because()
         {
-            _mongoClient = new MongoClient(connectionstring1);
+            _mongoClient = new MongoClient(connectionString1);
 
             var options = new MongoPersistenceOptions(
                 mongoClient: _mongoClient);
 
             _ex = Catch.Exception(
-                () => _db = options.ConnectToDatabase(connectionstring2)
+                () => _db = options.ConnectToDatabase(connectionString2)
                 );
         }
 
         [Fact]
         public void Exception_is_thrown()
         {
-            Assert.IsNotNull(_ex);
-            Assert.AreEqual("MongoClient instance was created with a different connection string: hosts and ports should match.", _ex.Message);
+            Assert.That(_ex, Is.Not.Null);
+            Assert.That(_ex!.Message, Is.EqualTo("MongoClient instance was created with a different connection string: hosts and ports should match."));
         }
 
         [Fact]
         public void Database_was_not_created()
         {
-            Assert.IsNull(_db);
+            Assert.That(_db, Is.Null);
         }
     }
 }

@@ -20,10 +20,10 @@
 #endif
     public class When_a_commit_is_persisted_from_a_second_process : SpecificationBase
     {
-        private ICommit _commit1;
-        private ICommit _commit2;
-        private IPersistStreams _process1;
-        private IPersistStreams _process2;
+        private ICommit? _commit1;
+        private ICommit? _commit2;
+        private IPersistStreams? _process1;
+        private IPersistStreams? _process2;
 
         protected override void Context()
         {
@@ -37,23 +37,25 @@
 
         protected override void Because()
         {
-            _commit2 = _process2.Commit(Guid.NewGuid().ToString().BuildAttempt());
+            _commit2 = _process2!.Commit(Guid.NewGuid().ToString().BuildAttempt());
         }
 
         [Fact]
         public void Should_have_a_checkpoint_greater_than_the_previous_commit_on_the_other_process()
         {
-            long chkNum1 = _commit1.CheckpointToken;
-            long chkNum2 = _commit2.CheckpointToken;
+            Assert.That(_commit1, Is.Not.Null);
+            long chkNum1 = _commit1!.CheckpointToken;
+            Assert.That(_commit2, Is.Not.Null);
+            long chkNum2 = _commit2!.CheckpointToken;
 
             chkNum2.Should().BeGreaterThan(chkNum1);
         }
 
         protected override void Cleanup()
         {
-            _process1.Drop();
-            _process1.Dispose();
-            _process2.Dispose();
+            _process1?.Drop();
+            _process1?.Dispose();
+            _process2?.Dispose();
         }
     }
 }

@@ -28,7 +28,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
     public class Issue_55_CamelCase_Convention_Should_Not_Be_Applied_To_MongoCommit : PersistenceEngineConcern
     {
         private readonly IMongoCollection<BsonDocument> _commits;
-        private CommitAttempt expectedAttempt;
+        private CommitAttempt? expectedAttempt;
 
         public Issue_55_CamelCase_Convention_Should_Not_Be_Applied_To_MongoCommit()
         {
@@ -62,7 +62,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         [Fact]
         public void Persisted_MongoCommit_Should_Be_TileCase()
         {
-            // read the commit As BsonDocument and check the serialization
+            // read the commit As BSonDocument and check the serialization
             var commit = _commits.AsQueryable().Single();
             // read all the time case properties and expect them to be there
             commit.Contains(MongoCommitFields.BucketId).Should().BeTrue();

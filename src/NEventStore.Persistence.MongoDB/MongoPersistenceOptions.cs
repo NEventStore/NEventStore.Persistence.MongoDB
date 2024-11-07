@@ -82,10 +82,9 @@ namespace NEventStore.Persistence.MongoDB
         private static readonly object _connectToDatabaseLock = new object();
 
         /// <summary>
-        /// Connects to NEvenstore Mongo database
+        /// Connects to NEventStore Mongo database
         /// </summary>
         /// <param name="connectionString">Connection string</param>
-        /// <returns>nevenstore mongodatabase store</returns>
         public virtual IMongoDatabase ConnectToDatabase(string connectionString)
         {
             var builder = new MongoUrlBuilder(connectionString);
@@ -169,7 +168,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <remarks>
         /// If you disable Stream Heads, you are not able to ask
         /// for stream that need to be snapshotted. Basically you should set
-        /// this to true if you not use NEventstore snapshot functionalities.
+        /// this to true if you not use NEventStore snapshot functionalities.
         /// </remarks>
         public Boolean DisableSnapshotSupport { get; set; }
 
@@ -190,7 +189,7 @@ namespace NEventStore.Persistence.MongoDB
         /// allow for a correct caching of the generated <see cref="IMongoClient"/> instance.
         /// </param>
         /// <param name="mongoClient">
-        /// The <see cref="IMongoClient"/> to use to connect to MongoDB database. 
+        /// The <see cref="IMongoClient"/> to use to connect to MongoDB database.
         /// If specified <paramref name="configureClientSettingsAction"/> will be ignored.
         /// </param>
         public MongoPersistenceOptions(

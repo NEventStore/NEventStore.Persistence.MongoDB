@@ -71,9 +71,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 #if MSTEST
     [TestClass]
 #endif
-    public class Issue40_calling_AddShapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
+    public class Issue40_calling_AddSnapshot_function_when_snapshot_disabled_throws : PersistenceEngineConcern
     {
-        public Issue40_calling_AddShapshot_function_when_snapshot_disabled_throws()
+        public Issue40_calling_AddSnapshot_function_when_snapshot_disabled_throws()
         {
             var options = new MongoPersistenceOptions
             {
@@ -95,7 +95,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         {
         }
 
-        private Exception _ex;
+        private Exception? _ex;
 
         protected override void Because()
         {
@@ -140,7 +140,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         {
         }
 
-        private Exception _ex;
+        private Exception? _ex;
 
         protected override void Because()
         {
@@ -185,7 +185,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         {
         }
 
-        private Exception _ex;
+        private Exception? _ex;
 
         protected override void Because()
         {

@@ -23,9 +23,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class Verify_safe_generator_not_create_hole : PersistenceEngineConcern
     {
-        private string _streamId;
-        private string _bucketId;
-        private CommitAttempt _attempt;
+        private string? _streamId;
+        private string? _bucketId;
+        private CommitAttempt? _attempt;
 
         public Verify_safe_generator_not_create_hole()
         {
@@ -85,9 +85,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class Holes_are_filled_after_concurrency_exception : PersistenceEngineConcern
     {
-        private string _streamId;
-        private string _bucketId;
-        private CommitAttempt _attempt;
+        private string? _streamId;
+        private string? _bucketId;
+        private CommitAttempt? _attempt;
 
         public Holes_are_filled_after_concurrency_exception()
         {
@@ -145,9 +145,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class Holes_are_not_filled_as_default_behavior : PersistenceEngineConcern
     {
-        private string _streamId;
-        private string _bucketId;
-        private CommitAttempt _attempt;
+        private string? _streamId;
+        private string? _bucketId;
+        private CommitAttempt? _attempt;
 
         public Holes_are_not_filled_as_default_behavior()
         {
@@ -209,9 +209,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
 #endif
     public class Default_behavior_after_concurrency_exception : PersistenceEngineConcern
     {
-        private string _streamId;
-        private string _bucketId;
-        private CommitAttempt _attempt;
+        private string? _streamId;
+        private string? _bucketId;
+        private CommitAttempt? _attempt;
 
         protected override void Context()
         {

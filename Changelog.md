@@ -1,5 +1,27 @@
 # NEventStore.Persistence.MongoDB
 
+## vNext
+
+- Support: net6.0, netstandard2.1, net472
+- Updated MongoDb driver to 3.0.0
+
+### Breaking Changes
+
+- Carefully read the [MongoDB C# Driver 3.0 Migration Guide](https://www.mongodb.com/docs/drivers/csharp/v3.0/upgrade/v3/)
+- dropped netstandard2.0 support.
+- dropped net461 support.
+- Removed Obsolete Extension methods: `ExtensionMethods.ToMongoCommit_original()`, `ExtensionMethods.ToCommit_original()`, `ExtensionMethods.AsDictionary<Tkey, Tvalue>()`, `ExtensionMethods.ToMongoCommitIdQuery()`
+- Check your GUID serialization:
+  - if it's a new project, you should not have any problem; you'll use the new GUID serialization format.
+  - if it's an old project, you should check the GUID serialization format:
+    - if you are using the `Standard` format, you should not have any problem.
+    - if you are (most likely) using the `CSharpLegacy` format, you should change the GUID serialization format to `CSharpLegacy`:
+      ```csharp
+      BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+      ```
+      see README.md for more information.
+- `MongoShapshotFields` renamed to: `MongoSnapshotFields`
+
 ## 10.0.1
 
 - Limit MongoDb allowed versions from 2.28.0 to anything less than 3.0.0 (which has many breaking changes to take care of).

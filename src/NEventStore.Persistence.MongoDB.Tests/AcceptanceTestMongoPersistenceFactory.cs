@@ -3,6 +3,7 @@
     using global::MongoDB.Bson.Serialization.Serializers;
     using global::MongoDB.Bson.Serialization;
     using NEventStore.Serialization;
+    using global::MongoDB.Bson;
 #if MSTEST
     using global::MongoDB.Driver;
 #endif
@@ -15,9 +16,11 @@
             // What Object Types Can Be Serialized?
             // https://www.mongodb.com/docs/drivers/csharp/current/faq/#what-object-types-can-be-serialized-
             BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
+            // MongoDb 3.0.0 GUID serialization changed
+            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
         }
 
-        public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions options = null)
+        public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions? options = null)
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
@@ -30,7 +33,7 @@
         }
 
         internal static string GetConnectionString() {
-            string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
+            var connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
 
             if (connectionString == null) {
                 string message = string.Format(
