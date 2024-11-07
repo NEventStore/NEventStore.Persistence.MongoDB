@@ -20,7 +20,7 @@
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
         }
 
-        public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions options = null)
+        public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions? options = null)
             : base(
                 GetConnectionString,
                 new DocumentObjectSerializer(),
@@ -33,7 +33,7 @@
         }
 
         internal static string GetConnectionString() {
-            string connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
+            var connectionString = Environment.GetEnvironmentVariable(EnvVarConnectionStringKey, EnvironmentVariableTarget.Process);
 
             if (connectionString == null) {
                 string message = string.Format(

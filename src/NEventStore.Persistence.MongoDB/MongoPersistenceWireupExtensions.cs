@@ -3,7 +3,7 @@ namespace NEventStore
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 {
     using System;
-#if NET462
+#if NET472_OR_GREATER
     using System.Configuration;
 #endif
     using NEventStore.Persistence.MongoDB;
@@ -15,15 +15,17 @@ namespace NEventStore
     public static class MongoPersistenceWireupExtensions
     {
         // System.Configuration will not be ported to dotnet core
-#if NET462
+#if NET472_OR_GREATER
+        /// <summary>
+        /// Configures the persistence engine to use MongoDB.
+        /// </summary>
+        /// <exception cref="NEventStore.Persistence.MongoDB.ConfigurationException"></exception>
         public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
         {
             return new MongoPersistenceWireup(wireup, () =>
             {
-                var connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionName];
-                if( connectionStringSettings == null)
-                    throw new NEventStore.Persistence.MongoDB.ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionName));
-
+                var connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionName]
+                    ?? throw new NEventStore.Persistence.MongoDB.ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionName));
                 return connectionStringSettings.ConnectionString;
             }, serializer, options);
         }

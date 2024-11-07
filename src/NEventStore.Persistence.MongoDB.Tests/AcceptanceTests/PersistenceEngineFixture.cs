@@ -11,6 +11,6 @@ namespace NEventStore.Persistence.AcceptanceTests
             _createPersistence = _ => new AcceptanceTestMongoPersistenceFactory(Options).Build();
         }
 
-        public static MongoPersistenceOptions Options { get; set; }
+        public static MongoPersistenceOptions? Options { get; set; }
     }
 }
