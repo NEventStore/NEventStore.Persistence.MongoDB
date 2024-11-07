@@ -1,9 +1,10 @@
 # NEventStore.Persistence.MongoDB
 
-## vNext
+## 11.0.0
 
 - Support: net6.0, netstandard2.1, net472
 - Updated MongoDb driver to 3.0.0
+- Updated nuget package icon.
 
 ### Breaking Changes
 
