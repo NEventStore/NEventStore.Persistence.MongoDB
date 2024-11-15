@@ -20,8 +20,16 @@
       ```csharp
       BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
       ```
+      or:
+      ```csharp
+      BsonClassMap.RegisterClassMap<MongoCommit>(cm =>
+      {
+        cm.AutoMap();
+        cm.GetMemberMap(c => c.CommitId).SetSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+      });
+      ```
       see README.md for more information.
-- `MongoShapshotFields` renamed to: `MongoSnapshotFields`
+- class `MongoShapshotFields` renamed to: `MongoSnapshotFields`
 
 ## 10.0.1
 

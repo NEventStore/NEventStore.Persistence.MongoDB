@@ -18,7 +18,7 @@ namespace NEventStore
         /// <summary>
         /// Initializes a new instance of the <see cref="MongoPersistenceWireup"/> class.
         /// </summary>
-        public MongoPersistenceWireup(Wireup inner, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions persistenceOptions)
+        public MongoPersistenceWireup(Wireup inner, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions? persistenceOptions)
             : base(inner)
         {
             Logger.LogDebug("Configuring Mongo persistence engine.");

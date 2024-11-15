@@ -20,7 +20,7 @@ namespace NEventStore
         /// Configures the persistence engine to use MongoDB.
         /// </summary>
         /// <exception cref="NEventStore.Persistence.MongoDB.ConfigurationException"></exception>
-        public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
+        public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, MongoPersistenceOptions? options = null)
         {
             return new MongoPersistenceWireup(wireup, () =>
             {
@@ -34,7 +34,7 @@ namespace NEventStore
         /// Configures the persistence engine to use MongoDB.
         /// </summary>
         /// <exception cref="NEventStore.Persistence.MongoDB.ConfigurationException"></exception>
-        public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionString, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
+        public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, string connectionString, IDocumentSerializer serializer, MongoPersistenceOptions? options = null)
         {
             return new MongoPersistenceWireup(wireup, () =>
             {
@@ -49,7 +49,7 @@ namespace NEventStore
         /// <summary>
         /// Configures the persistence engine to use MongoDB.
         /// </summary>
-        public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
+        public static PersistenceWireup UsingMongoPersistence(this Wireup wireup, Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions? options = null)
         {
             return new MongoPersistenceWireup(wireup, connectionStringProvider, serializer, options);
         }

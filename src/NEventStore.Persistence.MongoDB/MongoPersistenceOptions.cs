@@ -23,13 +23,13 @@ namespace NEventStore.Persistence.MongoDB
         /// </para>
         /// <para>If you specify a MongoClient instance, the ConfigureClientSettingsAction will not be used.</para>
         /// </summary>
-        public IMongoClient MongoClient { get; set; }
+        public IMongoClient? MongoClient { get; set; }
 
         /// <summary>
         /// A delegate to configure the <see cref="MongoClientSettings"/> used to connect to the Mongo server.
         /// A new MongoClient instance will be created for each MongoPersistenceEngine instance.
         /// </summary>
-        public Action<MongoClientSettings> ConfigureClientSettingsAction { get; set; }
+        public Action<MongoClientSettings>? ConfigureClientSettingsAction { get; set; }
 
         /// <summary>
         /// Get the  <see href="http://docs.mongodb.org/manual/core/write-concern/#write-concern">WriteConcern</see> for the commit insert operation.
@@ -79,7 +79,7 @@ namespace NEventStore.Persistence.MongoDB
             };
         }
 
-        private static readonly object _connectToDatabaseLock = new object();
+        private static readonly object _connectToDatabaseLock = new();
 
         /// <summary>
         /// Connects to NEventStore Mongo database
@@ -89,7 +89,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             var builder = new MongoUrlBuilder(connectionString);
             // if there's a MongoClient instance, use it
-            IMongoClient client = MongoClient;
+            IMongoClient? client = MongoClient;
             if (client == null)
             {
                 var cacheKey = new MongoClientCache.MongoClientCacheKey(
@@ -148,7 +148,7 @@ namespace NEventStore.Persistence.MongoDB
         /// This is the instance of the Id Generator I want to use to
         /// generate checkpoint.
         /// </summary>
-        public ICheckpointGenerator CheckpointGenerator { get; set; }
+        public ICheckpointGenerator? CheckpointGenerator { get; set; }
 
         /// <summary>
         /// The strategy to use when a concurrency exception is detected.
@@ -193,8 +193,8 @@ namespace NEventStore.Persistence.MongoDB
         /// If specified <paramref name="configureClientSettingsAction"/> will be ignored.
         /// </param>
         public MongoPersistenceOptions(
-            Action<MongoClientSettings> configureClientSettingsAction = null,
-            IMongoClient mongoClient = null
+            Action<MongoClientSettings>? configureClientSettingsAction = null,
+            IMongoClient? mongoClient = null
             )
         {
             ConfigureClientSettingsAction = configureClientSettingsAction;

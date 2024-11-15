@@ -15,7 +15,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="MongoPersistenceFactory"/> class.
         /// </summary>
-        public MongoPersistenceFactory(Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions options = null)
+        public MongoPersistenceFactory(Func<string> connectionStringProvider, IDocumentSerializer serializer, MongoPersistenceOptions? options = null)
         {
             _connectionStringProvider = connectionStringProvider;
             _serializer = serializer;

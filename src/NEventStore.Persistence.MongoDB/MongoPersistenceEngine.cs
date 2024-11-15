@@ -26,7 +26,7 @@ namespace NEventStore.Persistence.MongoDB
         private int _initialized;
         private readonly MongoPersistenceOptions _options;
         private readonly string _systemBucketName;
-        private ICheckpointGenerator _checkpointGenerator;
+        private ICheckpointGenerator? _checkpointGenerator;
         private static readonly SortDefinition<BsonDocument> SortByAscendingCheckpointNumber = Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber);
 
         /// <summary>
@@ -398,7 +398,7 @@ namespace NEventStore.Persistence.MongoDB
             {
                 Int64 checkpointId;
                 var commitDoc = attempt.ToMongoCommit(
-                    checkpointId = _checkpointGenerator.Next(),
+                    checkpointId = _checkpointGenerator!.Next(),
                     _serializer
                 );
 
@@ -448,10 +448,14 @@ namespace NEventStore.Persistence.MongoDB
                                 throw new DuplicateCommitException(msg);
                             }
 
-                            ICommit savedCommit = PersistedCommits
+                            ICommit? savedCommit = null;
+                            var bsonSavedCommit = PersistedCommits
                                 .FindSync(attempt.ToMongoCommitIdQuery())
-                                .FirstOrDefault()
-                                ?.ToCommit(_serializer);
+                                .FirstOrDefault();
+                            if (bsonSavedCommit != null)
+                            {
+                                savedCommit = bsonSavedCommit.ToCommit(_serializer);
+                            }
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {

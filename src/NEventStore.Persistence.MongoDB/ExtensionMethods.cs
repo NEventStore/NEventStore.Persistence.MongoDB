@@ -81,11 +81,6 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public static ICommit ToCommit(this BsonDocument doc, IDocumentSerializer serializer)
         {
-            if (doc == null)
-            {
-                return null;
-            }
-
             var mc = BsonSerializer.Deserialize<MongoCommit>(doc);
 
             return new Commit(mc.BucketId,
@@ -128,11 +123,6 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public static Snapshot ToSnapshot(this BsonDocument doc, IDocumentSerializer serializer)
         {
-            if (doc == null)
-            {
-                return null;
-            }
-
             BsonDocument id = doc[MongoSnapshotFields.Id].AsBsonDocument;
             string bucketId = id[MongoSnapshotFields.BucketId].AsString;
             string streamId = id[MongoSnapshotFields.StreamId].AsString;
@@ -202,7 +192,7 @@ namespace NEventStore.Persistence.MongoDB
     /// let's ignore the extra elements, the 'Dispatched' field and the dispatched concept have been dropped in NEventStore 6
     /// </remarks>
     [BsonIgnoreExtraElements]
-    public sealed class MongoCommit
+    public class MongoCommit
     {
         /// <summary>
         /// Gets or sets the checkpoint number.
