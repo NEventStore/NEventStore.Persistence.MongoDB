@@ -40,7 +40,6 @@
     </dependencies>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework4.7.2" />
-      <frameworkAssembly assemblyName="System.Transactions" targetFramework=".NETFramework4.7.2" />
     </frameworkAssemblies>
   </metadata>
   <files>

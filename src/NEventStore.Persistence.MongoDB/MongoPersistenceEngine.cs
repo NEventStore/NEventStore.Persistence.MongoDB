@@ -1,4 +1,7 @@
-﻿using NEventStore.Persistence.MongoDB.Support;
+﻿#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2254 // Template should be a static expression
+
+using NEventStore.Persistence.MongoDB.Support;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -794,3 +797,6 @@ namespace NEventStore.Persistence.MongoDB
         }
     }
 }
+
+#pragma warning restore CA2254 // Template should be a static expression
+#pragma warning restore IDE0079 // Remove unnecessary suppression
