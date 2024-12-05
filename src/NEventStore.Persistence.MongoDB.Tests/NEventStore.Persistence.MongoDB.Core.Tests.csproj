@@ -7,6 +7,7 @@
     <RootNamespace>NEventStore.Persistence.MongoDB.Tests</RootNamespace>
     <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
+    <TestTfmsInParallel>false</TestTfmsInParallel>
   </PropertyGroup>
 
   <PropertyGroup>
