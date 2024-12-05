@@ -54,9 +54,6 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         }
     }
 
-    /// <summary>
-    /// Be careful! this test will fail with 'Catastrophic Failure' and Visual Studio IDE will report this as not run.
-    /// </summary>
 #if MSTEST
     [TestClass]
 #endif
@@ -86,19 +83,15 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                     1,
                     DateTime.Now,
                     new Dictionary<string, object> { { "key.1", "value" } },
-                    new List<EventMessage> { new EventMessage { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } } });
+                    [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
                 Persistence.Commit(attempt);
             });
 
             _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
         }
 
-        // Enable this test manually, it does not get skipped in the build server causing the build to fail
-        // [Fact(Skip = "Run it Manually")]
-#if NUNIT
         [Fact]
-#endif
-        public void Should_throw_serialization_exception_due_to_invalid_key()
+        public void Should_correctly_deserialize_headers()
         {
             // with previous drivers this resulted in an error
             // _thrown.Should().BeOfType<BsonSerializationException>();
@@ -131,7 +124,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 1,
                 DateTime.Now,
                 new Dictionary<string, object> { { "key", "value" } },
-                new List<EventMessage> { new EventMessage { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } } });
+                [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
             Persistence.Commit(attempt);
         }
 
@@ -140,11 +133,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
         }
 
-        // Enable this test manually, it does not get skipped in the build server causing the build to fail
-        // [Fact(Skip = "Run it Manually")]
-#if NUNIT
         [Fact]
-#endif
         public void Should_correctly_deserialize_headers()
         {
             _persisted.Should().NotBeNull();
@@ -175,7 +164,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 1,
                 DateTime.Now,
                 new Dictionary<string, object> { { "key.1", "value" } },
-                new List<EventMessage> { new EventMessage { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } } });
+                [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
             Persistence.Commit(attempt);
         }
 
@@ -189,6 +178,97 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         {
             _persisted.Should().NotBeNull();
             _persisted!.Headers.Keys.Should().Contain("key.1");
+        }
+    }
+
+    // guid serialization tests (inside headers)
+
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_serializing_headers_as_Document_and_a_commit_header_has_a_Guid : PersistenceEngineConcern
+    {
+        private ICommit? _persisted;
+        private string? _streamId;
+        private readonly Guid _guid = Guid.NewGuid();
+
+        private Exception? _thrown;
+
+        public When_serializing_headers_as_Document_and_a_commit_header_has_a_Guid()
+        {
+            MapMongoCommit.MapMongoCommit_Header_as_Document();
+        }
+
+        protected override void Context()
+        { }
+
+        protected override void Because()
+        {
+            _thrown = Catch.Exception(() =>
+            {
+                _streamId = Guid.NewGuid().ToString();
+                var attempt = new CommitAttempt(_streamId,
+                    2,
+                    Guid.NewGuid(),
+                    1,
+                    DateTime.Now,
+                    new Dictionary<string, object> { { "guid", _guid } },
+                    [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
+                Persistence.Commit(attempt);
+            });
+
+            Assert.That(_thrown, Is.Null);
+
+            _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
+        }
+
+        [Fact]
+        public void Should_correctly_deserialize_headers()
+        {
+            _thrown.Should().BeNull();
+            _persisted!.Headers.Keys.Should().Contain("guid");
+            _persisted.Headers["guid"].Should().Be(_guid);
+        }
+    }
+
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_Guid : PersistenceEngineConcern
+    {
+        private ICommit? _persisted;
+        private string? _streamId;
+        private readonly Guid _guid = Guid.NewGuid();
+
+        public When_serializing_headers_as_ArrayOfArrays_and_a_commit_header_has_a_Guid()
+        {
+            // the default is ArrayOfArray defined using an attribute.
+            MapMongoCommit.MapMongoCommit_Header_as_ArrayOfArray();
+        }
+
+        protected override void Context()
+        {
+            _streamId = Guid.NewGuid().ToString();
+            var attempt = new CommitAttempt(_streamId,
+                2,
+                Guid.NewGuid(),
+                1,
+                DateTime.Now,
+                new Dictionary<string, object> { { "guid", _guid } },
+                [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
+            Persistence.Commit(attempt);
+        }
+
+        protected override void Because()
+        {
+            _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
+        }
+
+        [Fact]
+        public void Should_correctly_deserialize_headers()
+        {
+            _persisted!.Headers.Keys.Should().Contain("guid");
+            _persisted.Headers["guid"].Should().Be(_guid);
         }
     }
 }

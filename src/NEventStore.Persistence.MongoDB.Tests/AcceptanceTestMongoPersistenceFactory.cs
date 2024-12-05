@@ -13,11 +13,14 @@
 
         static AcceptanceTestMongoPersistenceFactory() {
             // MongoDb serialization changed
-            // What Object Types Can Be Serialized?
-            // https://www.mongodb.com/docs/drivers/csharp/current/faq/#what-object-types-can-be-serialized-
-            BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
             // MongoDb 3.0.0 GUID serialization changed
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+            // when serializing guid in a Dictionary<object, object> take a look at the comment here:
+            // https://jira.mongodb.org/browse/CSHARP-4987?jql=text%20~%20%22GuidRepresentation%20dictionary%22
+            // it seems you also need to configure the ObjectSerializer
+            // What Object Types Can Be Serialized?
+            BsonSerializer.RegisterSerializer(new ObjectSerializer(
+                BsonSerializer.LookupDiscriminatorConvention(typeof(object)), GuidRepresentation.CSharpLegacy, ObjectSerializer.AllAllowedTypes));
         }
 
         public AcceptanceTestMongoPersistenceFactory(MongoPersistenceOptions? options = null)

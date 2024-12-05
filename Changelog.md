@@ -28,6 +28,12 @@
         cm.GetMemberMap(c => c.CommitId).SetSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
       });
       ```
+    - To serialize GUIDs in Lists or Dictionary of objects, you should also remember to properly set the Guid representation for the object serializer, with something like:
+      ```csharp
+      BsonSerializer.RegisterSerializer(new ObjectSerializer(
+        BsonSerializer.LookupDiscriminatorConvention(typeof(object)), GuidRepresentation.CSharpLegacy, ObjectSerializer.AllAllowedTypes));
+      
+      ```
       see README.md for more information.
 - class `MongoShapshotFields` renamed to: `MongoSnapshotFields`
 
