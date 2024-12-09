@@ -1,5 +1,42 @@
 # NEventStore.Persistence.MongoDB
 
+## 11.0.0
+
+- Support: net6.0, netstandard2.1, net472
+- Updated MongoDb driver to 3.0.0
+- Updated nuget package icon.
+
+### Breaking Changes
+
+- Carefully read the [MongoDB C# Driver 3.0 Migration Guide](https://www.mongodb.com/docs/drivers/csharp/v3.0/upgrade/v3/)
+- dropped netstandard2.0 support.
+- dropped net461 support.
+- Removed Obsolete Extension methods: `ExtensionMethods.ToMongoCommit_original()`, `ExtensionMethods.ToCommit_original()`, `ExtensionMethods.AsDictionary<Tkey, Tvalue>()`, `ExtensionMethods.ToMongoCommitIdQuery()`
+- Check your GUID serialization:
+  - if it's a new project, you should not have any problem; you'll use the new GUID serialization format.
+  - if it's an old project, you should check the GUID serialization format:
+    - if you are using the `Standard` format, you should not have any problem.
+    - if you are (most likely) using the `CSharpLegacy` format, you should change the GUID serialization format to `CSharpLegacy`:
+      ```csharp
+      BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+      ```
+      or:
+      ```csharp
+      BsonClassMap.RegisterClassMap<MongoCommit>(cm =>
+      {
+        cm.AutoMap();
+        cm.GetMemberMap(c => c.CommitId).SetSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+      });
+      ```
+    - To serialize GUIDs in Lists or Dictionary of objects, you should also remember to properly set the Guid representation for the object serializer, with something like:
+      ```csharp
+      BsonSerializer.RegisterSerializer(new ObjectSerializer(
+        BsonSerializer.LookupDiscriminatorConvention(typeof(object)), GuidRepresentation.CSharpLegacy, ObjectSerializer.AllAllowedTypes));
+      
+      ```
+      see README.md for more information.
+- class `MongoShapshotFields` renamed to: `MongoSnapshotFields`
+
 ## 10.0.1
 
 - Limit MongoDb allowed versions from 2.28.0 to anything less than 3.0.0 (which has many breaking changes to take care of).

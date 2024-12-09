@@ -1,4 +1,7 @@
-﻿using NEventStore.Persistence.MongoDB.Support;
+﻿#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2254 // Template should be a static expression
+
+using NEventStore.Persistence.MongoDB.Support;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -12,6 +15,9 @@ namespace NEventStore.Persistence.MongoDB
     using NEventStore.Logging;
     using NEventStore.Serialization;
 
+    /// <summary>
+    /// Represents a persistence engine that uses MongoDB to store commits and snapshots.
+    /// </summary>
     public class MongoPersistenceEngine : IPersistStreams
     {
         private const string ConcurrencyException = "E1100";
@@ -20,9 +26,13 @@ namespace NEventStore.Persistence.MongoDB
         private int _initialized;
         private readonly MongoPersistenceOptions _options;
         private readonly string _systemBucketName;
-        private ICheckpointGenerator _checkpointGenerator;
+        private ICheckpointGenerator? _checkpointGenerator;
         private static readonly SortDefinition<BsonDocument> SortByAscendingCheckpointNumber = Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber);
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MongoPersistenceEngine"/> class.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"></exception>
         public MongoPersistenceEngine(
             IMongoDatabase store,
             IDocumentSerializer serializer,
@@ -45,18 +55,29 @@ namespace NEventStore.Persistence.MongoDB
             PersistedSnapshots = db.GetCollection<BsonDocument>("Snapshots", _snapshotSettings);
         }
 
+        /// <summary>
+        /// Gets the collection of commits.
+        /// </summary>
         protected virtual IMongoCollection<BsonDocument> PersistedCommits { get; }
 
+        /// <summary>
+        /// Gets the collection of stream heads.
+        /// </summary>
         protected virtual IMongoCollection<BsonDocument> PersistedStreamHeads { get; }
 
+        /// <summary>
+        /// Gets the collection of snapshots.
+        /// </summary>
         protected virtual IMongoCollection<BsonDocument> PersistedSnapshots { get; }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <inheritdoc/>
         public virtual void Initialize()
         {
             if (Interlocked.Increment(ref _initialized) > 1)
@@ -377,7 +398,7 @@ namespace NEventStore.Persistence.MongoDB
             {
                 Int64 checkpointId;
                 var commitDoc = attempt.ToMongoCommit(
-                    checkpointId = _checkpointGenerator.Next(),
+                    checkpointId = _checkpointGenerator!.Next(),
                     _serializer
                 );
 
@@ -427,10 +448,14 @@ namespace NEventStore.Persistence.MongoDB
                                 throw new DuplicateCommitException(msg);
                             }
 
-                            ICommit savedCommit = PersistedCommits
+                            ICommit? savedCommit = null;
+                            var bsonSavedCommit = PersistedCommits
                                 .FindSync(attempt.ToMongoCommitIdQuery())
-                                .FirstOrDefault()
-                                ?.ToCommit(_serializer);
+                                .FirstOrDefault();
+                            if (bsonSavedCommit != null)
+                            {
+                                savedCommit = bsonSavedCommit.ToCommit(_serializer);
+                            }
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
@@ -500,7 +525,7 @@ namespace NEventStore.Persistence.MongoDB
 
                 return PersistedSnapshots
                     .Find(query)
-                    .Sort(Builders<BsonDocument>.Sort.Descending(MongoShapshotFields.Id))
+                    .Sort(Builders<BsonDocument>.Sort.Descending(MongoSnapshotFields.Id))
                     .Limit(1)
                     .ToEnumerable()
                     .Select(mc => mc.ToSnapshot(_serializer))
@@ -523,8 +548,8 @@ namespace NEventStore.Persistence.MongoDB
             try
             {
                 BsonDocument mongoSnapshot = snapshot.ToMongoSnapshot(_serializer);
-                var query = Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.Id, mongoSnapshot[MongoShapshotFields.Id]);
-                var update = Builders<BsonDocument>.Update.Set(MongoShapshotFields.Payload, mongoSnapshot[MongoShapshotFields.Payload]);
+                var query = Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.Id, mongoSnapshot[MongoSnapshotFields.Id]);
+                var update = Builders<BsonDocument>.Update.Set(MongoSnapshotFields.Payload, mongoSnapshot[MongoSnapshotFields.Payload]);
 
                 // Doing an upsert instead of an insert allows us to overwrite an existing snapshot and not get stuck with a
                 // stream that needs to be snapshotted because the insert fails and the SnapshotRevision isn't being updated.
@@ -574,7 +599,7 @@ namespace NEventStore.Persistence.MongoDB
             TryMongo(() =>
             {
                 PersistedStreamHeads.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId));
-                PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.FullQualifiedBucketId, bucketId));
+                PersistedSnapshots.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedBucketId, bucketId));
                 PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId));
             });
         }
@@ -599,9 +624,9 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 PersistedSnapshots.DeleteMany(
-                    Builders<BsonDocument>.Filter.Eq(MongoShapshotFields.Id, new BsonDocument{
-                        {MongoShapshotFields.BucketId, bucketId},
-                        {MongoShapshotFields.StreamId, streamId}
+                    Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.Id, new BsonDocument{
+                        {MongoSnapshotFields.BucketId, bucketId},
+                        {MongoSnapshotFields.StreamId, streamId}
                     })
                 );
 
@@ -615,8 +640,10 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <inheritdoc/>
         public bool IsDisposed { get; private set; }
 
+        /// <inheritdoc/>
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing || IsDisposed)
@@ -657,6 +684,9 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <summary>
+        /// Executes the callback within a try/catch block to handle exceptions.
+        /// </summary>
         protected virtual T TryMongo<T>(Func<T> callback)
         {
             T results = default;
@@ -666,6 +696,12 @@ namespace NEventStore.Persistence.MongoDB
             return results;
         }
 
+        /// <summary>
+        /// Executes the callback within a try/catch block to handle exceptions.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="StorageUnavailableException"></exception>
+        /// <exception cref="StorageException"></exception>
         protected virtual void TryMongo(Action callback)
         {
             if (IsDisposed)
@@ -715,6 +751,9 @@ namespace NEventStore.Persistence.MongoDB
             return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
         }
 
+        /// <summary>
+        /// Empties the recycle bin.
+        /// </summary>
         public void EmptyRecycleBin()
         {
             var lastCheckpointNumber = GetLastCommittedCheckPointNumber();
@@ -727,6 +766,9 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        /// <summary>
+        /// Gets the commits that have been marked as deleted.
+        /// </summary>
         public IEnumerable<ICommit> GetDeletedCommits()
         {
             return TryMongo(() => PersistedCommits
@@ -759,3 +801,6 @@ namespace NEventStore.Persistence.MongoDB
         }
     }
 }
+
+#pragma warning restore CA2254 // Template should be a static expression
+#pragma warning restore IDE0079 // Remove unnecessary suppression

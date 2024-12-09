@@ -23,13 +23,13 @@ namespace NEventStore.Persistence.MongoDB
         /// </para>
         /// <para>If you specify a MongoClient instance, the ConfigureClientSettingsAction will not be used.</para>
         /// </summary>
-        public IMongoClient MongoClient { get; set; }
+        public IMongoClient? MongoClient { get; set; }
 
         /// <summary>
         /// A delegate to configure the <see cref="MongoClientSettings"/> used to connect to the Mongo server.
         /// A new MongoClient instance will be created for each MongoPersistenceEngine instance.
         /// </summary>
-        public Action<MongoClientSettings> ConfigureClientSettingsAction { get; set; }
+        public Action<MongoClientSettings>? ConfigureClientSettingsAction { get; set; }
 
         /// <summary>
         /// Get the  <see href="http://docs.mongodb.org/manual/core/write-concern/#write-concern">WriteConcern</see> for the commit insert operation.
@@ -79,18 +79,17 @@ namespace NEventStore.Persistence.MongoDB
             };
         }
 
-        private static readonly object _connectToDatabaseLock = new object();
+        private static readonly object _connectToDatabaseLock = new();
 
         /// <summary>
-        /// Connects to NEvenstore Mongo database
+        /// Connects to NEventStore Mongo database
         /// </summary>
         /// <param name="connectionString">Connection string</param>
-        /// <returns>nevenstore mongodatabase store</returns>
         public virtual IMongoDatabase ConnectToDatabase(string connectionString)
         {
             var builder = new MongoUrlBuilder(connectionString);
             // if there's a MongoClient instance, use it
-            IMongoClient client = MongoClient;
+            IMongoClient? client = MongoClient;
             if (client == null)
             {
                 var cacheKey = new MongoClientCache.MongoClientCacheKey(
@@ -149,7 +148,7 @@ namespace NEventStore.Persistence.MongoDB
         /// This is the instance of the Id Generator I want to use to
         /// generate checkpoint.
         /// </summary>
-        public ICheckpointGenerator CheckpointGenerator { get; set; }
+        public ICheckpointGenerator? CheckpointGenerator { get; set; }
 
         /// <summary>
         /// The strategy to use when a concurrency exception is detected.
@@ -169,7 +168,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <remarks>
         /// If you disable Stream Heads, you are not able to ask
         /// for stream that need to be snapshotted. Basically you should set
-        /// this to true if you not use NEventstore snapshot functionalities.
+        /// this to true if you not use NEventStore snapshot functionalities.
         /// </remarks>
         public Boolean DisableSnapshotSupport { get; set; }
 
@@ -190,12 +189,12 @@ namespace NEventStore.Persistence.MongoDB
         /// allow for a correct caching of the generated <see cref="IMongoClient"/> instance.
         /// </param>
         /// <param name="mongoClient">
-        /// The <see cref="IMongoClient"/> to use to connect to MongoDB database. 
+        /// The <see cref="IMongoClient"/> to use to connect to MongoDB database.
         /// If specified <paramref name="configureClientSettingsAction"/> will be ignored.
         /// </param>
         public MongoPersistenceOptions(
-            Action<MongoClientSettings> configureClientSettingsAction = null,
-            IMongoClient mongoClient = null
+            Action<MongoClientSettings>? configureClientSettingsAction = null,
+            IMongoClient? mongoClient = null
             )
         {
             ConfigureClientSettingsAction = configureClientSettingsAction;
