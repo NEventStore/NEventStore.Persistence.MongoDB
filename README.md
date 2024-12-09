@@ -85,8 +85,16 @@ you can do this either by:
   });
   ```
 
+To serialize GUIDs in Lists or Dictionary of objects, you should also remember to properly set the Guid representation for the object serializer, with something like:
+```csharp
+BsonSerializer.RegisterSerializer(new ObjectSerializer(
+  BsonSerializer.LookupDiscriminatorConvention(typeof(object)), GuidRepresentation.CSharpLegacy, ObjectSerializer.AllAllowedTypes));
 
-Reference: [GUIDs](https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/serialization/guid-serialization/)
+```
+
+Reference: 
+- [GUIDs](https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/serialization/guid-serialization/)
+- [Guid Representation in Dictionary](https://jira.mongodb.org/browse/CSHARP-4987?jql=text%20~%20%22GuidRepresentation%20dictionary%22)
 
 
 ## Configure / Customize Commit Serialization

@@ -2,10 +2,7 @@
 using MongoDB.Driver;
 using NEventStore.Persistence.AcceptanceTests;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NEventStore.Persistence.AcceptanceTests.BDD;
 using FluentAssertions;
 using MongoDB.Bson.Serialization.Conventions;
@@ -13,7 +10,6 @@ using MongoDB.Bson.Serialization.Conventions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-using NUnit.Framework;
 #endif
 #if XUNIT
     using Xunit;
@@ -23,7 +19,7 @@ using NUnit.Framework;
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 {
 #if MSTEST
-        [TestClass]
+    [TestClass]
 #endif
     public class Issue_55_CamelCase_Convention_Should_Not_Be_Applied_To_MongoCommit : PersistenceEngineConcern
     {
@@ -63,7 +59,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         public void Persisted_MongoCommit_Should_Be_TileCase()
         {
             // read the commit As BSonDocument and check the serialization
-            var commit = _commits.AsQueryable().Single();
+            // look for the commit with StreamId 
+            var commit = _commits.Find(new BsonDocument(MongoCommitFields.StreamId, expectedAttempt!.StreamId)).FirstOrDefault();
+
             // read all the time case properties and expect them to be there
             commit.Contains(MongoCommitFields.BucketId).Should().BeTrue();
             commit.Contains(MongoCommitFields.CheckpointNumber).Should().BeTrue();

@@ -1,9 +1,10 @@
 # NEventStore.Persistence.MongoDB
 
-## vNext
+## 11.0.0
 
 - Support: net6.0, netstandard2.1, net472
 - Updated MongoDb driver to 3.0.0
+- Updated nuget package icon.
 
 ### Breaking Changes
 
@@ -19,8 +20,22 @@
       ```csharp
       BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
       ```
+      or:
+      ```csharp
+      BsonClassMap.RegisterClassMap<MongoCommit>(cm =>
+      {
+        cm.AutoMap();
+        cm.GetMemberMap(c => c.CommitId).SetSerializer(new GuidSerializer(GuidRepresentation.CSharpLegacy));
+      });
+      ```
+    - To serialize GUIDs in Lists or Dictionary of objects, you should also remember to properly set the Guid representation for the object serializer, with something like:
+      ```csharp
+      BsonSerializer.RegisterSerializer(new ObjectSerializer(
+        BsonSerializer.LookupDiscriminatorConvention(typeof(object)), GuidRepresentation.CSharpLegacy, ObjectSerializer.AllAllowedTypes));
+      
+      ```
       see README.md for more information.
-- `MongoShapshotFields` renamed to: `MongoSnapshotFields`
+- class `MongoShapshotFields` renamed to: `MongoSnapshotFields`
 
 ## 10.0.1
 
