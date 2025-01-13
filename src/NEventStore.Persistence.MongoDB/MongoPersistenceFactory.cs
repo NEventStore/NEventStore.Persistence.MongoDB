@@ -1,8 +1,7 @@
-﻿namespace NEventStore.Persistence.MongoDB
-{
-    using System;
-    using NEventStore.Serialization;
+﻿using NEventStore.Serialization;
 
+namespace NEventStore.Persistence.MongoDB
+{
     /// <summary>
     /// Represents a factory for creating MongoDB persistence engines.
     /// </summary>

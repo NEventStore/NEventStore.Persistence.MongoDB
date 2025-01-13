@@ -2,11 +2,11 @@
 using NEventStore.Persistence.MongoDB.Tests;
 
 // ReSharper disable once CheckNamespace
-namespace NEventStore.Persistence.AcceptanceTests
+namespace NEventStore.Persistence.AcceptanceTests.Async
 {
-    public partial class PersistenceEngineFixture
+    public partial class PersistenceEngineFixtureAsync
     {
-        public PersistenceEngineFixture()
+        public PersistenceEngineFixtureAsync()
         {
             _createPersistence = _ => new AcceptanceTestMongoPersistenceFactory(Options).Build();
         }

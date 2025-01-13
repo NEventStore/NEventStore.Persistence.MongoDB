@@ -1,5 +1,13 @@
 # NEventStore.Persistence.MongoDB
 
+## vNext
+
+- Async methods added to IPersistStreams interfaces [#71](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/71)
+
+### Breaking Changes
+
+- `EmptyRecycleBin()` is not called anymore during engine `MongoPersistenceEngine.Initialize()`.
+
 ## 11.0.0
 
 - Support: net6.0, netstandard2.1, net472

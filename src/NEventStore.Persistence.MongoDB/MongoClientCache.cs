@@ -1,7 +1,5 @@
 ﻿using MongoDB.Driver;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -48,7 +46,7 @@ namespace NEventStore.Persistence.MongoDB
 
             public override readonly int GetHashCode()
             {
-#if NET471_OR_GREATER
+#if NET472_OR_GREATER
                 int hashCode = -1168874633;
                 hashCode = (hashCode * -1521134295) + EqualityComparer<string>.Default.GetHashCode(ConnectionString);
                 hashCode = (hashCode * -1521134295) + EqualityComparer<Action<MongoClientSettings>?>.Default.GetHashCode(ConfigureClientSettingsAction);
