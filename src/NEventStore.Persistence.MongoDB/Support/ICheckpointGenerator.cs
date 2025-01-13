@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Threading;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace NEventStore.Persistence.MongoDB.Support
@@ -17,14 +14,29 @@ namespace NEventStore.Persistence.MongoDB.Support
         Int64 Next();
 
         /// <summary>
-        /// The id generated is not valid, is duplicated. It is necessary
-        /// when there are multiple processes that generates id in autonomous way
+        /// Generates a new checkpoint id
+        /// </summary>
+        Task<Int64> NextAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The id generated is not valid, it is duplicated.
+        /// We might need to reinitialize the checkpoint generator; iIt is necessary
+        /// when there are multiple processes that generates id in autonomous way.
         /// </summary>
         void SignalDuplicateId(Int64 id);
+
+        /// <summary>
+        /// The id generated is not valid, it is duplicated.
+        /// We might need to reinitialize the checkpoint generator; iIt is necessary
+        /// when there are multiple processes that generates id in autonomous way.
+        /// </summary>
+        Task SignalDuplicateIdAsync(Int64 id, CancellationToken cancellationToken = default);
     }
 
     /// <summary>
-    /// In-memory Checkpoint Generator
+    /// In-memory Checkpoint Generator:
+    /// - Reads the last checkpoint id from the database
+    /// - Generates the next checkpoint id in memory
     /// </summary>
     public class InMemoryCheckpointGenerator : ICheckpointGenerator
     {
@@ -73,6 +85,19 @@ namespace NEventStore.Persistence.MongoDB.Support
             return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
         }
 
+        /// <summary>
+        /// Get the last value from the database
+        /// </summary>
+        protected async Task<Int64> GetLastValueAsync(CancellationToken cancellationToken = default)
+        {
+            var max = await _collection
+               .FindSync(Filter, FindOptions, cancellationToken)
+               .FirstOrDefaultAsync(cancellationToken)
+               .ConfigureAwait(false);
+
+            return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
+        }
+
         /// <inheritdoc />
         public virtual long Next()
         {
@@ -84,6 +109,18 @@ namespace NEventStore.Persistence.MongoDB.Support
         {
             _last = GetLastValue();
         }
+
+        /// <inheritdoc />
+        public virtual Task<long> NextAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Next());
+        }
+
+        /// <inheritdoc />
+        public virtual async Task SignalDuplicateIdAsync(long id, CancellationToken cancellationToken = default)
+        {
+            _last = await GetLastValueAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -94,7 +131,6 @@ namespace NEventStore.Persistence.MongoDB.Support
         /// <summary>
         /// Initializes a new instance of the AlwaysQueryDbForNextValueCheckpointGenerator class.
         /// </summary>
-        /// <param name="collection"></param>
         public AlwaysQueryDbForNextValueCheckpointGenerator(IMongoCollection<BsonDocument> collection)
             : base(collection)
         {
@@ -103,13 +139,13 @@ namespace NEventStore.Persistence.MongoDB.Support
         /// <inheritdoc />
         public override long Next()
         {
-            return _last = base.GetLastValue() + 1;
+            return _last = GetLastValue() + 1;
         }
 
         /// <inheritdoc />
-        public override void SignalDuplicateId(long id)
+        public override async Task<long> NextAsync(CancellationToken cancellationToken = default)
         {
-            _last = base.GetLastValue();
+            return _last = await GetLastValueAsync(cancellationToken).ConfigureAwait(false) + 1;
         }
     }
 }

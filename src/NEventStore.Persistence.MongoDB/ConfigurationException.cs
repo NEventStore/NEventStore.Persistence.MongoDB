@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace NEventStore.Persistence.MongoDB
+﻿namespace NEventStore.Persistence.MongoDB
 {
     /// <summary>
     /// Represents errors that occur during configuration.
