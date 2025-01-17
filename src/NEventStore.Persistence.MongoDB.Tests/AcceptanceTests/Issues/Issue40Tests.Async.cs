@@ -13,7 +13,7 @@ using Xunit;
 using Xunit.Should;
 #endif
 
-namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
+namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
 {
 #if MSTEST
     [TestClass]
@@ -47,11 +47,11 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         {
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
             var streamId = Guid.NewGuid().ToString();
             CommitAttempt attempt = streamId.BuildAttempt();
-            Persistence.Commit(attempt);
+            return Persistence.CommitAsync(attempt);
         }
 
         [Fact]
@@ -91,13 +91,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
         private Exception? _ex;
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             var streamId = Guid.NewGuid().ToString();
             CommitAttempt attempt = streamId.BuildAttempt();
-            Persistence.Commit(streamId.BuildAttempt());
+            await Persistence.CommitAsync(streamId.BuildAttempt()).ConfigureAwait(false);
 
-            _ex = Catch.Exception(() => Persistence.AddSnapshot(new Snapshot(streamId, 1, new object())));
+            _ex = await Catch.ExceptionAsync(() => Persistence.AddSnapshotAsync(new Snapshot(streamId, 1, new object()))).ConfigureAwait(false);
         }
 
         [Fact]
@@ -136,13 +136,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
         private Exception? _ex;
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             var streamId = Guid.NewGuid().ToString();
             CommitAttempt attempt = streamId.BuildAttempt();
-            Persistence.Commit(streamId.BuildAttempt());
+            await Persistence.CommitAsync(streamId.BuildAttempt()).ConfigureAwait(false);
 
-            _ex = Catch.Exception(() => Persistence.GetSnapshot(streamId, 1));
+            _ex = await Catch.ExceptionAsync(() => Persistence.GetSnapshotAsync(streamId, 1)).ConfigureAwait(false);
         }
 
         [Fact]
@@ -181,13 +181,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
         private Exception? _ex;
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             var streamId = Guid.NewGuid().ToString();
             CommitAttempt attempt = streamId.BuildAttempt();
-            Persistence.Commit(streamId.BuildAttempt());
+            await Persistence.CommitAsync(streamId.BuildAttempt()).ConfigureAwait(false);
 
-            _ex = Catch.Exception(() => Persistence.GetStreamsToSnapshot("testBucket", 1));
+            _ex = await Catch.ExceptionAsync(() => Persistence.GetStreamsToSnapshotAsync("testBucket", 1, new StreamHeadObserver())).ConfigureAwait(false);
         }
 
         [Fact]

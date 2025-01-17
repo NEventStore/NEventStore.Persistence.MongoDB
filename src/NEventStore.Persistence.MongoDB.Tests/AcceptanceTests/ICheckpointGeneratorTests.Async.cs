@@ -13,7 +13,7 @@ using Xunit;
 using Xunit.Should;
 #endif
 
-namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
+namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Async
 {
 #if MSTEST
     [TestClass]
@@ -45,32 +45,34 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             PersistenceEngineFixture.Options = null;
         }
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             _attempt = _streamId.BuildAttempt();
-            var commit = Persistence.Commit(_attempt);
+            var commit = await Persistence.CommitAsync(_attempt).ConfigureAwait(false);
             _bucketId = commit!.BucketId;
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             try
             {
-                Persistence.Commit(_streamId!.BuildAttempt());
+                await Persistence.CommitAsync(_streamId!.BuildAttempt()).ConfigureAwait(false);
                 throw new Exception("Previous message should throw concurrency exception");
             }
             catch (ConcurrencyException)
             {
                 //do nothing.
             }
-            Persistence.Commit(_attempt!.BuildNextAttempt());
+            await Persistence.CommitAsync(_attempt!.BuildNextAttempt()).ConfigureAwait(false);
         }
 
         [Fact]
-        public void Holes_are_presents()
+        public async Task Holes_are_presents()
         {
-            var commits = Persistence.GetFrom(_bucketId!, _streamId!, int.MinValue, int.MaxValue).ToArray();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_bucketId!, _streamId!, int.MinValue, int.MaxValue, observer).ConfigureAwait(false);
+            var commits = observer.Commits.ToArray();
             commits.Length.Should().Be(2);
             commits[0].CheckpointToken.Should().Be(1);
             commits[1].CheckpointToken.Should().Be(2);
@@ -102,36 +104,40 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             PersistenceEngineFixture.Options = null;
         }
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            var commit = Persistence.Commit(_attempt = _streamId.BuildAttempt());
+            var commit = await Persistence.CommitAsync(_attempt = _streamId.BuildAttempt()).ConfigureAwait(false);
             _bucketId = commit!.BucketId;
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             try
             {
-                Persistence.Commit(_streamId!.BuildAttempt());
+                await Persistence.CommitAsync(_streamId!.BuildAttempt()).ConfigureAwait(false);
                 throw new Exception("Previous message should throw concurrency exception");
             }
             catch (ConcurrencyException)
             {
                 //do nothing.
             }
-            Persistence.Commit(_attempt!.BuildNextAttempt());
+            await Persistence.CommitAsync(_attempt!.BuildNextAttempt()).ConfigureAwait(false);
         }
 
         [Fact]
-        public void Holes_are_not_presents()
+        public async Task Holes_are_not_presents()
         {
-            var commits = Persistence.GetFrom(_bucketId!, _streamId!, int.MinValue, int.MaxValue).ToArray();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_bucketId!, _streamId!, int.MinValue, int.MaxValue, observer).ConfigureAwait(false);
+            var commits = observer.Commits.ToArray();
             commits.Length.Should().Be(2);
             commits[0].CheckpointToken.Should().Be(1);
             commits[1].CheckpointToken.Should().Be(3);
 
-            commits = Persistence.GetFrom("system", "system.empty.2", int.MinValue, int.MaxValue).ToArray();
+            observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync("system", "system.empty.2", int.MinValue, int.MaxValue, observer).ConfigureAwait(false);
+            commits = observer.Commits.ToArray();
             commits.Length.Should().Be(1);
             commits[0].CheckpointToken.Should().Be(2);
         }
@@ -167,36 +173,40 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             PersistenceEngineFixture.Options = null;
         }
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            var commit = Persistence.Commit(_attempt = _streamId.BuildAttempt());
+            var commit = await Persistence.CommitAsync(_attempt = _streamId.BuildAttempt()).ConfigureAwait(false);
             _bucketId = commit!.BucketId;
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             try
             {
-                Persistence.Commit(_streamId!.BuildAttempt());
+                await Persistence.CommitAsync(_streamId!.BuildAttempt()).ConfigureAwait(false);
                 throw new Exception("Previous message should throw concurrency exception");
             }
             catch (ConcurrencyException)
             {
                 //do nothing.
             }
-            Persistence.Commit(_attempt!.BuildNextAttempt());
+            await Persistence.CommitAsync(_attempt!.BuildNextAttempt()).ConfigureAwait(false);
         }
 
         [Fact]
-        public void Holes_are_presents()
+        public async Task Holes_are_presents()
         {
-            var commits = Persistence.GetFrom(_bucketId!, _streamId!, int.MinValue, int.MaxValue).ToArray();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_bucketId!, _streamId!, int.MinValue, int.MaxValue, observer).ConfigureAwait(false);
+            var commits = observer.Commits.ToArray();
             commits.Length.Should().Be(2);
             commits[0].CheckpointToken.Should().Be(1);
             commits[1].CheckpointToken.Should().Be(3);
 
-            commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
+            observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync("system", "system.2", int.MinValue, int.MaxValue, observer).ConfigureAwait(false);
+            commits = observer.Commits.ToArray();
             commits.Length.Should().Be(0);
         }
     }
@@ -210,36 +220,40 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         private string? _bucketId;
         private CommitAttempt? _attempt;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            var commit = Persistence.Commit(_attempt = _streamId.BuildAttempt());
+            var commit = await Persistence.CommitAsync(_attempt = _streamId.BuildAttempt()).ConfigureAwait(false);
             _bucketId = commit!.BucketId;
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             try
             {
-                Persistence.Commit(_streamId!.BuildAttempt());
+                await Persistence.CommitAsync(_streamId!.BuildAttempt()).ConfigureAwait(false);
                 throw new Exception("Previous message should throw concurrency exception");
             }
             catch (ConcurrencyException)
             {
                 //do nothing.
             }
-            Persistence.Commit(_attempt!.BuildNextAttempt());
+            await Persistence.CommitAsync(_attempt!.BuildNextAttempt()).ConfigureAwait(false);
         }
 
         [Fact]
-        public void Holes_are_not_presents()
+        public async Task Holes_are_not_presents()
         {
-            var commits = Persistence.GetFrom(_bucketId!, _streamId!, int.MinValue, int.MaxValue).ToArray();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_bucketId!, _streamId!, int.MinValue, int.MaxValue, observer).ConfigureAwait(false);
+            var commits = observer.Commits.ToArray();
             commits.Length.Should().Be(2);
             commits[0].CheckpointToken.Should().Be(1);
             commits[1].CheckpointToken.Should().Be(2);
 
-            commits = Persistence.GetFrom("system", "system.2", int.MinValue, int.MaxValue).ToArray();
+            observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync("system", "system.2", int.MinValue, int.MaxValue, observer).ConfigureAwait(false);
+            commits = observer.Commits.ToArray();
             commits.Length.Should().Be(0);
         }
     }
