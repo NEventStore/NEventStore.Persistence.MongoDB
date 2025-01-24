@@ -1,14 +1,13 @@
+#if NET472_OR_GREATER
+using System.Configuration;
+#endif
+using NEventStore.Persistence.MongoDB;
+using NEventStore.Serialization;
+
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace NEventStore
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 {
-    using System;
-#if NET472_OR_GREATER
-    using System.Configuration;
-#endif
-    using NEventStore.Persistence.MongoDB;
-    using NEventStore.Serialization;
-
     /// <summary>
     /// Provides a set of extension methods to configure the MongoDB persistence engine.
     /// </summary>

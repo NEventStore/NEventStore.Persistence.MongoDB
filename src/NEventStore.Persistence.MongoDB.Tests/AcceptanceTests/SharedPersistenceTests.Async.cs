@@ -12,7 +12,7 @@ using Xunit;
 using Xunit.Should;
 #endif
 
-namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
+namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Async
 {
 #if MSTEST
     [TestClass]
@@ -24,19 +24,19 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         private IPersistStreams? _process1;
         private IPersistStreams? _process2;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _process1 = new AcceptanceTestMongoPersistenceFactory().Build();
             _process1.Initialize();
-            _commit1 = _process1.Commit(Guid.NewGuid().ToString().BuildAttempt());
+            _commit1 = await _process1.CommitAsync(Guid.NewGuid().ToString().BuildAttempt()).ConfigureAwait(false);
 
             _process2 = new AcceptanceTestMongoPersistenceFactory().Build();
             _process2.Initialize();
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _commit2 = _process2!.Commit(Guid.NewGuid().ToString().BuildAttempt());
+            _commit2 = await _process2!.CommitAsync(Guid.NewGuid().ToString().BuildAttempt()).ConfigureAwait(false);
         }
 
         [Fact]

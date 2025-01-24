@@ -14,7 +14,7 @@ using Xunit;
 using Xunit.Should;
 #endif
 
-namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
+namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Async
 {
     /// <summary>
     /// the problem here is that this is 'static', no way to change it once it defined, so the tests need to be run
@@ -69,9 +69,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         protected override void Context()
         { }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() =>
+            _thrown = await Catch.ExceptionAsync(() =>
             {
                 _streamId = Guid.NewGuid().ToString();
                 var attempt = new CommitAttempt(_streamId,
@@ -81,10 +81,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                     DateTime.Now,
                     new Dictionary<string, object> { { "key.1", "value" } },
                     [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
-                Persistence.Commit(attempt);
-            });
+                return Persistence.CommitAsync(attempt);
+            }).ConfigureAwait(false);
 
-            _persisted = Persistence.GetFrom(_streamId!, 0, int.MaxValue).First();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_streamId!, 0, int.MaxValue, observer).ConfigureAwait(false);
+            _persisted = observer.Commits[0];
         }
 
         [Fact]
@@ -112,7 +114,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             MapMongoCommit.MapMongoCommit_Header_as_Document();
         }
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             var attempt = new CommitAttempt(_streamId,
@@ -122,12 +124,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 DateTime.Now,
                 new Dictionary<string, object> { { "key", "value" } },
                 [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
-            Persistence.Commit(attempt);
+            return Persistence.CommitAsync(attempt);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _persisted = Persistence.GetFrom(_streamId!, 0, int.MaxValue).First();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_streamId!, 0, int.MaxValue, observer).ConfigureAwait(false);
+            _persisted = observer.Commits[0];
         }
 
         [Fact]
@@ -152,7 +156,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             MapMongoCommit.MapMongoCommit_Header_as_ArrayOfArray();
         }
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             var attempt = new CommitAttempt(_streamId,
@@ -162,12 +166,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 DateTime.Now,
                 new Dictionary<string, object> { { "key.1", "value" } },
                 [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
-            Persistence.Commit(attempt);
+            return Persistence.CommitAsync(attempt);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _persisted = Persistence.GetFrom(_streamId!, 0, int.MaxValue).First();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_streamId!, 0, int.MaxValue, observer).ConfigureAwait(false);
+            _persisted = observer.Commits[0];
         }
 
         [Fact]
@@ -199,9 +205,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         protected override void Context()
         { }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() =>
+            _thrown = await Catch.ExceptionAsync(() =>
             {
                 _streamId = Guid.NewGuid().ToString();
                 var attempt = new CommitAttempt(_streamId,
@@ -211,12 +217,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                     DateTime.Now,
                     new Dictionary<string, object> { { "guid", _guid } },
                     [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
-                Persistence.Commit(attempt);
-            });
+                return Persistence.CommitAsync(attempt);
+            }).ConfigureAwait(false);
 
             Assert.That(_thrown, Is.Null);
 
-            _persisted = Persistence.GetFrom(_streamId!, 0, int.MaxValue).First();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_streamId!, 0, int.MaxValue, observer).ConfigureAwait(false);
+            _persisted = observer.Commits[0];
         }
 
         [Fact]
@@ -243,7 +251,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             MapMongoCommit.MapMongoCommit_Header_as_ArrayOfArray();
         }
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             var attempt = new CommitAttempt(_streamId,
@@ -253,12 +261,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 DateTime.Now,
                 new Dictionary<string, object> { { "guid", _guid } },
                 [new() { Body = new NEventStore.Persistence.AcceptanceTests.ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } }]);
-            Persistence.Commit(attempt);
+            return Persistence.CommitAsync(attempt);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _persisted = Persistence.GetFrom(_streamId!, 0, int.MaxValue).First();
+            var observer = new CommitStreamObserver();
+            await Persistence.GetFromAsync(_streamId!, 0, int.MaxValue, observer).ConfigureAwait(false);
+            _persisted = observer.Commits[0];
         }
 
         [Fact]

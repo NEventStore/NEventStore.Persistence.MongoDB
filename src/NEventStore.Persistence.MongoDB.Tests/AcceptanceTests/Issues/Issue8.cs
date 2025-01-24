@@ -1,5 +1,4 @@
-﻿using System;
-using NEventStore.Persistence.AcceptanceTests.BDD;
+﻿using NEventStore.Persistence.AcceptanceTests.BDD;
 using NEventStore.Serialization;
 using NEventStore.Persistence.AcceptanceTests;
 using FluentAssertions;
@@ -8,11 +7,10 @@ using MongoDB.Driver;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endif
 #if NUNIT
-	using NUnit.Framework;
 #endif
 #if XUNIT
-	using Xunit;
-	using Xunit.Should;
+using Xunit;
+using Xunit.Should;
 #endif
 
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues

@@ -1,7 +1,5 @@
 ﻿using NEventStore.Persistence.MongoDB.Support;
-using System;
 using global::MongoDB.Driver;
-using System.Linq;
 
 namespace NEventStore.Persistence.MongoDB
 {

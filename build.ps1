@@ -25,7 +25,7 @@ dotnet tool run dotnet-gitversion ".\dependencies\NEventStore" /updateAssemblyIn
 
 # Build
 Write-Host "Building: "$nugetversion" "$configuration
-dotnet build ./src/NEventStore.Persistence.MongoDB.Core.sln -c $configuration --no-restore
+dotnet build ./src/NEventStore.Persistence.MongoDB.Core.sln -c $configuration --no-restore /p:ContinuousIntegrationBuild=True
 
 # Testing
 if ($runtests -eq "y") {

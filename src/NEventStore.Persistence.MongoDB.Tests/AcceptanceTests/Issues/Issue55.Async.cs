@@ -14,7 +14,7 @@ using Xunit;
 using Xunit.Should;
 #endif
 
-namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
+namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
 {
 #if MSTEST
     [TestClass]
@@ -46,11 +46,11 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         /// <summary>
         /// When persisting a commit (The Database should not exists or be empty)
         /// </summary>
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
             var streamId = Guid.NewGuid().ToString();
             expectedAttempt = streamId.BuildAttempt();
-            Persistence.Commit(expectedAttempt);
+            return Persistence.CommitAsync(expectedAttempt);
         }
 
         [Fact]
