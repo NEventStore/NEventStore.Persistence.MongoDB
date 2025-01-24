@@ -3,6 +3,7 @@
 ## vNext
 
 - Async methods added to IPersistStreams interfaces [#71](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/71)
+- Updated NEventStore to 10.0.0
 
 ### Breaking Changes
 
