@@ -14,8 +14,8 @@ Build Status
 
 Branches:
 
-- master [![Build status](https://ci.appveyor.com/api/projects/status/8euhhjl05lhng8ka/branch/master?svg=true)](https://ci.appveyor.com/project/AGiorgetti/neventstore-persistence-mongodb/branch/master)
-- develop [![Build status](https://ci.appveyor.com/api/projects/status/8euhhjl05lhng8ka/branch/develop?svg=true)](https://ci.appveyor.com/project/AGiorgetti/neventstore-persistence-mongodb/branch/develop)
+- master [![CI](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/actions/workflows/ci.yml)
+- develop [![CI](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/actions/workflows/ci.yml)
 
 
 Information
