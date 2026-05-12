@@ -18,15 +18,20 @@ concurrency:
 jobs:
   # Keep the Windows build separate so we still validate the .NET Framework target
   # and the packaging prerequisites that only exist on Windows runners.
-  build-windows:
-    name: Build (Windows)
-    runs-on: windows-latest
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          fetch-tags: true
           submodules: recursive
 
       - name: Setup .NET SDKs
@@ -55,9 +60,10 @@ jobs:
       - name: Run GitVersion and patch assembly info
         id: gitversion
         shell: pwsh
+        working-directory: ${{ github.workspace }}
         run: |
-          $gitVersion = dotnet tool run dotnet-gitversion /output json /updateAssemblyInfo | ConvertFrom-Json
-          dotnet tool run dotnet-gitversion ".\dependencies\NEventStore" /updateAssemblyInfo | Out-Null
+          $gitVersion = dotnet tool run dotnet-gitversion /targetpath "${{ github.workspace }}" /output json /updateAssemblyInfo | ConvertFrom-Json
+          dotnet tool run dotnet-gitversion /targetpath "${{ github.workspace }}/dependencies/NEventStore" /updateAssemblyInfo | Out-Null
           "semver=$($gitVersion.SemVer)" >> $env:GITHUB_OUTPUT
 
       - name: Build solution
@@ -68,7 +74,7 @@ jobs:
   # The matrix is therefore per target framework instead of per OS.
   test-modern-tfm-linux:
     name: Test (Linux, ${{ matrix.tfm }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -99,6 +105,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
+          fetch-depth: 0
+          fetch-tags: true
           submodules: recursive
 
       - name: Setup .NET SDKs

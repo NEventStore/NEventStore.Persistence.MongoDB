@@ -57,8 +57,8 @@ jobs:
         id: gitversion
         shell: pwsh
         run: |
-          $gitVersion = dotnet tool run dotnet-gitversion /output json /updateAssemblyInfo | ConvertFrom-Json
-          dotnet tool run dotnet-gitversion ".\dependencies\NEventStore" /updateAssemblyInfo | Out-Null
+          $gitVersion = dotnet tool run dotnet-gitversion /targetpath "${{ github.workspace }}" /output json /updateAssemblyInfo | ConvertFrom-Json
+          dotnet tool run dotnet-gitversion /targetpath "${{ github.workspace }}/dependencies/NEventStore" /updateAssemblyInfo | Out-Null
           "semver=$($gitVersion.SemVer)" >> $env:GITHUB_OUTPUT
 
       - name: Build
