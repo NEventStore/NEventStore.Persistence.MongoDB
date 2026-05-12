@@ -6,6 +6,7 @@
     <OutputTypeEx>exe</OutputTypeEx>
     <RootNamespace>NEventStore.Persistence.MongoDB.Tests</RootNamespace>
     <TestTfmsInParallel>false</TestTfmsInParallel>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -13,12 +14,12 @@
     <DefineConstants Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">NUNIT</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.Transactions" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="7.0.0" />
+    <PackageReference Include="FluentAssertions" Version="8.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="4.2.2" />
@@ -41,10 +42,6 @@
   <ItemGroup>
     <Compile Include="..\..\dependencies\NEventStore\src\NEventStore.Persistence.AcceptanceTests\PersistenceTests.cs" Link="AcceptanceTests\PersistenceTests.cs" />
     <Compile Include="..\..\dependencies\NEventStore\src\NEventStore.Persistence.AcceptanceTests\PersistenceTests.Async.cs" Link="AcceptanceTests\PersistenceTests.Async.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
 
   <ItemGroup>

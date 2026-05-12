@@ -3,6 +3,11 @@
 ## vNext
 
 - Added explicit support for net8.0, net9.0, net10.0.
+- Updated NEventStore to 10.2.0
+
+### Breaking Changes
+
+- Requires updating NEventStore to 10.2.0 or higher
 
 ## 12.0.0
 
