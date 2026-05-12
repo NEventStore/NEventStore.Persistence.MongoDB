@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using MongoDB.Driver;
 using NEventStore.Persistence.AcceptanceTests.BDD;
 using Microsoft.ApplicationInsights.Extensibility.Implementation.Tracing;
+using FluentAssertions;
+
 
 #if MSTEST
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -48,8 +50,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         public void Settings_are_correctly_applied()
         {
             var settings = _db!.Client.Settings;
-            Assert.That(TestApplicationName, Is.EqualTo(settings.ApplicationName));
-            Assert.That(TestReplicaSetName, Is.EqualTo(settings.ReplicaSetName));
+            TestApplicationName.Should().Be(settings.ApplicationName);
+            TestReplicaSetName.Should().Be(settings.ReplicaSetName);
         }
     }
 
@@ -80,14 +82,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void No_exception_is_thrown()
         {
-            Assert.That(_ex, Is.Null);
+            _ex.Should().BeNull();
         }
 
         [Fact]
         public void Database_was_correctly_created()
         {
-            Assert.That(_db, Is.Not.Null);
-            Assert.That(_mongoClient, Is.EqualTo(_db!.Client));
+            _db.Should().NotBeNull();
+            _mongoClient.Should().BeSameAs(_db!.Client);
         }
     }
 
@@ -119,14 +121,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void No_exception_is_thrown()
         {
-            Assert.That(_ex, Is.Null);
+            _ex.Should().BeNull();
         }
 
         [Fact]
         public void Database_was_correctly_created()
         {
-            Assert.That(_db, Is.Not.Null);
-            Assert.That(_mongoClient, Is.EqualTo(_db!.Client));
+            _db.Should().NotBeNull();
+            _mongoClient.Should().BeSameAs(_db!.Client);
         }
     }
 
@@ -157,14 +159,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Exception_is_thrown()
         {
-            Assert.That(_ex, Is.Not.Null);
-            Assert.That(_ex!.Message, Is.EqualTo("MongoClient instance was created with a different connection string: host and port should match."));
+            _ex.Should().NotBeNull();
+            _ex!.Message.Should().Be("MongoClient instance was created with a different connection string: host and port should match.");
         }
 
         [Fact]
         public void Database_was_not_created()
         {
-            Assert.That(_db, Is.Null);
+            _db.Should().BeNull();
         }
     }
 
@@ -197,14 +199,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Exception_is_thrown()
         {
-            Assert.That(_ex, Is.Not.Null);
-            Assert.That(_ex!.Message, Is.EqualTo("MongoClient instance was created with a different connection string: hosts and ports should match."));
+            _ex.Should().NotBeNull();
+            _ex!.Message.Should().Be("MongoClient instance was created with a different connection string: hosts and ports should match.");
         }
 
         [Fact]
         public void Database_was_not_created()
         {
-            Assert.That(_db, Is.Null);
+            _db.Should().BeNull();
         }
     }
 }

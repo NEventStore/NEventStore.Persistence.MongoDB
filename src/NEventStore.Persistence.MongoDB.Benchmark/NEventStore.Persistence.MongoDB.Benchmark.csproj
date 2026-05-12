@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net472</TargetFrameworks>
+        <TargetFrameworks>net472;$(ModernTargetFrameworks)</TargetFrameworks>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <ApplicationIcon />
         <OutputTypeEx>exe</OutputTypeEx>
@@ -14,7 +14,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+        <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     </ItemGroup>
 
     <ItemGroup>

@@ -165,7 +165,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Should_have_checkpoint_equal_to_one()
         {
-            Assert.That(_commit, Is.Not.Null);
+            _commit.Should().NotBeNull();
             _commit!.CheckpointToken.Should().Be(1);
         }
     }
@@ -190,7 +190,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Should_have_checkpoint_equal_to_two()
         {
-            Assert.That(_commit, Is.Not.Null);
+            _commit.Should().NotBeNull();
             _commit!.CheckpointToken.Should().Be(2);
         }
     }
@@ -216,7 +216,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Should_have_checkpoint_equal_to_two()
         {
-            Assert.That(_commit, Is.Not.Null);
+            _commit.Should().NotBeNull();
             _commit!.CheckpointToken.Should().Be(2);
         }
     }
@@ -367,14 +367,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void Last_deleted_commit_is_not_purged_to_preserve_checkpoint_numbering()
         {
-            Assert.That(_commits, Is.Not.Null);
+            _commits.Should().NotBeNull();
             _commits!.Length.Should().Be(1);
         }
 
         [Fact]
         public void Last_deleted_commit_has_the_higher_checkpoint_number()
         {
-            Assert.That(_commits, Is.Not.Null);
+            _commits.Should().NotBeNull();
             _commits![0].CheckpointToken.Should().Be(4);
         }
     }
@@ -418,7 +418,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         [Fact]
         public void All_deleted_commits_are_purged()
         {
-            Assert.That(_commits, Is.Not.Null);
+            _commits.Should().NotBeNull();
             _commits!.Length.Should().Be(0);
         }
     }
