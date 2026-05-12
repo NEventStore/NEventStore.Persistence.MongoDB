@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: ["master", "develop", "feature/**", "release/**", "hotfix/**"]
+    tags: ["*"]
+  pull_request:
+    branches: ["master", "develop"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Keep the Windows build separate so we still validate the .NET Framework target
+  # and the packaging prerequisites that only exist on Windows runners.
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup .NET SDKs
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '.config/dotnet-tools.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Restore solution
+        run: dotnet restore ./src/NEventStore.Persistence.MongoDB.Core.sln --verbosity m
+
+      - name: Run GitVersion and patch assembly info
+        id: gitversion
+        shell: pwsh
+        run: |
+          $gitVersion = dotnet tool run dotnet-gitversion /output json /updateAssemblyInfo | ConvertFrom-Json
+          dotnet tool run dotnet-gitversion ".\dependencies\NEventStore" /updateAssemblyInfo | Out-Null
+          "semver=$($gitVersion.SemVer)" >> $env:GITHUB_OUTPUT
+
+      - name: Build solution
+        run: dotnet build ./src/NEventStore.Persistence.MongoDB.Core.sln -c Release --no-restore /p:ContinuousIntegrationBuild=True
+
+  # Tests run on Linux because this repository needs a live MongoDB instance and
+  # GitHub Actions service containers are only available on Linux runners.
+  # The matrix is therefore per target framework instead of per OS.
+  test-modern-tfm-linux:
+    name: Test (Linux, ${{ matrix.tfm }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run each modern TFM independently so failures are isolated and easy to read.
+        tfm:
+          - net8.0
+          - net9.0
+          - net10.0
+
+    services:
+      # The test project reads NEventStore.MongoDB from the environment and expects
+      # a real MongoDB server. This sidecar provides that dependency for each matrix leg.
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval \"db.adminCommand('ping')\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Match the connection-string convention used by the acceptance tests.
+      NEventStore.MongoDB: mongodb://127.0.0.1:27017/NEventStore
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          submodules: recursive
+
+      - name: Setup .NET SDKs
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '.config/dotnet-tools.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Run tests for ${{ matrix.tfm }}
+        # Only the test project is executed here. It pulls in the production project and
+        # linked acceptance coverage from the NEventStore submodule.
+        run: dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f ${{ matrix.tfm }} --logger "trx;LogFileName=test-results-${{ matrix.tfm }}.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.tfm }}
+          path: "**/test-results-${{ matrix.tfm }}.trx"
+          if-no-files-found: error
+          retention-days: 14
