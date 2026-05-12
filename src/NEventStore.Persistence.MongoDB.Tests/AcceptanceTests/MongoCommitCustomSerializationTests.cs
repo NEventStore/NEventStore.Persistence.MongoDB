@@ -214,7 +214,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 Persistence.Commit(attempt);
             });
 
-            Assert.That(_thrown, Is.Null);
+            _thrown.Should().BeNull();
 
             _persisted = Persistence.GetFrom(_streamId!, 0, int.MaxValue).First();
         }

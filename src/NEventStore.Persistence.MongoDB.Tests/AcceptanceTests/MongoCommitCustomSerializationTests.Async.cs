@@ -220,7 +220,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Async
                 return Persistence.CommitAsync(attempt);
             }).ConfigureAwait(false);
 
-            Assert.That(_thrown, Is.Null);
+            _thrown.Should().BeNull();
 
             var observer = new CommitStreamObserver();
             await Persistence.GetFromAsync(_streamId!, 0, int.MaxValue, observer).ConfigureAwait(false);

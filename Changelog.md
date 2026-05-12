@@ -1,5 +1,9 @@
 # NEventStore.Persistence.MongoDB
 
+## vNext
+
+- Added explicit support for net8.0, net9.0, net10.0.
+
 ## 12.0.0
 
 - Async methods added to IPersistStreams interfaces [#71](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/71)

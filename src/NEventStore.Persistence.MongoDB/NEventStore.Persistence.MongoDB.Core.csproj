@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0;netstandard2.1;net472</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net472;net6.0;$(ModernTargetFrameworks)</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <RootNamespace>NEventStore.Persistence.MongoDB</RootNamespace>
     <AssemblyName>NEventStore.Persistence.MongoDB</AssemblyName>
