@@ -52,6 +52,39 @@ To build the project locally on a Windows Machine:
   NEventStore.MongoDB="mongodb://localhost:50002/NEventStore"
   ```
 
+## Run Benchmarks (locally)
+
+- Build benchmark project:
+
+```powershell
+dotnet build .\src\NEventStore.Persistence.MongoDB.Benchmark\NEventStore.Persistence.MongoDB.Benchmark.csproj -c Release
+```
+
+- Set benchmark connection string in current shell:
+
+```powershell
+$env:NEventStore.MongoDB = 'mongodb://localhost:50002/NEventStore'
+```
+
+- List all discovered benchmark cases:
+
+```powershell
+dotnet .\src\NEventStore.Persistence.MongoDB.Benchmark\bin\Release\net8.0\NEventStore.Persistence.MongoDB.Benchmark.dll --list flat
+```
+
+- Run all benchmark cases:
+
+```powershell
+dotnet .\src\NEventStore.Persistence.MongoDB.Benchmark\bin\Release\net8.0\NEventStore.Persistence.MongoDB.Benchmark.dll --filter *
+```
+
+- Run specific benchmark class or method via filter:
+
+```powershell
+dotnet .\src\NEventStore.Persistence.MongoDB.Benchmark\bin\Release\net8.0\NEventStore.Persistence.MongoDB.Benchmark.dll --filter *CheckpointGeneratorBenchmarks*
+dotnet .\src\NEventStore.Persistence.MongoDB.Benchmark\bin\Release\net8.0\NEventStore.Persistence.MongoDB.Benchmark.dll --filter *ReadFromEventStoreAsyncBenchmarks.ReadFromEventStoreAsync*
+```
+
 ## Run Tests in Visual Studio
 
 To run tests in visual studio using NUnit as a Test Runner you need to explicitly exclude "Explicit Tests" from running adding the following filter in the test explorer section:
