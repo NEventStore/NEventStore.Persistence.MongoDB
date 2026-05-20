@@ -112,5 +112,6 @@ Backup*/
 UpgradeLog*.XML
 
 # Custom
+BenchmarkDotNet.Artifacts/
 artifacts/
 .tokensave

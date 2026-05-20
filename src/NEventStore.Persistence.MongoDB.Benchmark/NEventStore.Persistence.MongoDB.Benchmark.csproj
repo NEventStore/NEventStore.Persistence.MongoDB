@@ -7,6 +7,8 @@
         <OutputTypeEx>exe</OutputTypeEx>
         <StartupObject />
         <OutputType>Exe</OutputType>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     </PropertyGroup>
 
     <PropertyGroup>
