@@ -1,12 +1,7 @@
-# Root Docker Compose file to run the tests on the development machine using some pre-initialized databases
-# It must be used with powershell actions that mount the databases files.
-
-version: '2.4' # 2.4 supports "platform", 3.x does not.
-
 services:
   mongo:
     platform: windows
-    image: mongo
+    image: mongo:8
     ports:
       - "50002:27017"
 #    volumes:
