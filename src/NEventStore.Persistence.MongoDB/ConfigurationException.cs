@@ -26,14 +26,5 @@
         public ConfigurationException(string message, Exception inner) : base(message, inner)
         {
         }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConfigurationException"/> class with serialized data.
-        /// </summary>
-        protected ConfigurationException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context)
-        {
-        }
     }
 }
