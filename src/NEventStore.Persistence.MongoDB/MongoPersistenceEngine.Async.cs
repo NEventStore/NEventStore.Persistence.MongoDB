@@ -42,8 +42,7 @@ namespace NEventStore.Persistence.MongoDB
 
                 using var cursor = await PersistedCommits
                     .Find(query)
-                    // .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
-                    .Sort(SortByAscendingCheckpointNumber)
+                    .Sort(SortByAscendingStreamRevisionFrom)
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
 
@@ -390,7 +389,10 @@ namespace NEventStore.Persistence.MongoDB
 
             return TryMongoAsync(async () =>
             {
-                var query = Builders<BsonDocument>.Filter.Gte(MongoStreamHeadFields.Unsnapshotted, maxThreshold);
+                var query = Builders<BsonDocument>.Filter.And(
+                    Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId),
+                    Builders<BsonDocument>.Filter.Gte(MongoStreamHeadFields.Unsnapshotted, maxThreshold)
+                );
                 using var cursor = await PersistedStreamHeads
                     .Find(query)
                     .Sort(Builders<BsonDocument>.Sort.Descending(MongoStreamHeadFields.Unsnapshotted))
@@ -430,7 +432,7 @@ namespace NEventStore.Persistence.MongoDB
 
                 using var cursor = await PersistedSnapshots
                     .Find(query)
-                    .Sort(Builders<BsonDocument>.Sort.Descending(MongoSnapshotFields.Id))
+                    .Sort(SortByDescendingSnapshotRevision)
                     .Limit(1)
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
@@ -551,10 +553,10 @@ namespace NEventStore.Persistence.MongoDB
                 ).ConfigureAwait(false);
 
                 await PersistedSnapshots.DeleteManyAsync(
-                    Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.Id, new BsonDocument{
-                        {MongoSnapshotFields.BucketId, bucketId},
-                        {MongoSnapshotFields.StreamId, streamId}
-                    }),
+                    Builders<BsonDocument>.Filter.And(
+                        Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedBucketId, bucketId),
+                        Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedStreamId, streamId)
+                    ),
                     cancellationToken
                 ).ConfigureAwait(false);
 

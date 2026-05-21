@@ -24,6 +24,8 @@ namespace NEventStore.Persistence.MongoDB
         private readonly string _systemBucketName;
         private ICheckpointGenerator? _checkpointGenerator;
         private static readonly SortDefinition<BsonDocument> SortByAscendingCheckpointNumber = Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.CheckpointNumber);
+        private static readonly SortDefinition<BsonDocument> SortByAscendingStreamRevisionFrom = Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom);
+        private static readonly SortDefinition<BsonDocument> SortByDescendingSnapshotRevision = Builders<BsonDocument>.Sort.Descending(MongoSnapshotFields.FullQualifiedStreamRevision);
         private readonly static UpdateOptions UpsertUpdateOptions = new() { IsUpsert = true };
 
         /// <summary>
@@ -159,6 +161,20 @@ namespace NEventStore.Persistence.MongoDB
 
                 if (!_options.DisableSnapshotSupport)
                 {
+                    PersistedSnapshots.Indexes.CreateOne(
+                        new CreateIndexModel<BsonDocument>(
+                            Builders<BsonDocument>.IndexKeys
+                                .Ascending(MongoSnapshotFields.FullQualifiedBucketId)
+                                .Ascending(MongoSnapshotFields.FullQualifiedStreamId)
+                                .Descending(MongoSnapshotFields.FullQualifiedStreamRevision),
+                            new CreateIndexOptions()
+                            {
+                                Name = MongoSnapshotIndexes.BucketStreamRevision,
+                                Unique = false
+                            }
+                        )
+                    );
+
                     PersistedStreamHeads.Indexes.CreateOne(
                         new CreateIndexModel<BsonDocument>(
                             Builders<BsonDocument>.IndexKeys
@@ -166,6 +182,19 @@ namespace NEventStore.Persistence.MongoDB
                             new CreateIndexOptions()
                             {
                                 Name = MongoStreamIndexes.Unsnapshotted,
+                                Unique = false
+                            }
+                        )
+                    );
+
+                    PersistedStreamHeads.Indexes.CreateOne(
+                        new CreateIndexModel<BsonDocument>(
+                            Builders<BsonDocument>.IndexKeys
+                                .Ascending(MongoStreamHeadFields.FullQualifiedBucketId)
+                                .Descending(MongoStreamHeadFields.Unsnapshotted),
+                            new CreateIndexOptions()
+                            {
+                                Name = MongoStreamIndexes.BucketUnsnapshotted,
                                 Unique = false
                             }
                         )
@@ -211,8 +240,7 @@ namespace NEventStore.Persistence.MongoDB
 
                 return PersistedCommits
                     .Find(query)
-                    // .Sort(Builders<BsonDocument>.Sort.Ascending(MongoCommitFields.StreamRevisionFrom))
-                    .Sort(SortByAscendingCheckpointNumber)
+                    .Sort(SortByAscendingStreamRevisionFrom)
                     .ToEnumerable()
                     .Select(mc => mc.ToCommit(_serializer));
             });
@@ -551,7 +579,10 @@ namespace NEventStore.Persistence.MongoDB
 
             var result = TryMongo(() =>
             {
-                var query = Builders<BsonDocument>.Filter.Gte(MongoStreamHeadFields.Unsnapshotted, maxThreshold);
+                var query = Builders<BsonDocument>.Filter.And(
+                    Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId),
+                    Builders<BsonDocument>.Filter.Gte(MongoStreamHeadFields.Unsnapshotted, maxThreshold)
+                );
                 return PersistedStreamHeads
                     .Find(query)
                     .Sort(Builders<BsonDocument>.Sort.Descending(MongoStreamHeadFields.Unsnapshotted))
@@ -577,7 +608,7 @@ namespace NEventStore.Persistence.MongoDB
 
                 return PersistedSnapshots
                     .Find(query)
-                    .Sort(Builders<BsonDocument>.Sort.Descending(MongoSnapshotFields.Id))
+                    .Sort(SortByDescendingSnapshotRevision)
                     .Limit(1)
                     .ToEnumerable()
                     .Select(mc => mc.ToSnapshot(_serializer))
@@ -694,10 +725,10 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 PersistedSnapshots.DeleteMany(
-                    Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.Id, new BsonDocument{
-                        {MongoSnapshotFields.BucketId, bucketId},
-                        {MongoSnapshotFields.StreamId, streamId}
-                    })
+                    Builders<BsonDocument>.Filter.And(
+                        Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedBucketId, bucketId),
+                        Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedStreamId, streamId)
+                    )
                 );
 
                 PersistedCommits.UpdateMany(

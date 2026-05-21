@@ -482,4 +482,66 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             commits.Length.Should().Be(0);
         }
     }
+
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_streams_to_snapshot_are_requested_for_a_specific_bucket : PersistenceEngineConcern
+    {
+        private const string BucketA = "a";
+        private const string BucketB = "b";
+
+        private string? _streamIdInBucketA;
+        private IStreamHead[]? _streamsToSnapshot;
+
+        protected override void Context()
+        {
+            _streamIdInBucketA = Guid.NewGuid().ToString();
+            var commitInBucketA = Persistence.Commit(_streamIdInBucketA.BuildAttempt(bucketId: BucketA));
+            Persistence.Commit(commitInBucketA!.BuildNextAttempt());
+
+            var streamIdInBucketB = Guid.NewGuid().ToString();
+            var commitInBucketB = Persistence.Commit(streamIdInBucketB.BuildAttempt(bucketId: BucketB));
+            Persistence.Commit(commitInBucketB!.BuildNextAttempt());
+        }
+
+        protected override void Because()
+        {
+            _streamsToSnapshot = Persistence.GetStreamsToSnapshot(BucketA, 0).ToArray();
+        }
+
+        [Fact]
+        public void Only_streams_from_the_requested_bucket_are_returned()
+        {
+            _streamsToSnapshot.Should().NotBeNull();
+            _streamsToSnapshot!.Should().ContainSingle();
+            _streamsToSnapshot[0].BucketId.Should().Be(BucketA);
+            _streamsToSnapshot[0].StreamId.Should().Be(_streamIdInBucketA);
+        }
+    }
+
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_a_deleted_stream_has_snapshots : PersistenceEngineConcern
+    {
+        private ICommit? _commit;
+
+        protected override void Context()
+        {
+            _commit = Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt());
+            Persistence.AddSnapshot(new Snapshot(_commit!.BucketId, _commit.StreamId, _commit.StreamRevision, "snapshot"));
+        }
+
+        protected override void Because()
+        {
+            Persistence.DeleteStream(_commit!.BucketId, _commit.StreamId);
+        }
+
+        [Fact]
+        public void The_snapshot_cannot_be_loaded_from_the_stream()
+        {
+            Persistence.GetSnapshot(_commit!.BucketId, _commit.StreamId, _commit.StreamRevision).Should().BeNull();
+        }
+    }
 }

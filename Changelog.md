@@ -4,6 +4,7 @@
 
 - Added explicit support for net8.0, net9.0, net10.0.
 - Updated NEventStore to 10.2.0
+- Performance: per-stream read queries require in-memory sort (CheckpointNumber not in index) [#73](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/73)
 
 ### Breaking Changes
 
