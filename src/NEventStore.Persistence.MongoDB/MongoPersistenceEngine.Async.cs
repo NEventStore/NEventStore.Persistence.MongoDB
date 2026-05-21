@@ -1,10 +1,10 @@
 ﻿#pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CA2254 // Template should be a static expression
 
-using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Runtime.ExceptionServices;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using System.Runtime.ExceptionServices;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -13,10 +13,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task GetFromAsync(string bucketId, string streamId, int minRevision, int maxRevision, IAsyncObserver<ICommit> observer, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.GettingAllCommitsBetween, streamId, bucketId, minRevision, maxRevision);
-            }
+            MongoPersistenceEngineLogMessages.GettingAllCommitsBetween(Logger, streamId, bucketId, minRevision, maxRevision);
 
             return TryMongoAsync(async () =>
             {
@@ -66,10 +63,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task GetFromAsync(string bucketId, long checkpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, checkpointToken);
-            }
+            MongoPersistenceEngineLogMessages.GettingAllCommitsFromBucketAndCheckpoint(Logger, bucketId, checkpointToken);
 
             return TryMongoAsync(async () =>
             {
@@ -107,10 +101,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task GetFromToAsync(string bucketId, long fromCheckpointToken, long toCheckpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.GettingCommitsFromBucketAndFromToCheckpoint, bucketId, fromCheckpointToken, toCheckpointToken);
-            }
+            MongoPersistenceEngineLogMessages.GettingCommitsFromBucketAndFromToCheckpoint(Logger, bucketId, fromCheckpointToken, toCheckpointToken);
 
             return TryMongoAsync(async () =>
             {
@@ -157,10 +148,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task GetFromAsync(long checkpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
-            }
+            MongoPersistenceEngineLogMessages.GettingAllCommitsFromCheckpoint(Logger, checkpointToken);
 
             return TryMongoAsync(async () =>
             {
@@ -198,10 +186,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task GetFromToAsync(long fromCheckpointToken, long toCheckpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.GettingCommitsFromToCheckpoint, fromCheckpointToken, toCheckpointToken);
-            }
+            MongoPersistenceEngineLogMessages.GettingCommitsFromToCheckpoint(Logger, fromCheckpointToken, toCheckpointToken);
 
             return TryMongoAsync(async () =>
             {
@@ -249,10 +234,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public async Task<ICommit?> CommitAsync(CommitAttempt attempt, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
-            }
+            MongoPersistenceEngineLogMessages.AttemptingToCommit(Logger, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
 
             // async/await was used to avoid Task<ICommit> to Task<ICommit?> conversion issues
             return await TryMongoAsync(async () =>
@@ -277,16 +259,13 @@ namespace NEventStore.Persistence.MongoDB
                             UpdateStreamHeadInBackgroundThread(attempt.BucketId, attempt.StreamId, attempt.StreamRevision, attempt.Events.Count, cancellationToken);
                         }
 
-                        if (Logger.IsEnabled(LogLevel.Debug))
-                        {
-                            Logger.LogDebug(Messages.CommitPersisted, attempt.CommitId);
-                        }
+                        MongoPersistenceEngineLogMessages.CommitPersisted(Logger, attempt.CommitId);
                     }
                     catch (MongoException e)
                     {
                         if (!e.Message.Contains(ConcurrencyException))
                         {
-                            Logger.LogError(e, Messages.GenericPersistingError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
+                            MongoPersistenceEngineLogMessages.GenericPersistingError(Logger, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e.ToString(), e);
                             throw;
                         }
 
@@ -294,10 +273,7 @@ namespace NEventStore.Persistence.MongoDB
                         if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1)
                             || e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
                         {
-                            if (Logger.IsEnabled(LogLevel.Warning))
-                            {
-                                Logger.LogWarning(e, Messages.DuplicatedCheckpointTokenError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
-                            }
+                            MongoPersistenceEngineLogMessages.DuplicatedCheckpointTokenError(Logger, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             await _checkpointGenerator.SignalDuplicateIdAsync(checkpointId, cancellationToken);
                             checkpointId = await _checkpointGenerator.NextAsync(cancellationToken).ConfigureAwait(false);
                             commitDoc[MongoCommitFields.CheckpointNumber] = checkpointId;
@@ -311,11 +287,8 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (e.Message.Contains(MongoCommitIndexes.CommitId))
                             {
-                                var msg = String.Format(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
-                                if (Logger.IsEnabled(LogLevel.Information))
-                                {
-                                    Logger.LogInformation(msg);
-                                }
+                                var msg = string.Format(CultureInfo.InvariantCulture, MongoPersistenceEngineLogMessages.DuplicatedCommitErrorTemplate, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                                MongoPersistenceEngineLogMessages.Information(Logger, msg);
                                 throw new DuplicateCommitException(msg);
                             }
 
@@ -333,18 +306,12 @@ namespace NEventStore.Persistence.MongoDB
 
                             if (savedCommit != null && savedCommit.CommitId == attempt.CommitId)
                             {
-                                var msg = String.Format(Messages.DuplicatedCommitError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
-                                if (Logger.IsEnabled(LogLevel.Information))
-                                {
-                                    Logger.LogInformation(msg);
-                                }
+                                var msg = string.Format(CultureInfo.InvariantCulture, MongoPersistenceEngineLogMessages.DuplicatedCommitErrorTemplate, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
+                                MongoPersistenceEngineLogMessages.Information(Logger, msg);
                                 throw new DuplicateCommitException(msg);
                             }
 
-                            if (Logger.IsEnabled(LogLevel.Information))
-                            {
-                                Logger.LogInformation(Messages.ConcurrencyExceptionError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
-                            }
+                            MongoPersistenceEngineLogMessages.ConcurrencyExceptionError(Logger, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             throw new ConcurrencyException();
                         }
                     }
@@ -370,10 +337,7 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (Exception e)
             {
-                if (Logger.IsEnabled(LogLevel.Warning))
-                {
-                    Logger.LogWarning(e, Messages.FillHoleError, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
-                }
+                MongoPersistenceEngineLogMessages.FillHoleError(Logger, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
             }
         }
 
@@ -382,10 +346,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             CheckIfSnapshotEnabled();
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.GettingStreamsToSnapshot);
-            }
+            MongoPersistenceEngineLogMessages.GettingStreamsToSnapshot(Logger);
 
             return TryMongoAsync(async () =>
             {
@@ -421,10 +382,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             CheckIfSnapshotEnabled();
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.GettingRevision, streamId, maxRevision);
-            }
+            MongoPersistenceEngineLogMessages.GettingRevision(Logger, streamId, maxRevision);
 
             return TryMongoAsync(async () =>
             {
@@ -452,10 +410,7 @@ namespace NEventStore.Persistence.MongoDB
                 return false;
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogDebug(Messages.AddingSnapshot, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision);
-            }
+            MongoPersistenceEngineLogMessages.AddingSnapshot(Logger, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision);
 
             try
             {
@@ -494,10 +449,7 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (Exception e)
             {
-                if (Logger.IsEnabled(LogLevel.Warning))
-                {
-                    Logger.LogWarning(e, Messages.AddingSnapshotError, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision, e);
-                }
+                MongoPersistenceEngineLogMessages.AddingSnapshotError(Logger, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision, e);
                 return false;
             }
         }
@@ -505,10 +457,8 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task PurgeAsync(CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Warning))
-            {
-                Logger.LogWarning(Messages.PurgingStorage);
-            }
+            MongoPersistenceEngineLogMessages.PurgingStorage(Logger);
+
             return TryMongoAsync<object>(async () =>
             {
                 await PersistedCommits.DeleteManyAsync(Builders<BsonDocument>.Filter.Empty, cancellationToken).ConfigureAwait(false);
@@ -521,10 +471,8 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task PurgeAsync(string bucketId, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Warning))
-            {
-                Logger.LogWarning(Messages.PurgingBucket, bucketId);
-            }
+            MongoPersistenceEngineLogMessages.PurgingBucket(Logger, bucketId);
+
             return TryMongoAsync<object>(async () =>
             {
                 await PersistedStreamHeads.DeleteManyAsync(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId), cancellationToken).ConfigureAwait(false);
@@ -537,10 +485,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public Task DeleteStreamAsync(string bucketId, string streamId, CancellationToken cancellationToken)
         {
-            if (Logger.IsEnabled(LogLevel.Warning))
-            {
-                Logger.LogWarning(Messages.DeletingStream, streamId, bucketId);
-            }
+            MongoPersistenceEngineLogMessages.DeletingStream(Logger, streamId, bucketId);
 
             return TryMongoAsync<object>(async () =>
             {
@@ -591,16 +536,13 @@ namespace NEventStore.Persistence.MongoDB
                 }
                 catch (OutOfMemoryException ex)
                 {
-                    Logger.LogError(ex, "OutOfMemoryException:");
+                    MongoPersistenceEngineLogMessages.OutOfMemoryException(Logger, ex);
                     throw;
                 }
                 catch (Exception ex)
                 {
                     //It is safe to ignore transient exception updating stream head.
-                    if (Logger.IsEnabled(LogLevel.Warning))
-                    {
-                        Logger.LogWarning(ex, "Ignored Exception '{exception}' when upserting the stream head Bucket Id [{id}] StreamId[{streamId}].\n", ex.GetType().Name, bucketId, streamId);
-                    }
+                    MongoPersistenceEngineLogMessages.IgnoredStreamHeadUpsertException(Logger, bucketId, streamId, ex);
                 }
             });
         }
@@ -649,31 +591,22 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (MongoConnectionException e)
             {
-                if (Logger.IsEnabled(LogLevel.Warning))
-                {
-                    Logger.LogWarning(e, Messages.StorageUnavailable);
-                }
+                MongoPersistenceEngineLogMessages.StorageUnavailable(Logger, e);
                 exception = ExceptionDispatchInfo.Capture(new StorageUnavailableException(e.Message, e));
             }
             catch (MongoException e)
             {
-                Logger.LogError(e, Messages.StorageThrewException, e.GetType(), e.ToString());
+                MongoPersistenceEngineLogMessages.StorageThrewException(Logger, e);
                 exception = ExceptionDispatchInfo.Capture(new StorageException(e.Message, e));
             }
             catch (TaskCanceledException ex)
             {
-                if (Logger.IsEnabled(LogLevel.Warning))
-                {
-                    Logger.LogWarning(ex, "Task was cancelled.");
-                }
+                MongoPersistenceEngineLogMessages.TaskWasCancelled(Logger, ex);
                 asyncObserver?.OnCompletedAsync(cancellationToken);
             }
             catch (Exception e)
             {
-                if (Logger.IsEnabled(LogLevel.Error))
-                {
-                    Logger.LogError(e, Messages.StorageThrewException, e.GetType(), e.ToString());
-                }
+                MongoPersistenceEngineLogMessages.StorageThrewException(Logger, e);
                 exception = ExceptionDispatchInfo.Capture(e);
             }
             if (exception != null)
