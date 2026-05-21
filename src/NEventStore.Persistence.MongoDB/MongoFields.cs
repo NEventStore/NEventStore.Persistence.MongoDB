@@ -86,6 +86,17 @@
     }
 
     /// <summary>
+    /// MongoDB Snapshot Indexes
+    /// </summary>
+    public static class MongoSnapshotIndexes
+    {
+        /// <summary>
+        /// Snapshot lookup index.
+        /// </summary>
+        public const string BucketStreamRevision = "BucketStreamRevision_Index";
+    }
+
+    /// <summary>
     /// MongoDB Commit Fields
     /// </summary>
     public static class MongoCommitFields
@@ -189,5 +200,10 @@
         /// Un-snapshotted index.
         /// </summary>
         public const string Unsnapshotted = "Unsnapshotted_Index";
+
+        /// <summary>
+        /// Bucket and un-snapshotted index.
+        /// </summary>
+        public const string BucketUnsnapshotted = "BucketUnsnapshotted_Index";
     }
 }

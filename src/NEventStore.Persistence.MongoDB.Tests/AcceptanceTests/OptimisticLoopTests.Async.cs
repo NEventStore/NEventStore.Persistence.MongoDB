@@ -493,4 +493,68 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Async
             observer.Commits.Should().BeEmpty();
         }
     }
+
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_streams_to_snapshot_are_requested_for_a_specific_bucket : PersistenceEngineConcern
+    {
+        private const string BucketA = "a";
+        private const string BucketB = "b";
+
+        private string? _streamIdInBucketA;
+        private IList<IStreamHead>? _streamsToSnapshot;
+
+        protected override async Task ContextAsync()
+        {
+            _streamIdInBucketA = Guid.NewGuid().ToString();
+            var commitInBucketA = await Persistence.CommitAsync(_streamIdInBucketA.BuildAttempt(bucketId: BucketA)).ConfigureAwait(false);
+            await Persistence.CommitAsync(commitInBucketA!.BuildNextAttempt()).ConfigureAwait(false);
+
+            var streamIdInBucketB = Guid.NewGuid().ToString();
+            var commitInBucketB = await Persistence.CommitAsync(streamIdInBucketB.BuildAttempt(bucketId: BucketB)).ConfigureAwait(false);
+            await Persistence.CommitAsync(commitInBucketB!.BuildNextAttempt()).ConfigureAwait(false);
+        }
+
+        protected override async Task BecauseAsync()
+        {
+            var observer = new StreamHeadObserver();
+            await Persistence.GetStreamsToSnapshotAsync(BucketA, 0, observer).ConfigureAwait(false);
+            _streamsToSnapshot = observer.StreamHeads;
+        }
+
+        [Fact]
+        public void Only_streams_from_the_requested_bucket_are_returned()
+        {
+            _streamsToSnapshot.Should().NotBeNull();
+            _streamsToSnapshot!.Should().ContainSingle();
+            _streamsToSnapshot.Single().BucketId.Should().Be(BucketA);
+            _streamsToSnapshot.Single().StreamId.Should().Be(_streamIdInBucketA);
+        }
+    }
+
+#if MSTEST
+    [TestClass]
+#endif
+    public class When_a_deleted_stream_has_snapshots : PersistenceEngineConcern
+    {
+        private ICommit? _commit;
+
+        protected override async Task ContextAsync()
+        {
+            _commit = await Persistence.CommitAsync(Guid.NewGuid().ToString().BuildAttempt()).ConfigureAwait(false);
+            await Persistence.AddSnapshotAsync(new Snapshot(_commit!.BucketId, _commit.StreamId, _commit.StreamRevision, "snapshot")).ConfigureAwait(false);
+        }
+
+        protected override Task BecauseAsync()
+        {
+            return Persistence.DeleteStreamAsync(_commit!.BucketId, _commit.StreamId);
+        }
+
+        [Fact]
+        public async Task The_snapshot_cannot_be_loaded_from_the_stream()
+        {
+            (await Persistence.GetSnapshotAsync(_commit!.BucketId, _commit.StreamId, _commit.StreamRevision).ConfigureAwait(false)).Should().BeNull();
+        }
+    }
 }

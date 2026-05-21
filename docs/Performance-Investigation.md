@@ -36,16 +36,7 @@ dotnet .\src\NEventStore.Persistence.MongoDB.Benchmark\bin\Release\net10.0\NEven
 
 ```powershell
 [Environment]::SetEnvironmentVariable('NEventStore.MongoDB', 'mongodb://localhost:50002/NEventStore', 'Process')
-dotnet build .\src\NEventStore.Persistence.MongoDB.Benchmark\NEventStore.Persistence.MongoDB.Benchmark.csproj -c Release
-dotnet .\src\NEventStore.Persistence.MongoDB.Benchmark\bin\Release\net8.0\NEventStore.Persistence.MongoDB.Benchmark.dll
 ```
-
-### Result
-
-- BenchmarkDotNet now discovers `14` benchmark cases from one executable.
-- The benchmark entrypoint uses `BenchmarkSwitcher` and supports `--filter` routing.
-- Serializer registration is aligned with acceptance tests for `CSharpLegacy` GUID handling.
-- Baseline reports are now standardized on `net10.0` host runtime across all benchmark classes.
 
 ### Relevant evidence in the codebase
 
@@ -54,8 +45,6 @@ dotnet .\src\NEventStore.Persistence.MongoDB.Benchmark\bin\Release\net8.0\NEvent
 - The benchmark entrypoint in `src/NEventStore.Persistence.MongoDB.Benchmark/Program.cs` now uses `BenchmarkSwitcher.FromAssembly(...)`.
 
 ## Benchmark Suite Gaps
-
-The benchmark suite now covers all previously identified harness-level gaps.
 
 ### Structural gaps
 
@@ -270,6 +259,23 @@ To avoid committing raw benchmark artifacts, the key baseline values are summari
 | Recycle-bin read slice | `ReadDeletedCommitsFromRecycleBinBucket` (`CommitsPerStream=1000`, `DeletedStreams=5`, `ActiveStreams=1`) | 108.028 ms |
 | Duplicate conflict slice | `DuplicateCommitIdPath` (`Iterations=100`) | 683.60 ms |
 
+## Explain Audit Workflow
+
+Use the explain audit script to validate the index usage of the persistence engine query shapes against a local MongoDB container:
+
+```powershell
+.\scripts\explain-persistence-engine.ps1
+```
+
+The script seeds a scratch database, recreates the same indexes defined by the engine, and runs `explain("executionStats")` for the main `Find` and equivalent delete/update filter shapes in `MongoPersistenceEngine`.
+
+Current findings from the issue [#73](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/73) follow-up:
+
+- The changed query shapes for stream reads, snapshot reads, snapshot deletes, and bucket-scoped stream-head reads all use the intended indexes.
+- Bucket checkpoint scans and duplicate-commit lookups also use the expected indexes.
+- The legacy date-based bucket reads and all-buckets checkpoint scans remain less ideal query shapes and should be reviewed separately if they become performance-sensitive.
+- Decision: do not add a new `CommitStamp`-oriented compound index for the obsolete `GetFrom(bucketId, DateTime)` and `GetFromTo(bucketId, DateTime, DateTime)` APIs. They are sync-only compatibility methods on an upstream obsolete contract, they are already documented for removal, and the preferred checkpoint-based APIs are the supported optimization target.
+
 ### After Snapshot Template
 
 After implementing optimizations, run the same net10 baseline profile and fill this table using the same method/parameter rows selected from the "before" reports.
@@ -279,8 +285,8 @@ After implementing optimizations, run the same net10 baseline profile and fill t
 | Checkpoint generator write path (Always, 1000 commits) | 2,908.6 ms |  |  |
 | Global read (bucket-qualified, 1000/3) | 22.142 ms |  |  |
 | Global read (all buckets, 1000/3) | 67.011 ms |  |  |
-| Per-stream full read (10000 commits) | 148.004 ms |  |  |
-| Per-stream revision-window read (10000, window 1000) | 17.207 ms |  |  |
+| Per-stream full read (10000 commits) | 148.004 ms | 120.660 ms | -18.5% |
+| Per-stream revision-window read (10000, window 1000) | 17.207 ms | 14.732 ms | -14.4% |
 | Write path (sync, 10000 commits) | 10,489.8 ms |  |  |
 | Write path (async, 10000 commits) | 10,705.0 ms |  |  |
 | Global read (async, 10000 commits) | 120.443 ms |  |  |
