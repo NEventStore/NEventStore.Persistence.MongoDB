@@ -1,7 +1,7 @@
-﻿using global::MongoDB.Bson;
-using global::MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using NEventStore.Serialization;
-using BsonSerializer = global::MongoDB.Bson.Serialization.BsonSerializer;
+using BsonSerializer = MongoDB.Bson.Serialization.BsonSerializer;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -15,17 +15,20 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public static BsonDocument ToMongoCommit(this CommitAttempt commit, Int64 checkpoint, IDocumentSerializer serializer)
         {
-            int streamRevision = commit.StreamRevision - (commit.Events.Count - 1);
+            int eventCount = commit.Events.Count;
+            int streamRevision = commit.StreamRevision - (eventCount - 1);
             int streamRevisionStart = streamRevision;
 
-            IEnumerable<BsonDocument> events = commit
-                .Events
-                .Select(e =>
+            var events = new BsonArray(eventCount);
+            foreach (var @event in commit.Events)
+            {
+                events.Add(
                     new BsonDocument
                     {
-                        {MongoCommitFields.StreamRevision, streamRevision++},
-                        {MongoCommitFields.Payload, BsonDocumentWrapper.Create(typeof(EventMessage), serializer.Serialize(e))}
+                        { MongoCommitFields.StreamRevision, streamRevision++ },
+                        { MongoCommitFields.Payload, BsonDocumentWrapper.Create(typeof(EventMessage), serializer.Serialize(@event)) }
                     });
+            }
 
             var mc = new MongoCommit
             {
@@ -33,7 +36,7 @@ namespace NEventStore.Persistence.MongoDB
                 CommitId = commit.CommitId,
                 CommitStamp = commit.CommitStamp,
                 Headers = commit.Headers,
-                Events = new BsonArray(events),
+                Events = events,
                 StreamRevisionFrom = streamRevisionStart,
                 StreamRevisionTo = streamRevision - 1,
                 BucketId = commit.BucketId,
@@ -50,9 +53,7 @@ namespace NEventStore.Persistence.MongoDB
         /// <exception cref="ArgumentNullException"></exception>
         public static BsonDocument ToEmptyCommit(this CommitAttempt commit, Int64 checkpoint, String systemBucketName)
         {
-            if (commit == null) throw new ArgumentNullException(nameof(commit));
             if (String.IsNullOrWhiteSpace(systemBucketName)) throw new ArgumentNullException(nameof(systemBucketName));
-            int streamRevisionStart = commit.StreamRevision - (commit.Events.Count - 1);
 
             var mc = new MongoCommit
             {
@@ -77,6 +78,16 @@ namespace NEventStore.Persistence.MongoDB
         public static ICommit ToCommit(this BsonDocument doc, IDocumentSerializer serializer)
         {
             var mc = BsonSerializer.Deserialize<MongoCommit>(doc);
+            int eventCount = mc.Events.Count;
+            var events = new EventMessage[eventCount];
+
+            for (int i = 0; i < eventCount; i++)
+            {
+                BsonValue payload = mc.Events[i][MongoCommitFields.Payload];
+                events[i] = payload.IsBsonDocument
+                    ? BsonSerializer.Deserialize<EventMessage>(payload.ToBsonDocument())!
+                    : serializer.Deserialize<EventMessage>(payload.AsByteArray)!; // ByteStreamDocumentSerializer ?!?! doesn't work this way!
+            }
 
             return new Commit(mc.BucketId,
                 mc.StreamId,
@@ -86,13 +97,7 @@ namespace NEventStore.Persistence.MongoDB
                 mc.CommitStamp,
                 mc.CheckpointNumber,
                 mc.Headers,
-                mc.Events.Select(e =>
-                {
-                    BsonValue payload = e[MongoCommitFields.Payload];
-                    return payload.IsBsonDocument
-                           ? BsonSerializer.Deserialize<EventMessage>(payload.ToBsonDocument())
-                           : serializer.Deserialize<EventMessage>(payload.AsByteArray); // ByteStreamDocumentSerializer ?!?! doesn't work this way!
-                }).ToArray());
+                events);
         }
 
         /// <summary>
@@ -128,7 +133,7 @@ namespace NEventStore.Persistence.MongoDB
             switch (bsonPayload.BsonType)
             {
                 case BsonType.Binary:
-                    payload = serializer.Deserialize<object>(bsonPayload.AsByteArray);
+                    payload = serializer.Deserialize<object>(bsonPayload.AsByteArray)!;
                     break;
                 case BsonType.Document:
                     payload = BsonSerializer.Deserialize<object>(bsonPayload.AsBsonDocument);
