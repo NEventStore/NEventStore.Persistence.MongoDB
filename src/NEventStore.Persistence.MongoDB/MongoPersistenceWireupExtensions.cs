@@ -1,6 +1,7 @@
 #if NET472_OR_GREATER
 using System.Configuration;
 #endif
+using System.Globalization;
 using NEventStore.Persistence.MongoDB;
 using NEventStore.Serialization;
 
@@ -24,7 +25,7 @@ namespace NEventStore
             return new MongoPersistenceWireup(wireup, () =>
             {
                 var connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionName]
-                    ?? throw new NEventStore.Persistence.MongoDB.ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionName));
+                    ?? throw new NEventStore.Persistence.MongoDB.ConfigurationException(string.Format(CultureInfo.InvariantCulture, MongoPersistenceEngineLogMessages.ConnectionNotFoundTemplate, connectionName));
                 return connectionStringSettings.ConnectionString;
             }, serializer, options);
         }
@@ -38,7 +39,7 @@ namespace NEventStore
             return new MongoPersistenceWireup(wireup, () =>
             {
                 if (string.IsNullOrWhiteSpace(connectionString))
-                    throw new NEventStore.Persistence.MongoDB.ConfigurationException(Messages.ConnectionNotFound.FormatWith(connectionString));
+                    throw new NEventStore.Persistence.MongoDB.ConfigurationException(string.Format(CultureInfo.InvariantCulture, MongoPersistenceEngineLogMessages.ConnectionNotFoundTemplate, connectionString));
 
                 return connectionString;
             }, serializer, options);

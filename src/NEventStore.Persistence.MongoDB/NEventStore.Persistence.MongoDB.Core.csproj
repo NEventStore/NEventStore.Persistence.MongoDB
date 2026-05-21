@@ -55,20 +55,4 @@
     <None Remove="packages.config" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Messages.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Messages.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Messages.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Messages.Designer.cs</LastGenOutput>
-      <CustomToolNamespace>NEventStore.Persistence.MongoDB</CustomToolNamespace>
-    </EmbeddedResource>
-  </ItemGroup>
-
 </Project>
