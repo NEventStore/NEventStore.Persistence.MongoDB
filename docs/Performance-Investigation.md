@@ -126,10 +126,20 @@ Why this matters:
 - Bucket-qualified reads use the primary checkpoint index; all-buckets reads may bypass it.
 - Small performance cost, but measurable for high-volume checkpoint polling.
 
+MongoDB explain check on the current query shape:
+
+- `GetFrom(Int64 checkpointToken)` and `GetFromTo(long fromCheckpointToken, long toCheckpointToken)` both plan as `FETCH + IXSCAN`.
+- The winning index for the all-buckets query is `_id_`, not `GetFrom_Checkpoint_Index`.
+- That means this is **not** a COLLSCAN regression, and it is also **not** a missing-index problem.
+- The gap is the negative filter shape preventing MongoDB from using the bucket-qualified checkpoint index.
+- An explicit inclusion rewrite (`BucketId in [active buckets]`) did not change the winning plan in the checked data shape; MongoDB still chose `_id_`.
+- A dedicated partial `_id` index is not a viable shortcut here because MongoDB rejects `partialFilterExpression` on `_id`.
+
 What needs benchmarking first:
 
 - Bucket-qualified vs all-buckets checkpoint reads (already in benchmark suite).
 - Index explain() plan comparison between the two approaches.
+- If this remains worth pursuing, test a query rewrite that actually changes scan order, not just the bucket predicate form.
 
 ### 4. Default checkpoint generation adds a database read per commit
 
