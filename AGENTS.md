@@ -105,7 +105,7 @@ dotnet test ./src/NEventStore.Persistence.MongoDB.Core.sln -c Release --no-build
 ```
 
 ### CI/CD & Versioning
-- **AppVeyor** runs tests on Windows with MongoDB service enabled; see `appveyor.yml`
+- **GitHub Actions** build on Windows machines and run tests on MongoDB on linux.
 - **GitVersion** auto-patches assembly info from Git tags (do NOT manually edit version metadata)
 - **GitFlow workflow**: `release/*` and `hotfix/*` branches lock version increments
 - **NuGet packaging**: `nuget pack ./src/.nuget/NEventStore.Persistence.MongoDB.nuspec` outputs symbols package

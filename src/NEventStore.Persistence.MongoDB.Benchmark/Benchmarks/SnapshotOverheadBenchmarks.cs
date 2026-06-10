@@ -19,7 +19,7 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Benchmarks
     /// </para>
     /// </summary>
     [Config(typeof(AllowNonOptimized))]
-    [SimpleJob(launchCount: 3, warmupCount: 3, iterationCount: 3, invocationCount: 1)]
+    [SimpleJob(launchCount: 3, warmupCount: 3, iterationCount: 3)]
     [MemoryDiagnoser]
     [MeanColumn, StdErrorColumn, StdDevColumn, MinColumn, MaxColumn, IterationsColumn]
     public class SnapshotOverheadBenchmarks
