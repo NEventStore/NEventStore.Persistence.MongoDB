@@ -88,7 +88,7 @@ jobs:
       # The test project reads NEventStore.MongoDB from the environment and expects
       # a real MongoDB server. This sidecar provides that dependency for each matrix leg.
       mongodb:
-        image: mongo:7.0
+        image: mongo:8
         ports:
           - 27017:27017
         options: >-

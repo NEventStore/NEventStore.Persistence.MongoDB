@@ -9,7 +9,7 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Benchmarks
     /// Measures per-stream reads over focused revision windows.
     /// </summary>
     [Config(typeof(AllowNonOptimized))]
-    [SimpleJob(launchCount: 3, warmupCount: 3, iterationCount: 3, invocationCount: 1)]
+    [SimpleJob(launchCount: 3, warmupCount: 3, iterationCount: 3)]
     [MemoryDiagnoser]
     [MeanColumn, StdErrorColumn, StdDevColumn, MinColumn, MaxColumn, IterationsColumn]
     public class StreamRevisionWindowBenchmarks
@@ -20,14 +20,12 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Benchmarks
         [Params(10, 100, 1000)]
         public int RevisionWindowSize { get; set; }
 
-        private static readonly Guid StreamId = Guid.NewGuid();
-        private readonly IStoreEvents _eventStore;
+        private readonly string _streamId = Guid.NewGuid().ToString();
         private readonly IPersistStreams _persistence;
 
         public StreamRevisionWindowBenchmarks()
         {
-            _eventStore = EventStoreHelpers.WireupEventStore();
-            _persistence = (IPersistStreams)_eventStore.Advanced;
+            _persistence = (IPersistStreams)EventStoreHelpers.WireupEventStore().Advanced;
         }
 
         [GlobalSetup]
@@ -35,11 +33,22 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Benchmarks
         {
             _persistence.Purge();
 
-            using var stream = _eventStore.CreateStream(StreamId);
-            for (int i = 0; i < TotalCommitsInStream; i++)
+            for (int i = 1; i <= TotalCommitsInStream; i++)
             {
-                stream.Add(new EventMessage { Body = new SomeDomainEvent { Value = i.ToString() } });
-                stream.CommitChanges(Guid.NewGuid());
+                var attempt = new CommitAttempt(
+                    bucketId: Bucket.Default,
+                    streamId: _streamId,
+                    streamRevision: i,
+                    commitId: Guid.NewGuid(),
+                    commitSequence: i,
+                    commitStamp: DateTime.UtcNow,
+                    headers: null,
+                    events:
+                    [
+                        new EventMessage { Body = new SomeDomainEvent { Value = i.ToString() } }
+                    ]);
+
+                _persistence.Commit(attempt);
             }
         }
 
@@ -48,7 +57,7 @@ namespace NEventStore.Persistence.MongoDB.Benchmark.Benchmarks
         {
             var minRevision = Math.Max(1, TotalCommitsInStream - RevisionWindowSize + 1);
             var maxRevision = TotalCommitsInStream;
-            return _persistence.GetFrom(Bucket.Default, StreamId.ToString(), minRevision, maxRevision).Count();
+            return _persistence.GetFrom(Bucket.Default, _streamId, minRevision, maxRevision).Count();
         }
     }
 }

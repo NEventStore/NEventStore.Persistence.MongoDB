@@ -85,7 +85,7 @@ namespace NEventStore.Persistence.MongoDB
             {
                 BsonValue payload = mc.Events[i][MongoCommitFields.Payload];
                 events[i] = payload.IsBsonDocument
-                    ? BsonSerializer.Deserialize<EventMessage>(payload.ToBsonDocument())!
+                    ? BsonSerializer.Deserialize<EventMessage>(payload.AsBsonDocument)
                     : serializer.Deserialize<EventMessage>(payload.AsByteArray)!; // ByteStreamDocumentSerializer ?!?! doesn't work this way!
             }
 
