@@ -76,7 +76,7 @@ if ($LASTEXITCODE -ne 0)
     throw "Benchmark execution failed with exit code $LASTEXITCODE"
 }
 
-$reportFiles = Get-ChildItem -Path $resultsDir -Filter '*-report-github.md' -File
+$reportFiles = @(Get-ChildItem -Path $resultsDir -Filter '*-report-github.md' -File)
 if (-not $reportFiles)
 {
     throw "No benchmark report files found in $resultsDir"

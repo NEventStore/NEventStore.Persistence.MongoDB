@@ -9,6 +9,75 @@ This document captures the current performance state of `NEventStore.Persistence
 - Record the first set of evidence-backed optimization targets.
 - Defer runtime code changes until the benchmark harness can produce trustworthy baselines.
 
+## Current Handoff (2026-06-10)
+
+This is the current state after reviewing `docs/Performance-Investigation.md`, local code, benchmark artifacts, and GitHub issues tagged `performance`.
+
+### What is done
+
+- Benchmark harness is usable from the CLI and has sync/async read/write coverage.
+- Issue [#73](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/73) is closed by decision:
+	- Per-stream reads now sort by `StreamRevisionFrom`, not `CheckpointNumber`.
+	- `Issue73ExplainPlans` asserts `GetFrom_Index` is used and no `SORT` stage is present for the stream range read.
+	- `Changelog.md` has a #73 entry.
+- Issue [#74](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/74) is closed by decision:
+	- Attempted eager-deserialization optimizations were too complex for the negligible gain observed.
+	- The current `doc.ToCommit(_serializer)` path remains intentionally simple.
+- The explain audit for issue [#75](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/75) has been investigated:
+	- All-buckets checkpoint reads are not a COLLSCAN regression.
+	- MongoDB chooses `_id_`, not `GetFrom_Checkpoint_Index`.
+	- A partial `_id` index is not viable because MongoDB rejects `partialFilterExpression` on `_id`.
+- Current benchmark slices cover the known hotspots: stream reads, global reads, checkpoint generator choice, snapshot/background updates, duplicate conflicts, recycle-bin reads, sync writes, and async writes.
+
+### Conflicts to resolve
+
+- Canonical rebuild-focused benchmark snapshots now exist for `ReadFromStreamBenchmarks`, `StreamRevisionWindowBenchmarks`, and `SnapshotAssistedRebuildBenchmarks`.
+- The `ReadFromStream(10000)` after mean is slower than the original before value on this machine (`189.337 ms` after vs `148.004 ms` before), despite the #73 explain-plan fix. Treat #73 as an index-plan correctness fix, not a proven wall-clock speedup from the current benchmark data.
+- The tail-window benchmark was changed to seed directly through `IPersistStreams`, so compare its new values against future runs of the same benchmark shape, not against the older before table.
+- Rebuild-read benchmarks no longer pin `InvocationCount=1`; BenchmarkDotNet now chooses invocation counts through its pilot phase to avoid sub-100 ms iteration warnings.
+
+### Rebuild-focused direction
+
+The current optimization target is read-heavy rebuild operations, not write throughput or global checkpoint polling.
+
+For aggregate rebuilds, the hot path is:
+
+1. Optional snapshot lookup via `GetSnapshot(bucketId, streamId, maxRevision)`.
+2. Stream commit read via `GetFrom(bucketId, streamId, minRevision, maxRevision)`.
+3. Full `ICommit` and event payload materialization through `doc.ToCommit(_serializer)`.
+
+Current implications:
+
+- #73 is the main completed rebuild optimization: per-stream reads now sort by `StreamRevisionFrom`, matching `GetFrom_Index` and avoiding the old checkpoint-sort plan.
+- #74 is intentionally closed: eager `ToCommit` materialization remains simple because attempted optimizations were too complex for negligible gain.
+- #75 is not a rebuild bottleneck. It affects all-buckets checkpoint polling, so it stays in standby.
+- #76 and #78 are write-path issues. Keep them behind rebuild-focused read work unless write throughput becomes the target again.
+
+What matters next for rebuilds:
+
+- Use the #73 explain audit as the primary evidence that per-stream reads now use `GetFrom_Index` without a blocking `SORT`.
+- Use the canonical rebuild benchmark snapshots below as the current read-heavy evidence.
+- Compare future rebuild changes against the archived `rebuild-readfromstream`, `rebuild-tailwindow`, and `rebuild-snapshot-assisted` snapshots.
+- Prefer snapshot-assisted rebuilds for long streams when the caller has a recent snapshot; the benchmark shows the largest allocation reduction there.
+
+### What's left
+
+| Priority | GitHub issue | Status | Remaining work |
+|---:|---|---|---|
+| 1 | Rebuild benchmark evidence | Done for current pass | Canonical rebuild snapshots are archived for full stream, tail-window, and snapshot-assisted rebuild reads. |
+| 2 | [#73](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/73) stream-read sort | Closed by decision | Keep the explain-plan evidence as the reason for closure. Do not claim a wall-clock benchmark win from the current data. |
+| 3 | [#75](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/75) all-buckets checkpoint scan | Standby after investigation | Not a rebuild bottleneck. Resume only if all-buckets polling with a large recycle bin becomes a target workload. |
+| 4 | [#76](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/76) checkpoint generator DB read | Open, write-path | Defer while rebuild reads are the priority. |
+| 5 | [#78](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/78) stream-head background updates | Open, write-path | Defer while rebuild reads are the priority. |
+| 6 | [#77](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/77) post-insert re-deserialization | Open, write-path | Defer unless write throughput becomes the target again. |
+
+### Next recommended pass
+
+1. Rerun the rebuild snapshots with the stabilized benchmark job before comparing future read-heavy changes.
+2. Use the archived rebuild snapshots as historical evidence for the #73 pass, not as the final stable baseline.
+3. Keep engine code simple unless a future benchmark shows a clear, repeatable rebuild win.
+4. Revisit #75/#76/#78/#77 only if the target workload changes away from rebuild reads.
+
 ## Current Benchmark Status
 
 The benchmark harness is now runnable and selectable from a single entrypoint.
@@ -19,7 +88,7 @@ Use this baseline profile for all future optimization comparisons:
 
 - Runtime: `.NET 10.0` only (`net10.0` benchmark binary).
 - Connection: `NEventStore.MongoDB=mongodb://localhost:50002/NEventStore`.
-- Benchmark job: class-defined default (`Job-AGHMZC`, `LaunchCount=3`, `WarmupCount=3`, `IterationCount=3`, `InvocationCount=1`).
+- Benchmark job: class-defined default (`LaunchCount=3`, `WarmupCount=3`, `IterationCount=3`, automatic invocation count).
 - Artifacts folder: `BenchmarkDotNet.Artifacts/results/`.
 
 Baseline generation commands:
@@ -59,6 +128,7 @@ The suite now includes these slices:
 - Global checkpoint scans (bucket-qualified and all-buckets).
 - Async global-read path and async commit path.
 - Snapshot-related write overhead via `DisableSnapshotSupport` and `PersistStreamHeadsOnBackgroundThread` combinations.
+- Snapshot-assisted aggregate rebuild reads.
 - Delete and recycle-bin read behavior.
 - Duplicate-commit and duplicate-checkpoint retry paths.
 
@@ -66,11 +136,11 @@ The suite now includes these slices:
 
 These are the strongest candidates for meaningful improvement, ordered by read-side first (higher leverage), then write-side findings. Confidence levels reflect data from benchmarks and index analysis.
 
-### 1. Stream read queries need index optimization for checkpoint sort
+### 1. Stream read queries no longer require checkpoint sort
 
-**Read-side critical.** Per-stream reads filter on `(BucketId, StreamId, StreamRevisionFrom, StreamRevisionTo)` but sort by `CheckpointNumber`.
+**Read-side critical, implemented on this branch.** The original finding was that per-stream reads filtered on `(BucketId, StreamId, StreamRevisionFrom, StreamRevisionTo)` but sorted by `CheckpointNumber`.
 
-Current index structure:
+Original index/query mismatch:
 
 ```
 INDEX: (BucketId, StreamId, StreamRevisionFrom, StreamRevisionTo)
@@ -78,23 +148,22 @@ QUERY FILTER: BucketId = X, StreamId = Y, revision range
 QUERY SORT: CheckpointNumber ASC
 ```
 
-Why this matters:
+Why this mattered:
 
 - The index supports the filter but NOT the sort (CheckpointNumber is not in the index).
 - MongoDB must perform an in-memory sort after filtering, which is expensive for large streams.
-- Checkpoint sort is correct and necessary for consistency—it's the logical clock across all events.
 - Large aggregate reconstruction (many commits per stream) will hit this bottleneck directly.
 
-What needs investigation:
+Current state:
 
-- Validate index plan shape with MongoDB explain() for large and small streams.
-- Measure sort overhead (in-memory sort cost vs index-covered sort).
-- Consider extending the index to include CheckpointNumber for fully-covered sorts: `(BucketId, StreamId, StreamRevisionFrom, StreamRevisionTo, CheckpointNumber)`.
-- Benchmark before/after adding checkpoint to index.
+- Per-stream sync and async reads now sort by `StreamRevisionFrom`.
+- The existing `GetFrom_Index` supports the filter and sort shape.
+- `Issue73ExplainPlans.Commit_range_read_should_use_GetFrom_index_without_a_sort_stage` asserts index usage and no `SORT` stage.
+- Remaining work is documentation/issue closeout plus a clean after benchmark rerun.
 
-### 2. Read paths fully deserialize commits and all event payloads eagerly
+### 2. Read paths eagerly deserialize commits by design
 
-**Read-side high-impact.** Every `GetFrom*` path ends in `doc.ToCommit(_serializer)`.
+**Closed by decision.** Every `GetFrom*` path ends in `doc.ToCommit(_serializer)`.
 
 `ToCommit` currently does all of the following for every document:
 
@@ -103,22 +172,21 @@ What needs investigation:
 - Deserializes each `EventMessage` payload.
 - Materializes the event set into an array.
 
-Why this matters:
+Why this was investigated:
 
 - Global checkpoint scans pay full payload materialization cost even when the caller only needs iteration or metadata.
 - This cost grows with event count and payload size.
 - Allocation pressure will likely dominate long sequential reads (especially for large event counts per commit).
-- This is the primary bottleneck for read-heavy workloads.
 
-What needs benchmarking first:
+Decision:
 
-- Small vs large payloads.
-- Small vs large event counts per commit (1 event vs 100 events vs 1000 events per commit).
-- Global reads vs per-stream reads (to isolate the effect).
+- Attempted optimizations were too complex for the negligible gain observed.
+- Keep the current eager `ToCommit` path because it is simple and preserves the existing `ICommit` materialization behavior.
+- No further #74 optimization work is planned.
 
 ### 3. All-buckets checkpoint reads use inefficient filter
 
-**Read-side secondary.** The all-buckets checkpoint scan uses `BucketId != :rb` to exclude recycled streams.
+**Read-side secondary, workload-dependent.** The all-buckets checkpoint scan uses `BucketId != :rb` to exclude recycled streams.
 
 Why this matters:
 
@@ -135,11 +203,21 @@ MongoDB explain check on the current query shape:
 - An explicit inclusion rewrite (`BucketId in [active buckets]`) did not change the winning plan in the checked data shape; MongoDB still chose `_id_`.
 - A dedicated partial `_id` index is not a viable shortcut here because MongoDB rejects `partialFilterExpression` on `_id`.
 
-What needs benchmarking first:
+Follow-up investigation from issue comments:
 
-- Bucket-qualified vs all-buckets checkpoint reads (already in benchmark suite).
-- Index explain() plan comparison between the two approaches.
-- If this remains worth pursuing, test a query rewrite that actually changes scan order, not just the bucket predicate form.
+- The benchmark comparison is not apples-to-apples: `ReadFromAllBucketsCheckpoint` returns all active buckets, while `ReadFromBucketCheckpoint` returns only `Bucket.Default`.
+- With `ExtraBuckets=3`, all-buckets returns 4x as many commits. The 67.011 ms vs 22.142 ms result is therefore not proof of a 3x per-commit regression.
+- Rewriting `BucketId != :rb` as an `$or` split around `:rb` does not help. MongoDB still chooses `_id_`; forcing `GetFrom_Checkpoint_Index` adds `SORT + OR`.
+- A partial compound index using `{ _id: 1, BucketId: 1 }` with `partialFilterExpression: { BucketId: { $ne: ':rb' } }` is also rejected because `$ne` is unsupported in partial indexes.
+- A non-partial `{ _id: 1, BucketId: 1 }` index is legal and can reduce `totalDocsExamined` by filtering `:rb` from index keys before fetch, but it still scans the same checkpoint key range and adds write/storage cost.
+- In a recycle-bin-heavy scratch shape, MongoDB may prefer `GetFrom_Checkpoint_Index` plus an explicit `SORT` when the active bucket set is tiny. That is a workload-specific trade-off, not a safe default optimization.
+
+Current recommendation:
+
+- Put #75 in standby based on the investigation.
+- Do not change the engine for #75 based on current evidence.
+- Resume only with a dedicated benchmark for recycle-bin-heavy all-buckets polling before considering `{ _id: 1, BucketId: 1 }`.
+- Treat regular recycle-bin cleanup as the preferred operational mitigation.
 
 ### 4. Default checkpoint generation adds a database read per commit
 
@@ -222,13 +300,57 @@ The next performance pass should start by improving the benchmark harness, not t
 
 ## Recommended Investigation Order Once Benchmarks Are Healthy
 
-The next performance pass should start with **read-side optimization**, which is where the largest improvements likely exist.
+The next performance pass should focus on aggregate rebuild reads.
 
-1. Capture a real baseline (benchmark harness already ready).
-2. **Validate stream-read index strategy** with MongoDB explain() plans—confirm whether checkpoint sort requires in-memory sort and whether adding CheckpointNumber to the index would help.
-3. **Benchmark stream-read before/after** extended index (if justified by explain output).
-4. **Measure deserialization cost** for read paths—isolate allocation pressure from payloads and event counts.
-5. Only then revisit write-path optimizations (checkpoint generation and post-insert deserialization).
+1. Compare future read-heavy changes against the stabilized rebuild snapshots.
+2. If `SnapshotAssistedRebuild(10000, 1000)` remains noisy in future runs, isolate it and rerun before using its mean in a decision.
+3. Keep #75 in standby and defer #76/#78/#77 unless write throughput or all-buckets polling becomes the target again.
+
+## Rebuild Benchmark Snapshot
+
+These values are from stabilized class-defined BenchmarkDotNet jobs on 2026-06-10 using `LaunchCount=3`, `WarmupCount=3`, `IterationCount=3`, and automatic invocation counts selected by BenchmarkDotNet's pilot phase.
+
+Archived raw outputs:
+
+- `artifacts/benchmark-snapshots/benchmark-after-rebuild-readfromstream-stabilized-net10.0-20260610-1451.zip`
+- `artifacts/benchmark-snapshots/benchmark-after-rebuild-tailwindow-stabilized-net10.0-20260610-1501.zip`
+- `artifacts/benchmark-snapshots/benchmark-after-rebuild-snapshot-assisted-stabilized-net10.0-20260610-1515.zip`
+
+These stabilized runs emitted no `MinIterationTime` warnings. Historical pinned-invocation archives from the #73 pass remain useful for traceability, but future read-heavy comparisons should use the stabilized snapshots above.
+
+### Full Stream Read
+
+| Benchmark | Parameters | Mean | Allocated |
+|---|---|---:|---:|
+| `ReadFromStream` | `CommitsToWrite=100` | 3.174 ms | 699.78 KB |
+| `ReadFromStream` | `CommitsToWrite=1000` | 17.476 ms | 6,972.27 KB |
+| `ReadFromStream` | `CommitsToWrite=10000` | 205.481 ms | 69,760.60 KB |
+
+### Tail Revision Window
+
+| Total commits | Window | Mean | Allocated |
+|---:|---:|---:|---:|
+| 1,000 | 10 | 2.648 ms | 91.90 KB |
+| 1,000 | 100 | 3.800 ms | 713.21 KB |
+| 1,000 | 1,000 | 30.759 ms | 6,957.40 KB |
+| 10,000 | 10 | 12.932 ms | 91.92 KB |
+| 10,000 | 100 | 16.359 ms | 713.17 KB |
+| 10,000 | 1,000 | 31.403 ms | 6,971.67 KB |
+
+The allocation shape is the useful signal here: allocations track the returned window size, while the fixed overhead of seeking a tail window grows with larger stream size.
+
+### Snapshot-Assisted Rebuild
+
+| Total commits | Commits after snapshot | Full rebuild | Snapshot-assisted | Full alloc | Snapshot alloc |
+|---:|---:|---:|---:|---:|---:|
+| 1,000 | 10 | 14.386 ms | 3.128 ms | 6,972.37 KB | 99.10 KB |
+| 1,000 | 100 | 16.210 ms | 6.354 ms | 6,972.34 KB | 732.74 KB |
+| 1,000 | 1,000 | 18.163 ms | 18.451 ms | 6,972.40 KB | 6,973.17 KB |
+| 10,000 | 10 | 195.717 ms | 12.842 ms | 69,760.78 KB | 99.44 KB |
+| 10,000 | 100 | 204.460 ms | 13.877 ms | 69,760.78 KB | 732.74 KB |
+| 10,000 | 1,000 | 205.723 ms | 52.314 ms | 69,760.77 KB | 6,994.45 KB |
+
+Snapshot-assisted rebuilds materially reduce work when the snapshot is near the tail. For 10,000-commit streams, allocations drop from about 68 MB for full rebuilds to about 0.1 MB, 0.7 MB, or 6.8 MB depending on the number of commits after the snapshot. The `10,000 / 1,000` snapshot-assisted timing had high variance in this run (`52.314 ms` mean, `43.982 ms` stddev), but its allocation reduction is still clear.
 
 ## Artifacts From This Investigation
 
@@ -247,6 +369,7 @@ The canonical "before" snapshot is the set of these net10 report files:
 - `NEventStore.Persistence.MongoDB.Benchmark.Benchmarks.ReadFromEventStoreBenchmarks-report-github.md`
 - `NEventStore.Persistence.MongoDB.Benchmark.Benchmarks.ReadFromStreamBenchmarks-report-github.md`
 - `NEventStore.Persistence.MongoDB.Benchmark.Benchmarks.RecycleBinReadBenchmarks-report-github.md`
+- `NEventStore.Persistence.MongoDB.Benchmark.Benchmarks.SnapshotAssistedRebuildBenchmarks-report-github.md`
 - `NEventStore.Persistence.MongoDB.Benchmark.Benchmarks.SnapshotOverheadBenchmarks-report-github.md`
 - `NEventStore.Persistence.MongoDB.Benchmark.Benchmarks.StreamRevisionWindowBenchmarks-report-github.md`
 - `NEventStore.Persistence.MongoDB.Benchmark.Benchmarks.WriteToStreamAsyncBenchmarks-report-github.md`
@@ -290,13 +413,15 @@ Current findings from the issue [#73](https://github.com/NEventStore/NEventStore
 
 After implementing optimizations, run the same net10 baseline profile and fill this table using the same method/parameter rows selected from the "before" reports.
 
+Current caution: the #73 full-stream after value is cleanly captured with the stabilized benchmark job, but it does not show a wall-clock win on this machine. Use the explain-plan audit as the primary #73 correctness evidence. The tail-window after value uses the revised persistence-level benchmark shape, so it is not comparable to the older before value.
+
 | Benchmark Slice | Before Mean | After Mean | Delta % |
 |---|---:|---:|---:|
 | Checkpoint generator write path (Always, 1000 commits) | 2,908.6 ms |  |  |
 | Global read (bucket-qualified, 1000/3) | 22.142 ms |  |  |
 | Global read (all buckets, 1000/3) | 67.011 ms |  |  |
-| Per-stream full read (10000 commits) | 148.004 ms | 120.660 ms | -18.5% |
-| Per-stream revision-window read (10000, window 1000) | 17.207 ms | 14.732 ms | -14.4% |
+| Per-stream full read (10000 commits) | 148.004 ms | 205.481 ms | +38.8% |
+| Per-stream revision-window read (10000, window 1000) | 17.207 ms | 31.403 ms | Not comparable; benchmark shape changed |
 | Write path (sync, 10000 commits) | 10,489.8 ms |  |  |
 | Write path (async, 10000 commits) | 10,705.0 ms |  |  |
 | Global read (async, 10000 commits) | 120.443 ms |  |  |

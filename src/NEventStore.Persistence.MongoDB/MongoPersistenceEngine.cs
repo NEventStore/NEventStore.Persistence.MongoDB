@@ -2,9 +2,9 @@
 #pragma warning disable CA2254 // Template should be a static expression
 
 using System.Globalization;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Microsoft.Extensions.Logging;
 using NEventStore.Logging;
 using NEventStore.Persistence.MongoDB.Support;
 using NEventStore.Serialization;
@@ -559,9 +559,8 @@ namespace NEventStore.Persistence.MongoDB
                     .Find(query)
                     .Sort(SortByDescendingSnapshotRevision)
                     .Limit(1)
-                    .ToEnumerable()
-                    .Select(mc => mc.ToSnapshot(_serializer))
-                    .FirstOrDefault();
+                    .FirstOrDefault()
+                    ?.ToSnapshot(_serializer);
             });
         }
 
