@@ -1,4 +1,5 @@
-Be concise and token-efficient. Give direct answers, minimal examples, and no extra background. For code, make the smallest safe change and summarize only changes and verification.
+Be concise and token-efficient. Give direct answers, minimal examples, and no extra background.
+No sycophantic openers or closing fluff. No emojis or em-dashes.
 
 These rules apply to every task in this project unless explicitly overridden.
 Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
