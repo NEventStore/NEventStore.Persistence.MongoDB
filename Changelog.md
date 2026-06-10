@@ -1,6 +1,6 @@
 # NEventStore.Persistence.MongoDB
 
-## vNext
+## 12.1.0
 
 - Added explicit support for net8.0, net9.0, net10.0.
 - Updated NEventStore to 10.2.0
