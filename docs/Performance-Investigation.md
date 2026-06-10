@@ -27,7 +27,29 @@ This is the current state after reviewing `docs/Performance-Investigation.md`, l
 	- All-buckets checkpoint reads are not a COLLSCAN regression.
 	- MongoDB chooses `_id_`, not `GetFrom_Checkpoint_Index`.
 	- A partial `_id` index is not viable because MongoDB rejects `partialFilterExpression` on `_id`.
+- Issue [#76](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/76) is measured and on standby:
+	- `InMemoryCheckpointGenerator` is materially faster for writes.
+	- Do not change the default because the current default preserves no-hole behavior after concurrency exceptions.
+	- Treat `InMemoryCheckpointGenerator` as an explicit opt-in tuning option only.
+- Issue [#77](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/77) is investigated and on standby:
+	- The successful commit path does re-materialize the inserted BSON document via `commitDoc.ToCommit(_serializer)`.
+	- The obvious shortcut would return original `CommitAttempt` event messages instead of serializer round-tripped messages.
+	- Do not change without a dedicated microbenchmark and return-contract tests.
+- Issue [#78](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/78) is measured and on standby:
+	- Background stream-head updates did not show a clear repeatable wall-clock win.
+	- No engine change is justified from the current benchmark data.
 - Current benchmark slices cover the known hotspots: stream reads, global reads, checkpoint generator choice, snapshot/background updates, duplicate conflicts, recycle-bin reads, sync writes, and async writes.
+
+### Issue decision summary
+
+| Issue | Decision | Follow-up trigger |
+|---|---|---|
+| [#73](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/73) | Closed by decision. Keep the stream-read sort fix and explain-plan evidence. | Revisit only if a future benchmark or explain audit contradicts the current index-plan result. |
+| [#74](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/74) | Closed by decision. Keep eager `ToCommit` materialization simple. | Revisit only with a simple, clearly measurable read-path win. |
+| [#75](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/75) | Standby. Not a rebuild bottleneck and not a COLLSCAN regression. | Revisit only for recycle-bin-heavy all-buckets polling workloads. |
+| [#76](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/76) | Standby/opt-in. `InMemoryCheckpointGenerator` is faster but changes checkpoint-hole behavior. | Document or expose guidance for callers that explicitly accept holes for write throughput. |
+| [#77](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/77) | Standby. Return-path shortcut is observable and needs tighter tests. | Build a microbenchmark for `commitDoc.ToCommit(_serializer)` and return materialization contract tests. |
+| [#78](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/78) | Standby. Background stream-head update comparison is noisy and no clear win. | Revisit only if write throughput is the target and a stronger benchmark isolates this path. |
 
 ### Conflicts to resolve
 
@@ -51,7 +73,9 @@ Current implications:
 - #73 is the main completed rebuild optimization: per-stream reads now sort by `StreamRevisionFrom`, matching `GetFrom_Index` and avoiding the old checkpoint-sort plan.
 - #74 is intentionally closed: eager `ToCommit` materialization remains simple because attempted optimizations were too complex for negligible gain.
 - #75 is not a rebuild bottleneck. It affects all-buckets checkpoint polling, so it stays in standby.
-- #76 and #78 are write-path issues. Keep them behind rebuild-focused read work unless write throughput becomes the target again.
+- #76 is a write-path opt-in trade-off, not a default change: `InMemoryCheckpointGenerator` is faster but can leave checkpoint holes after concurrency exceptions.
+- #77 is a write-path standby item. It needs a dedicated microbenchmark and return-contract tests before any engine change.
+- #78 is a write-path standby item. Keep it behind rebuild-focused read work unless write throughput becomes the target again.
 
 What matters next for rebuilds:
 
@@ -67,9 +91,9 @@ What matters next for rebuilds:
 | 1 | Rebuild benchmark evidence | Done for current pass | Canonical rebuild snapshots are archived for full stream, tail-window, and snapshot-assisted rebuild reads. |
 | 2 | [#73](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/73) stream-read sort | Closed by decision | Keep the explain-plan evidence as the reason for closure. Do not claim a wall-clock benchmark win from the current data. |
 | 3 | [#75](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/75) all-buckets checkpoint scan | Standby after investigation | Not a rebuild bottleneck. Resume only if all-buckets polling with a large recycle bin becomes a target workload. |
-| 4 | [#76](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/76) checkpoint generator DB read | Open, write-path | Defer while rebuild reads are the priority. |
-| 5 | [#78](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/78) stream-head background updates | Open, write-path | Defer while rebuild reads are the priority. |
-| 6 | [#77](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/77) post-insert re-deserialization | Open, write-path | Defer unless write throughput becomes the target again. |
+| 4 | [#76](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/76) checkpoint generator DB read | Measured, write-path opt-in | Stabilized benchmark confirms `InMemoryCheckpointGenerator` is faster, but it changes checkpoint-hole behavior. Do not change the default. |
+| 5 | [#78](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/78) stream-head background updates | Measured, write-path standby | Stabilized snapshot-overhead slice is archived. No engine change yet because background on/off remains noisy and shows no clear win. |
+| 6 | [#77](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/77) post-insert re-deserialization | Investigated, write-path standby | Do not change without a dedicated microbenchmark and return-contract tests. Avoid returning the original `CommitAttempt` events unless serializer round-trip semantics are proven unnecessary. |
 
 ### Next recommended pass
 
@@ -77,6 +101,7 @@ What matters next for rebuilds:
 2. Use the archived rebuild snapshots as historical evidence for the #73 pass, not as the final stable baseline.
 3. Keep engine code simple unless a future benchmark shows a clear, repeatable rebuild win.
 4. Revisit #75/#76/#78/#77 only if the target workload changes away from rebuild reads.
+5. For write-side work, treat #76 as an opt-in tuning option, #77 as contract-sensitive standby, and #78 as measured/standby.
 
 ## Current Benchmark Status
 
@@ -221,7 +246,7 @@ Current recommendation:
 
 ### 4. Default checkpoint generation adds a database read per commit
 
-**Write-side secondary.** `MongoPersistenceEngine.Initialize()` defaults to `AlwaysQueryDbForNextValueCheckpointGenerator`.
+**Write-side opt-in trade-off.** `MongoPersistenceEngine.Initialize()` defaults to `AlwaysQueryDbForNextValueCheckpointGenerator`.
 
 That generator calls `GetLastValue()` on every `Next()` invocation, which means one extra database read for every commit before the insert even happens.
 
@@ -233,12 +258,13 @@ Why this matters:
 
 What needs benchmarking first:
 
-- Current default generator vs `InMemoryCheckpointGenerator` behavior (already in benchmark suite).
-- Confirm this is secondary to read-path overhead.
+- Completed: current default generator vs `InMemoryCheckpointGenerator` behavior is covered by `CheckpointGeneratorBenchmarks`.
+- Do not change the default generator without a breaking-change decision, because acceptance tests cover the current no-hole default after concurrency exceptions.
+- Use `InMemoryCheckpointGenerator` only as an explicit write-throughput tuning option for callers that accept checkpoint holes after concurrency conflicts.
 
 ### 5. Commit success path re-deserializes the inserted document
 
-**Write-side lower-priority.** After a successful insert, `Commit()` returns `commitDoc.ToCommit(_serializer)`.
+**Write-side standby.** After a successful insert, `Commit()` returns `commitDoc.ToCommit(_serializer)`.
 
 That means the write path serializes the commit to BSON for insert, then immediately deserializes the same BSON back to `ICommit` to return it.
 
@@ -248,9 +274,18 @@ Why this matters:
 - The cost is paid on every successful commit, but write insertion is typically not the loop bottleneck.
 - It is independent of MongoDB round-trip latency.
 
-What needs benchmarking first:
+Follow-up investigation:
 
-- Compare this cost in the context of total write-path time (it may be noise).
+- Sync and async commit paths both return `commitDoc.ToCommit(_serializer)` after successful insert.
+- The obvious shortcut is constructing `Commit` directly from `CommitAttempt` plus the generated checkpoint, but that would return the caller's event messages rather than the serializer round-tripped event messages currently produced by `ToCommit`.
+- Commit hooks receive the returned `ICommit`, so this is observable behavior, not only an internal allocation detail.
+- A stabilized full `WriteToStreamBenchmarks` run was attempted for this slice, but the 10,000-commit case exceeded the command timeout and produced no usable archive.
+
+Current recommendation:
+
+- Keep #77 in standby.
+- Do not change the runtime commit return path without a dedicated microbenchmark that isolates `commitDoc.ToCommit(_serializer)` and tests that lock down acceptable return materialization semantics.
+- If write throughput becomes the target again, prefer a narrow benchmark that compares `commitDoc.ToCommit(_serializer)` against a candidate `CommitAttempt`-based materializer before touching `MongoPersistenceEngine.Commit`.
 
 ### 6. Stream-head updates schedule background work per commit
 
@@ -304,7 +339,7 @@ The next performance pass should focus on aggregate rebuild reads.
 
 1. Compare future read-heavy changes against the stabilized rebuild snapshots.
 2. If `SnapshotAssistedRebuild(10000, 1000)` remains noisy in future runs, isolate it and rerun before using its mean in a decision.
-3. Keep #75 in standby and defer #76/#78/#77 unless write throughput or all-buckets polling becomes the target again.
+3. Keep #75 in standby, treat #76 as an opt-in write tuning option, and defer #78/#77 unless write throughput becomes the target again.
 
 ## Rebuild Benchmark Snapshot
 
@@ -351,6 +386,54 @@ The allocation shape is the useful signal here: allocations track the returned w
 | 10,000 | 1,000 | 205.723 ms | 52.314 ms | 69,760.77 KB | 6,994.45 KB |
 
 Snapshot-assisted rebuilds materially reduce work when the snapshot is near the tail. For 10,000-commit streams, allocations drop from about 68 MB for full rebuilds to about 0.1 MB, 0.7 MB, or 6.8 MB depending on the number of commits after the snapshot. The `10,000 / 1,000` snapshot-assisted timing had high variance in this run (`52.314 ms` mean, `43.982 ms` stddev), but its allocation reduction is still clear.
+
+## Write-Side Snapshot-Overhead Snapshot
+
+Issue [#78](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/78) was rechecked on 2026-06-10 with `SnapshotOverheadBenchmarks` after removing the pinned `InvocationCount=1` from the benchmark job. BenchmarkDotNet now selects invocation counts through its pilot phase for this slice too.
+
+Archived raw output:
+
+- `artifacts/benchmark-snapshots/benchmark-after-write-snapshot-overhead-stabilized-net10.0-20260610-1712.zip`
+
+| Commits | Snapshot support disabled | Background stream-head update | Mean | StdDev | Allocated |
+|---:|---|---|---:|---:|---:|
+| 100 | false | false | 206.2 ms | 47.78 ms | 22.69 MB |
+| 100 | false | true | 220.3 ms | 140.86 ms | 22.70 MB |
+| 100 | true | false | 149.2 ms | 16.86 ms | 28.16 MB |
+| 100 | true | true | 140.1 ms | 4.12 ms | 21.08 MB |
+| 1,000 | false | false | 1,724.0 ms | 362.08 ms | 110.82 MB |
+| 1,000 | false | true | 1,676.5 ms | 477.40 ms | 110.96 MB |
+| 1,000 | true | false | 1,623.6 ms | 366.49 ms | 94.77 MB |
+| 1,000 | true | true | 1,954.2 ms | 419.49 ms | 94.74 MB |
+
+Current decision:
+
+- Background stream-head updates do not show a clear repeatable wall-clock win.
+- With snapshot support enabled, 1,000-commit allocation remains about 111 MB regardless of background mode.
+- Disabling snapshot support lowers 1,000-commit allocation to about 95 MB, but that changes behavior and only applies to callers that do not need snapshots.
+- Keep #78 in standby. Do not replace the current simple per-commit background update path without a stronger write-throughput benchmark signal.
+
+## Write-Side Checkpoint-Generator Snapshot
+
+Issue [#76](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/76) was rechecked on 2026-06-10 with `CheckpointGeneratorBenchmarks` after removing the pinned `InvocationCount=1` from the benchmark job. BenchmarkDotNet now selects invocation counts through its pilot phase for this slice too.
+
+Archived raw output:
+
+- `artifacts/benchmark-snapshots/benchmark-after-write-checkpoint-generator-stabilized-net10.0-20260610-1723.zip`
+
+| Commits | Generator | Mean | StdDev | Allocated |
+|---:|---|---:|---:|---:|
+| 100 | Always | 244.3 ms | 14.29 ms | 16.88 MB |
+| 100 | InMemory | 147.7 ms | 6.87 ms | 28.24 MB |
+| 1,000 | Always | 2,506.2 ms | 238.76 ms | 110.96 MB |
+| 1,000 | InMemory | 1,322.9 ms | 274.52 ms | 95.54 MB |
+
+Current decision:
+
+- `InMemoryCheckpointGenerator` is materially faster for write throughput in this benchmark.
+- The default `AlwaysQueryDbForNextValueCheckpointGenerator` should not be changed in this pass because it preserves the current no-hole default after concurrency exceptions.
+- `InMemoryCheckpointGenerator` remains the safe performance path only as explicit caller configuration when checkpoint holes after concurrency conflicts are acceptable.
+- Keep #76 as measured/opt-in rather than a runtime engine change.
 
 ## Artifacts From This Investigation
 
