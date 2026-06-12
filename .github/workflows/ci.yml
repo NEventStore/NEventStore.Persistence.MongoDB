@@ -74,6 +74,7 @@ jobs:
   # The matrix is therefore per target framework instead of per OS.
   test-modern-tfm-linux:
     name: Test (Linux, ${{ matrix.tfm }})
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -93,8 +94,8 @@ jobs:
           - 27017:27017
         options: >-
           --health-cmd "mongosh --eval \"db.adminCommand('ping')\""
-          --health-interval 10s
-          --health-timeout 5s
+          --health-interval 20s
+          --health-timeout 10s
           --health-retries 10
 
     env:
