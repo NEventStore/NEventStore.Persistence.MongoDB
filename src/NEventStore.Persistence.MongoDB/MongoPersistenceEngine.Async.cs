@@ -20,7 +20,7 @@ namespace NEventStore.Persistence.MongoDB
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
                     Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
+                    GetStreamReadFilter(bucketId, streamId)
                 };
                 if (minRevision > 0)
                 {
@@ -489,6 +489,21 @@ namespace NEventStore.Persistence.MongoDB
 
             return TryMongoAsync<object>(async () =>
             {
+                // Recycle acknowledged commits before removing reconstructible metadata.
+                // UpdateMany is not atomic across documents; partial failures still require retry.
+                await PersistedCommits.UpdateManyAsync(
+                    Builders<BsonDocument>.Filter.And(
+                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
+                    ),
+                    Builders<BsonDocument>.Update
+                        .Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
+                        .Set(MongoCommitFields.OriginalBucketId, bucketId)
+                        .Set(MongoCommitFields.OriginalStreamId, streamId)
+                        .Set(MongoCommitFields.StreamId, Guid.NewGuid().ToString("N")),
+                    cancellationToken: cancellationToken
+                ).ConfigureAwait(false);
+
                 await PersistedStreamHeads.DeleteOneAsync(
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, new BsonDocument{
                         {MongoStreamHeadFields.BucketId, bucketId},
@@ -503,15 +518,6 @@ namespace NEventStore.Persistence.MongoDB
                         Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedStreamId, streamId)
                     ),
                     cancellationToken
-                ).ConfigureAwait(false);
-
-                await PersistedCommits.UpdateManyAsync(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
-                    ),
-                    Builders<BsonDocument>.Update.Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
-                    cancellationToken: cancellationToken
                 ).ConfigureAwait(false);
             },
             cancellationToken);

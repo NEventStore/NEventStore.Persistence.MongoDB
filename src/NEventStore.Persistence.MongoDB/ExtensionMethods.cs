@@ -90,7 +90,9 @@ namespace NEventStore.Persistence.MongoDB
             }
 
             return new Commit(mc.BucketId,
-                mc.StreamId,
+                mc.BucketId == MongoSystemBuckets.RecycleBin &&
+                    doc.TryGetValue(MongoCommitFields.OriginalStreamId, out var originalStreamId)
+                    ? originalStreamId.AsString : mc.StreamId,
                 mc.StreamRevisionTo,
                 mc.CommitId,
                 mc.CommitSequence,

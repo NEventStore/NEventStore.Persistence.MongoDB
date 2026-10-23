@@ -115,6 +115,14 @@
         /// </summary>
         public const string StreamId = "StreamId";
         /// <summary>
+        /// The original stream identifier, present on newly recycled commits only.
+        /// </summary>
+        public const string OriginalStreamId = "OriginalStreamId";
+        /// <summary>
+        /// The original bucket identifier, present on newly recycled commits only.
+        /// </summary>
+        public const string OriginalBucketId = "OriginalBucketId";
+        /// <summary>
         /// The stream revision field.
         /// </summary>
         public const string StreamRevision = "StreamRevision";
