@@ -205,6 +205,18 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        private static FilterDefinition<BsonDocument> GetStreamReadFilter(string bucketId, string streamId)
+        {
+            var filter = Builders<BsonDocument>.Filter;
+            var storedIdentity = filter.Eq(MongoCommitFields.StreamId, streamId);
+            if (bucketId != MongoSystemBuckets.RecycleBin)
+                return storedIdentity;
+
+            return filter.Or(
+                filter.Eq(MongoCommitFields.OriginalStreamId, streamId),
+                filter.And(filter.Exists(MongoCommitFields.OriginalStreamId, false), storedIdentity));
+        }
+
         /// <inheritdoc/>
         public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
@@ -215,7 +227,7 @@ namespace NEventStore.Persistence.MongoDB
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
                     Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                    Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
+                    GetStreamReadFilter(bucketId, streamId)
                 };
                 if (minRevision > 0)
                 {
@@ -650,6 +662,20 @@ namespace NEventStore.Persistence.MongoDB
 
             TryMongo(() =>
             {
+                // Recycle acknowledged commits before removing reconstructible metadata.
+                // UpdateMany is not atomic across documents; partial failures still require retry.
+                PersistedCommits.UpdateMany(
+                    Builders<BsonDocument>.Filter.And(
+                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
+                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
+                    ),
+                    Builders<BsonDocument>.Update
+                        .Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
+                        .Set(MongoCommitFields.OriginalBucketId, bucketId)
+                        .Set(MongoCommitFields.OriginalStreamId, streamId)
+                        .Set(MongoCommitFields.StreamId, Guid.NewGuid().ToString("N"))
+                );
+
                 PersistedStreamHeads.DeleteOne(
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, new BsonDocument{
                         {MongoStreamHeadFields.BucketId, bucketId},
@@ -662,14 +688,6 @@ namespace NEventStore.Persistence.MongoDB
                         Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedBucketId, bucketId),
                         Builders<BsonDocument>.Filter.Eq(MongoSnapshotFields.FullQualifiedStreamId, streamId)
                     )
-                );
-
-                PersistedCommits.UpdateMany(
-                    Builders<BsonDocument>.Filter.And(
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId),
-                        Builders<BsonDocument>.Filter.Eq(MongoCommitFields.StreamId, streamId)
-                    ),
-                    Builders<BsonDocument>.Update.Set(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
                 );
             });
         }
