@@ -15,7 +15,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsBetween(Logger, streamId, bucketId, minRevision, maxRevision);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -50,12 +50,10 @@ namespace NEventStore.Persistence.MongoDB
                         var res = await observer.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
-                            await observer.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
                             return;
                         }
                     }
                 }
-                await observer.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             },
             cancellationToken, observer);
         }
@@ -65,7 +63,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromBucketAndCheckpoint(Logger, bucketId, checkpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId);
                 if (checkpointToken > 0)
@@ -87,12 +85,10 @@ namespace NEventStore.Persistence.MongoDB
                         var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
-                            await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
                             return;
                         }
                     }
                 }
-                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             },
             cancellationToken,
             asyncObserver);
@@ -103,7 +99,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromBucketAndFromToCheckpoint(Logger, bucketId, fromCheckpointToken, toCheckpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -134,12 +130,10 @@ namespace NEventStore.Persistence.MongoDB
                         var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
-                            await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
                             return;
                         }
                     }
                 }
-                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             },
             cancellationToken,
             asyncObserver);
@@ -150,7 +144,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromCheckpoint(Logger, checkpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin);
                 if (checkpointToken > 0)
@@ -172,12 +166,10 @@ namespace NEventStore.Persistence.MongoDB
                         var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
-                            await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
                             return;
                         }
                     }
                 }
-                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             },
             cancellationToken,
             asyncObserver);
@@ -188,7 +180,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromToCheckpoint(Logger, fromCheckpointToken, toCheckpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -220,12 +212,10 @@ namespace NEventStore.Persistence.MongoDB
                         var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
-                            await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
                             return;
                         }
                     }
                 }
-                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             },
             cancellationToken,
             asyncObserver);
@@ -348,7 +338,7 @@ namespace NEventStore.Persistence.MongoDB
 
             MongoPersistenceEngineLogMessages.GettingStreamsToSnapshot(Logger);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId),
@@ -367,12 +357,10 @@ namespace NEventStore.Persistence.MongoDB
                         var res = await asyncObserver.OnNextAsync(doc.ToStreamHead(), cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
-                            await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
                             return;
                         }
                     }
                 }
-                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             },
             cancellationToken, asyncObserver);
         }
@@ -446,6 +434,10 @@ namespace NEventStore.Persistence.MongoDB
                 );
 
                 return true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception e)
             {
@@ -566,8 +558,9 @@ namespace NEventStore.Persistence.MongoDB
         /// <summary>
         /// Executes the callback within a try/catch block to handle exceptions.
         /// If an observer is provided, it will be notified of any exceptions that occur during the operation.
-        /// If an observer in provided and the operation was cancelled, the observer will be notified of the cancellation calling OnCompleteAsync.
-        /// If no observer is provided, exceptions will be raised
+        /// If an observer is provided and the operation was cancelled, its OnCompletedAsync callback will be awaited.
+        /// If no observer is provided, exceptions (including cancellation) will be raised.
+        /// Exceptions from terminal observer callbacks propagate to the caller without another notification.
         /// </summary>
         /// <param name="callbackAsync">Callback to execute</param>
         /// <param name="cancellationToken">Cancellation token</param>
@@ -599,10 +592,14 @@ namespace NEventStore.Persistence.MongoDB
                 MongoPersistenceEngineLogMessages.StorageThrewException(Logger, e);
                 exception = ExceptionDispatchInfo.Capture(new StorageException(e.Message, e));
             }
-            catch (TaskCanceledException ex)
+            catch (OperationCanceledException ex)
             {
                 MongoPersistenceEngineLogMessages.TaskWasCancelled(Logger, ex);
-                asyncObserver?.OnCompletedAsync(cancellationToken);
+                if (asyncObserver == null)
+                {
+                    throw;
+                }
+                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -619,6 +616,22 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     exception.Throw();
                 }
+            }
+        }
+
+        private async Task ObserveMongoAsync<T>(Func<Task> callbackAsync, CancellationToken cancellationToken, IAsyncObserver<T> asyncObserver)
+        {
+            bool completed = false;
+            await TryMongoAsync<T>(async () =>
+            {
+                await callbackAsync().ConfigureAwait(false);
+                completed = true;
+            }, cancellationToken, asyncObserver).ConfigureAwait(false);
+
+            // Notify outside the operation's catch block: a terminal callback must not be retried or sent to OnErrorAsync.
+            if (completed)
+            {
+                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -662,7 +675,7 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public Task GetDeletedCommitsAsync(IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 using var cursor = await PersistedCommits
                     .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
@@ -676,12 +689,10 @@ namespace NEventStore.Persistence.MongoDB
                         var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
-                            await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
                             return;
                         }
                     }
                 }
-                await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
             },
             cancellationToken,
             asyncObserver);
