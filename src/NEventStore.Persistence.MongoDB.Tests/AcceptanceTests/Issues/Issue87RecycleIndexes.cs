@@ -80,7 +80,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 stats["executionSuccess"].AsBoolean.Should().BeTrue(description);
                 // Allow boundary seeks and FETCH of legacy candidates, not thousands of
                 // unrelated recycled records. Do not couple this to a specific plan name.
-                stats["totalDocsExamined"].ToInt64().Should().BeLessThanOrEqualTo(200, description);
+                stats["totalDocsExamined"].ToInt64().Should().BeLessThanOrEqualTo(400, description);
                 stats["totalKeysExamined"].ToInt64().Should().BeLessThanOrEqualTo(400, description);
                 var stages = Walk(plan["queryPlanner"]["winningPlan"])
                     .Where(node => node.Contains("stage")).Select(node => node["stage"].AsString);

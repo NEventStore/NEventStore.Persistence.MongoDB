@@ -4,9 +4,15 @@
 
 - Fix recycle-bin identity collisions by assigning each deletion attempt a synthetic stored `StreamId` while preserving `OriginalBucketId` and `OriginalStreamId`; new reads restore the original stream identity, and legacy recycled records remain readable. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 
+- Add a nonunique, recycle-only original-stream/revision index for selective synchronous and asynchronous recycle reads; preserve existing unique indexes and legacy lookup support. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
+
 ### Breaking Changes
 
 - New recycled records use the synthetic stored `StreamId`. Older adapter binaries expose that value and cannot find these records by the original stream ID; raw readers that assume stored `StreamId` is original see the same change. Upgrade recycle-bin readers before deleting streams with the new format. Existing recycled records need no backfill. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
+
+### Migration notes
+
+- `Initialize()` now creates `GetFrom_RecycleBin_Index` on existing databases. No data backfill or old-index replacement is required, but deployments must budget index build time and disk/I/O costs and retain index-creation permission. Operators can pre-create the documented definition to move build work out of startup. See [recycle-bin rollout and indexing](docs/Recycle-Bin.md#recycle-lookup-index-and-deployment). [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 
 ## 12.1.0
 
