@@ -1,5 +1,13 @@
 # NEventStore.Persistence.MongoDB
 
+## Unreleased
+
+- Fix recycle-bin identity collisions by assigning each deletion attempt a synthetic stored `StreamId` while preserving `OriginalBucketId` and `OriginalStreamId`; new reads restore the original stream identity, and legacy recycled records remain readable. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
+
+### Breaking Changes
+
+- New recycled records use the synthetic stored `StreamId`. Older adapter binaries expose that value and cannot find these records by the original stream ID; raw readers that assume stored `StreamId` is original see the same change. Upgrade recycle-bin readers before deleting streams with the new format. Existing recycled records need no backfill. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
+
 ## 12.1.0
 
 - Added explicit support for net8.0, net9.0, net10.0.
