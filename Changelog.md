@@ -1,5 +1,13 @@
 # NEventStore.Persistence.MongoDB
 
+## Unreleased
+
+- Propagate cancellation from async operations, including snapshot writes. Observer reads still signal cancellation through `OnCompletedAsync` with the original token; terminal callbacks are now awaited, and callback outcomes reach the returned task. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
+
+### Breaking Changes
+
+- Non-observer async callers must now handle `OperationCanceledException` (including `TaskCanceledException`) from operations that previously swallowed cancellation or returned success/default values; for example, `AddSnapshotAsync` now propagates cancellation instead of returning `false`. Observer reads continue to invoke `OnCompletedAsync` with the original token on cancellation, but cancellation or failure from that callback now propagates after it is awaited, without a second terminal notification. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
+
 ## 12.1.0
 
 - Added explicit support for net8.0, net9.0, net10.0.
