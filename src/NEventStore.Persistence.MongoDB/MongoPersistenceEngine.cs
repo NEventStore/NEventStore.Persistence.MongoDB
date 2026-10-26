@@ -116,6 +116,25 @@ namespace NEventStore.Persistence.MongoDB
                     )
                 );
 
+                // Original identities can repeat across buckets and deletion attempts.
+                // Keep the existing unique stored-identity indexes for live and legacy reads.
+                PersistedCommits.Indexes.CreateOne(
+                    new CreateIndexModel<BsonDocument>(
+                        Builders<BsonDocument>.IndexKeys
+                            .Ascending(MongoCommitFields.BucketId)
+                            .Ascending(MongoCommitFields.OriginalStreamId)
+                            .Ascending(MongoCommitFields.StreamRevisionFrom)
+                            .Ascending(MongoCommitFields.StreamRevisionTo),
+                        new CreateIndexOptions<BsonDocument>()
+                        {
+                            Name = MongoCommitIndexes.GetFromRecycleBin,
+                            Unique = false,
+                            PartialFilterExpression = Builders<BsonDocument>.Filter
+                                .Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin)
+                        }
+                    )
+                );
+
                 PersistedCommits.Indexes.CreateOne(
                     new CreateIndexModel<BsonDocument>(
                         Builders<BsonDocument>.IndexKeys

@@ -37,11 +37,52 @@ does not find those new documents. Raw BSON consumers must also account for the
 new identity fields. Upgrade recycle-bin readers before creating new-format
 deleted data; this is not unrestricted mixed-version compatibility.
 
-All existing indexes and checkpoint-based cleanup remain unchanged.
+All existing unique indexes and checkpoint-based cleanup remain unchanged.
 `EmptyRecycleBin` and its async equivalent remove recycled commits older than the
 greatest stored checkpoint, retaining that checkpoint if it belongs to a recycled
-commit. Original-ID lookups now use an additional predicate; their performance
-has not been benchmarked.
+commit.
+
+## Recycle lookup index and deployment
+
+`Initialize()` adds `GetFrom_RecycleBin_Index` to `Commits`:
+
+```javascript
+{
+  key: { BucketId: 1, OriginalStreamId: 1, StreamRevisionFrom: 1, StreamRevisionTo: 1 },
+  name: "GetFrom_RecycleBin_Index",
+  unique: false,
+  partialFilterExpression: { BucketId: ":rb" }
+}
+```
+
+It supports the original-ID branch of the full recycle lookup, including
+revision filtering and ascending revision order. The legacy branch continues to
+use the existing `GetFrom_Index` on stored `StreamId`. The new index must not be
+unique: original IDs and revision ranges repeat across buckets and deletion
+attempts. No existing index is dropped, replaced or made less restrictive.
+
+For an existing database, initialization builds the additional index over
+existing recycled records without rewriting documents or backfilling identities.
+Repeated initialization with the same definition is safe. Run initialization to
+completion before serving traffic; a fresh engine is needed if initialization
+fails. For large collections, budget deployment time, disk space, memory and I/O
+for an index build, or have an operator pre-create this exact definition in a
+maintenance window. The account running `Initialize()` still needs index-creation
+permission; pre-creation moves build work out of startup. Resolve any conflicting definition under
+this new name explicitly; do not drop existing unique indexes to force startup.
+
+Only recycled documents have entries, including legacy records whose original
+ID is absent; live commits do not add entries. Recycling adds index writes and
+recycle-bin cleanup removes entries, with storage proportional to retained
+recycled data. This trades build/write/storage cost for selective original-ID
+reads. It does not isolate a bucket or deletion lifetime, remove FETCH checks for
+legacy records, or guarantee constant cost for a long requested history.
+
+Regression tests explain the actual sync/async driver queries over mixed
+legacy/new records, multiple original buckets and deletion attempts, unrelated
+live/recycled populations, and revision windows. They check result correctness,
+identity bounds, keys/documents examined and absence of blocking sorts. These
+are query-plan checks, not production latency or throughput benchmarks.
 
 ## Failure and concurrency limits
 

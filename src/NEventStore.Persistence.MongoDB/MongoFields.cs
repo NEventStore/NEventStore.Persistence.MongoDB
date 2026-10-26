@@ -190,6 +190,10 @@
         /// </summary>
         public const string GetFrom = "GetFrom_Index";
         /// <summary>
+        /// Original-stream revision reads in the recycle bin (nonunique).
+        /// </summary>
+        public const string GetFromRecycleBin = "GetFrom_RecycleBin_Index";
+        /// <summary>
         /// Logical unique key index.
         /// </summary>
         public const string LogicalKey = "LogicalKey_Index";
