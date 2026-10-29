@@ -6,9 +6,13 @@
 
 - Add a nonunique, recycle-only original-stream/revision index for selective synchronous and asynchronous recycle reads; preserve existing unique indexes and legacy lookup support. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 
+- Propagate cancellation from async operations, including snapshot writes. Observer reads still signal cancellation through `OnCompletedAsync` with the original token; terminal callbacks are now awaited, and callback outcomes reach the returned task. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
+
 ### Breaking Changes
 
 - New recycled records use the synthetic stored `StreamId`. Older adapter binaries expose that value and cannot find these records by the original stream ID; raw readers that assume stored `StreamId` is original see the same change. Upgrade recycle-bin readers before deleting streams with the new format. Existing recycled records need no backfill. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
+
+- Non-observer async callers must now handle `OperationCanceledException` (including `TaskCanceledException`) from operations that previously swallowed cancellation or returned success/default values; for example, `AddSnapshotAsync` now propagates cancellation instead of returning `false`. Observer reads continue to invoke `OnCompletedAsync` with the original token on cancellation, but cancellation or failure from that callback now propagates after it is awaited, without a second terminal notification. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Migration notes
 
