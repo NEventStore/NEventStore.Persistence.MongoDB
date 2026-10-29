@@ -564,7 +564,8 @@ namespace NEventStore.Persistence.MongoDB
         /// <summary>
         /// Executes the callback within a try/catch block to handle exceptions.
         /// If an observer is provided, it will be notified of any exceptions that occur during the operation.
-        /// If an observer is provided and the operation was cancelled, its OnCompletedAsync callback will be awaited.
+        /// If the supplied cancellation token is canceled, the observer's OnCompletedAsync callback will be awaited;
+        /// otherwise exceptions are delivered to OnErrorAsync.
         /// If no observer is provided, exceptions (including cancellation) will be raised.
         /// Exceptions from terminal observer callbacks propagate to the caller without another notification.
         /// </summary>
@@ -598,7 +599,7 @@ namespace NEventStore.Persistence.MongoDB
                 MongoPersistenceEngineLogMessages.StorageThrewException(Logger, e);
                 exception = ExceptionDispatchInfo.Capture(new StorageException(e.Message, e));
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
                 MongoPersistenceEngineLogMessages.TaskWasCancelled(Logger, ex);
                 if (asyncObserver == null)
