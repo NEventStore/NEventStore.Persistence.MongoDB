@@ -302,6 +302,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
     [TestFixture("deleted", "success")]
     [TestFixture("stream", "next-task-canceled")]
     [TestFixture("stream", "next-operation-canceled")]
+    [TestFixture("stream", "next-unrelated-task-canceled")]
+    [TestFixture("stream", "next-unrelated-operation-canceled")]
     [TestFixture("stream", "next-error")]
     [TestFixture("stream", "completion-task-canceled")]
     [TestFixture("stream", "completion-operation-canceled")]
@@ -324,6 +326,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
         private bool _pendingAtNext;
         private CancellationToken _terminalToken;
         private Exception? _reportedError;
+        private Exception? _unrelatedCancellation;
         private IAsyncObserver<ICommit> _commits = null!;
         private IAsyncObserver<IStreamHead> _heads = null!;
 
@@ -354,6 +357,25 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
                 await _nextRelease.Task.ConfigureAwait(false);
                 if (_mode == "next-task-canceled") return await Task.FromCanceled<bool>(token).ConfigureAwait(false);
                 if (_mode == "next-operation-canceled") throw new OperationCanceledException(token);
+                if (_mode == "next-unrelated-task-canceled" || _mode == "next-unrelated-operation-canceled")
+                {
+                    using var unrelatedCancellation = new CancellationTokenSource();
+                    unrelatedCancellation.Cancel();
+                    if (_mode == "next-unrelated-task-canceled")
+                    {
+                        try
+                        {
+                            return await Task.FromCanceled<bool>(unrelatedCancellation.Token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException exception)
+                        {
+                            _unrelatedCancellation = exception;
+                            throw;
+                        }
+                    }
+                    _unrelatedCancellation = new OperationCanceledException(unrelatedCancellation.Token);
+                    throw _unrelatedCancellation;
+                }
                 throw _failure;
             }
             if (_mode.StartsWith("error-callback-", StringComparison.Ordinal)) throw _failure;
@@ -398,7 +420,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
             {
                 await WaitFor(_nextEntered.Task).ConfigureAwait(false);
                 _pendingAtNext = !Operation.IsCompleted;
-                if (_mode != "next-error") Cancellation.Cancel();
+                if (_mode != "next-error" && !_mode.StartsWith("next-unrelated-", StringComparison.Ordinal)) Cancellation.Cancel();
                 _nextRelease.SetResult(true);
             }
             await WaitFor(_terminalEntered.Task).ConfigureAwait(false);
@@ -418,10 +440,17 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
         [Fact]
         public void Should_deliver_exactly_one_terminal_notification()
         {
-            bool dataError = _mode == "next-error" || _mode.StartsWith("error-callback-", StringComparison.Ordinal);
+            bool unrelatedCancellation = _mode.StartsWith("next-unrelated-", StringComparison.Ordinal);
+            bool dataError = _mode == "next-error" || unrelatedCancellation || _mode.StartsWith("error-callback-", StringComparison.Ordinal);
             _completed.Should().Be(dataError ? 0 : 1);
             _errors.Should().Be(dataError ? 1 : 0);
-            _reportedError.Should().BeSameAs(dataError ? _failure : null);
+            _reportedError.Should().BeSameAs(unrelatedCancellation ? _unrelatedCancellation : dataError ? _failure : null);
+            if (unrelatedCancellation)
+            {
+                _reportedError.Should().BeOfType(_mode == "next-unrelated-task-canceled" ? typeof(TaskCanceledException) : typeof(OperationCanceledException));
+                ((OperationCanceledException)_reportedError!).CancellationToken.Should().NotBe(Cancellation.Token);
+                Cancellation.IsCancellationRequested.Should().BeFalse();
+            }
         }
 
         [Fact]
