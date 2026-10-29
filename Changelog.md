@@ -6,6 +6,8 @@
 
 - Add a nonunique, recycle-only original-stream/revision index for selective synchronous and asynchronous recycle reads; preserve existing unique indexes and legacy lookup support. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 
+- Fix initialization races: concurrent callers share a single initialization attempt and observe its success or failure; a later call can retry a failed attempt. Same-thread recursive initialization now fails explicitly. [#85](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/85)
+
 ### Breaking Changes
 
 - New recycled records use the synthetic stored `StreamId`. Older adapter binaries expose that value and cannot find these records by the original stream ID; raw readers that assume stored `StreamId` is original see the same change. Upgrade recycle-bin readers before deleting streams with the new format. Existing recycled records need no backfill. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)

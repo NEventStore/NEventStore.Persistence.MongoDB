@@ -19,7 +19,9 @@ namespace NEventStore.Persistence.MongoDB
         private const string ConcurrencyException = "E1100";
         private static readonly ILogger Logger = LogFactory.BuildLogger(typeof(MongoPersistenceEngine));
         private readonly IDocumentSerializer _serializer;
-        private int _initialized;
+        private readonly object _initializationLock = new();
+        private Lazy<bool>? _initialization;
+        private int _initializingThreadId;
         private readonly MongoPersistenceOptions _options;
         private readonly string _systemBucketName;
         private ICheckpointGenerator? _checkpointGenerator;
@@ -79,11 +81,47 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public virtual void Initialize()
         {
-            if (Interlocked.Increment(ref _initialized) > 1)
+            Lazy<bool> initialization;
+            lock (_initializationLock)
             {
-                return;
+                if (_initializingThreadId == Environment.CurrentManagedThreadId)
+                {
+                    throw new InvalidOperationException("Recursive storage initialization is not supported.");
+                }
+                initialization = _initialization ??= new Lazy<bool>(() =>
+                {
+                    lock (_initializationLock)
+                    {
+                        _initializingThreadId = Environment.CurrentManagedThreadId;
+                    }
+                    try
+                    {
+                        InitializeStorage();
+                        lock (_initializationLock)
+                        {
+                            _initializingThreadId = 0;
+                        }
+                        return true;
+                    }
+                    catch
+                    {
+                        // Only the executing attempt may enable a retry;
+                        // its waiters retain the failed attempt.
+                        lock (_initializationLock)
+                        {
+                            _initializingThreadId = 0;
+                            _initialization = null;
+                        }
+                        throw;
+                    }
+                }, LazyThreadSafetyMode.ExecutionAndPublication);
             }
 
+            _ = initialization.Value;
+        }
+
+        private void InitializeStorage()
+        {
             MongoPersistenceEngineLogMessages.InitializingStorage(Logger);
 
             TryMongo(() =>
