@@ -24,14 +24,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.branch }}
           fetch-depth: 0
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: |
             6.0.x
@@ -40,7 +40,7 @@ jobs:
             10.0.x
 
       - name: Cache NuGet packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '.config/dotnet-tools.json') }}
@@ -72,7 +72,7 @@ jobs:
           nuget pack ./src/.nuget/NEventStore.Persistence.MongoDB.nuspec -properties "version=$semver;configuration=Release" -OutputDirectory artifacts -Symbols -SymbolPackageFormat snupkg
 
       - name: Upload NuGet artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: nuget-packages-${{ steps.gitversion.outputs.semver }}
           path: artifacts/**/*.nupkg
