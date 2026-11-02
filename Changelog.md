@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix async checkpoint reads to acquire and dispose cursors through `FindAsync`, preserving cancellation tokens, checkpoint values, duplicate-ID recovery, and recycle-bin cleanup boundaries. No public API or data-format changes; no migration is required. [#88](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/88)
+
 - Update CI and packaging actions to exact stable version tags and use MongoDB 9.0.4 in CI for the startup fix in [SERVER-131779](https://jira.mongodb.org/browse/SERVER-131779). This changes CI database coverage from MongoDB 8 to 9; the library, driver dependency, and supported-target declarations are unchanged. No library breaking changes are introduced by this workflow update.
 
 - Fix recycle-bin identity collisions by assigning each deletion attempt a synthetic stored `StreamId` while preserving `OriginalBucketId` and `OriginalStreamId`; new reads restore the original stream identity, and legacy recycled records remain readable. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
