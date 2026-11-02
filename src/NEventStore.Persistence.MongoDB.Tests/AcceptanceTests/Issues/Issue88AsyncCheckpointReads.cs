@@ -53,8 +53,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
             A.CallTo(() => _cursor.MoveNextAsync(_cancellation.Token)).ReturnsLazily(() =>
                 outcome == 3 ? Task.FromCanceled<bool>(_cancellation.Token) :
                 outcome == 4 ? Task.FromException<bool>(_failure) : Task.FromResult(outcome != 1));
-            A.CallTo(() => _collection.DeleteManyAsync(A<FilterDefinition<BsonDocument>>._, A<DeleteOptions>._, _cancellation.Token))
-                .Invokes((FilterDefinition<BsonDocument> filter, DeleteOptions options, CancellationToken token) => _deleteFilter = filter)
+            A.CallTo(() => _collection.DeleteManyAsync(A<FilterDefinition<BsonDocument>>._, _cancellation.Token))
+                .Invokes((FilterDefinition<BsonDocument> filter, CancellationToken token) => _deleteFilter = filter)
                 .Returns(Task.FromResult<DeleteResult>(new DeleteResult.Acknowledged(0)));
             var database = A.Fake<IMongoDatabase>();
             A.CallTo(() => database.GetCollection<BsonDocument>(A<string>._, A<MongoCollectionSettings>._)).Returns(_collection);
