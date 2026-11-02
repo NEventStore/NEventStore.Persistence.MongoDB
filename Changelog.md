@@ -8,7 +8,7 @@
 
 - Add a nonunique, recycle-only original-stream/revision index for selective synchronous and asynchronous recycle reads; preserve existing unique indexes and legacy lookup support. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 
-- Fix initialization races: concurrent callers share a single initialization attempt and observe its success or failure; a later call can retry a failed attempt. Same-thread recursive initialization now fails explicitly. [#85](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/85)
+- Fix initialization races: serialize initialization with a lock and retain success only after all setup completes. A waiting or later caller retries after failure; successful calls remain idempotent. Same-thread recursive initialization fails explicitly. Use `System.Threading.Lock` on .NET 9+ and an object lock on older targets. [#85](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/85)
 
 ### Breaking Changes
 
