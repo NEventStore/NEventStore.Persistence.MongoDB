@@ -85,7 +85,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
             _options.Limit.Should().Be(1);
             var registry = BsonSerializer.SerializerRegistry;
             var args = new RenderArgs<BsonDocument>(registry.GetSerializer<BsonDocument>(), registry);
-            _options.Sort.Render(args).Should().Be(new BsonDocument(MongoCommitFields.CheckpointNumber, -1));
+            _options.Sort.Render(args).Equals(new BsonDocument(MongoCommitFields.CheckpointNumber, -1)).Should().BeTrue();
             _options.Projection.Render(args).Document[MongoCommitFields.CheckpointNumber].AsInt32.Should().Be(1);
         }
 
@@ -100,11 +100,11 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
                 {
                     var registry = BsonSerializer.SerializerRegistry;
                     _deleteFilter!.Render(new RenderArgs<BsonDocument>(registry.GetSerializer<BsonDocument>(), registry))
-                        .Should().Be(new BsonDocument
+                        .Equals(new BsonDocument
                         {
                             { MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin },
                             { MongoCommitFields.CheckpointNumber, new BsonDocument("$lt", outcome == 1 ? 0L : 42L) }
-                        });
+                        }).Should().BeTrue();
                 }
             }
             else
