@@ -601,6 +601,8 @@ namespace NEventStore.Persistence.MongoDB
             }
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
+                // TaskCanceledException derives from OperationCanceledException, so no separate catch is needed.
+                // This filter handles both only when the request token is canceled; otherwise the general catch below handles them.
                 MongoPersistenceEngineLogMessages.TaskWasCancelled(Logger, ex);
                 if (asyncObserver == null)
                 {
