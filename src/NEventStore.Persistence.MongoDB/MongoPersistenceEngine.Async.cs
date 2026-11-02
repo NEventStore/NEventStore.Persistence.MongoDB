@@ -15,7 +15,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsBetween(Logger, streamId, bucketId, minRevision, maxRevision);
 
-            return ObserveMongoAsync(async () =>
+            return TryMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -55,7 +55,7 @@ namespace NEventStore.Persistence.MongoDB
                     }
                 }
             },
-            cancellationToken, observer);
+            observer, cancellationToken);
         }
 
         /// <inheritdoc/>
@@ -63,7 +63,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromBucketAndCheckpoint(Logger, bucketId, checkpointToken);
 
-            return ObserveMongoAsync(async () =>
+            return TryMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId);
                 if (checkpointToken > 0)
@@ -90,8 +90,8 @@ namespace NEventStore.Persistence.MongoDB
                     }
                 }
             },
-            cancellationToken,
-            asyncObserver);
+            asyncObserver,
+            cancellationToken);
         }
 
         /// <inheritdoc/>
@@ -99,7 +99,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromBucketAndFromToCheckpoint(Logger, bucketId, fromCheckpointToken, toCheckpointToken);
 
-            return ObserveMongoAsync(async () =>
+            return TryMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -135,8 +135,8 @@ namespace NEventStore.Persistence.MongoDB
                     }
                 }
             },
-            cancellationToken,
-            asyncObserver);
+            asyncObserver,
+            cancellationToken);
         }
 
         /// <inheritdoc/>
@@ -144,7 +144,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromCheckpoint(Logger, checkpointToken);
 
-            return ObserveMongoAsync(async () =>
+            return TryMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin);
                 if (checkpointToken > 0)
@@ -171,8 +171,8 @@ namespace NEventStore.Persistence.MongoDB
                     }
                 }
             },
-            cancellationToken,
-            asyncObserver);
+            asyncObserver,
+            cancellationToken);
         }
 
         /// <inheritdoc/>
@@ -180,7 +180,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromToCheckpoint(Logger, fromCheckpointToken, toCheckpointToken);
 
-            return ObserveMongoAsync(async () =>
+            return TryMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -217,8 +217,8 @@ namespace NEventStore.Persistence.MongoDB
                     }
                 }
             },
-            cancellationToken,
-            asyncObserver);
+            asyncObserver,
+            cancellationToken);
         }
 
         /// <inheritdoc/>
@@ -338,7 +338,7 @@ namespace NEventStore.Persistence.MongoDB
 
             MongoPersistenceEngineLogMessages.GettingStreamsToSnapshot(Logger);
 
-            return ObserveMongoAsync(async () =>
+            return TryMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId),
@@ -362,7 +362,7 @@ namespace NEventStore.Persistence.MongoDB
                     }
                 }
             },
-            cancellationToken, asyncObserver);
+            asyncObserver, cancellationToken);
         }
 
         /// <inheritdoc/>
@@ -626,7 +626,8 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
-        private async Task ObserveMongoAsync<T>(Func<Task> callbackAsync, CancellationToken cancellationToken, IAsyncObserver<T> asyncObserver)
+        // Observer reads own successful completion; keep the virtual guard's success behavior for derived engines.
+        private async Task TryMongoAsync<T>(Func<Task> callbackAsync, IAsyncObserver<T> asyncObserver, CancellationToken cancellationToken)
         {
             bool completed = false;
             await TryMongoAsync<T>(async () =>
@@ -682,7 +683,7 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public Task GetDeletedCommitsAsync(IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            return ObserveMongoAsync(async () =>
+            return TryMongoAsync(async () =>
             {
                 using var cursor = await PersistedCommits
                     .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
@@ -701,8 +702,8 @@ namespace NEventStore.Persistence.MongoDB
                     }
                 }
             },
-            cancellationToken,
-            asyncObserver);
+            asyncObserver,
+            cancellationToken);
         }
     }
 }
