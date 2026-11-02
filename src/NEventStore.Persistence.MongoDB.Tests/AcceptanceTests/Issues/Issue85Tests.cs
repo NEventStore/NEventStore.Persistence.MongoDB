@@ -35,7 +35,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             var result = new ConcurrentResult();
             _engine.BeforeInitialize = () =>
             {
-                // Only the original attempt is gated. An accidental second attempt is observable.
+                // Only the original attempt is gated; the waiting caller may retry after failure.
                 if (_engine.Attempts != 1)
                 {
                     return;
@@ -261,12 +261,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         }
 
         [Fact]
-        public void Concurrent_callers_observe_the_same_failure_and_a_later_call_retries()
+        public void A_waiting_caller_retries_failure_and_later_calls_reuse_its_success()
         {
             _result.WaiterWasBlocked.Should().BeTrue();
             _result.FirstError.Should().BeOfType<InvalidOperationException>();
-            _result.SecondError.Should().BeSameAs(_result.FirstError, "waiters must not silently retry a failed attempt");
-            _attemptsAfterFailure.Should().Be(1);
+            _result.SecondError.Should().BeNull("a waiting caller retries once the failed attempt releases the lock");
+            _attemptsAfterFailure.Should().Be(2);
             _engine.Attempts.Should().Be(2);
             AssertAllIndexesExist();
         }
@@ -298,6 +298,36 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             _result.FirstError.Should().BeNull();
             _result.SecondError.Should().BeNull();
             _engine.Attempts.Should().Be(1, "a recursive caller must not discard the outer caller's attempt");
+        }
+    }
+
+#if MSTEST
+    [TestClass]
+#endif
+    public class Issue_85_uncaught_recursive_initialization : Issue85InitializationConcern
+    {
+        private Exception? _firstError;
+
+        protected override void Context()
+        {
+            base.Context();
+            _engine.BeforeInitialize = _engine.Initialize;
+            _firstError = Catch.Exception(_engine.Initialize);
+            _engine.BeforeInitialize = null;
+        }
+
+        protected override void Because()
+        {
+            _engine.Initialize();
+            _engine.Initialize();
+        }
+
+        [Fact]
+        public void An_uncaught_recursive_failure_does_not_leave_initialization_in_progress()
+        {
+            _firstError.Should().BeOfType<InvalidOperationException>();
+            _engine.Attempts.Should().Be(2, "the recursion guard must reset after failure and success must be retained");
+            AssertAllIndexesExist();
         }
     }
 }
