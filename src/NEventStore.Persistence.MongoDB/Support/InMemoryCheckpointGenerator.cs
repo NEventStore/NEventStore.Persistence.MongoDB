@@ -60,10 +60,11 @@ namespace NEventStore.Persistence.MongoDB.Support
         /// </summary>
         protected async Task<Int64> GetLastValueAsync(CancellationToken cancellationToken)
         {
-            var max = await _collection
-               .FindSync(Filter, FindOptions, cancellationToken)
-               .FirstOrDefaultAsync(cancellationToken)
-               .ConfigureAwait(false);
+            var cursor = await _collection
+                .FindAsync(Filter, FindOptions, cancellationToken)
+                .ConfigureAwait(false);
+            // FirstOrDefaultAsync owns and disposes the cursor, including on cancellation.
+            var max = await cursor.FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 
             return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
         }

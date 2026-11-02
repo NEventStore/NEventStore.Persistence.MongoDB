@@ -656,10 +656,11 @@ namespace NEventStore.Persistence.MongoDB
                 Sort = Builders<BsonDocument>.Sort.Descending(MongoCommitFields.CheckpointNumber)
             };
 
-            var max = await PersistedCommits
-               .FindSync(filter, findOptions, cancellationToken)
-               .FirstOrDefaultAsync(cancellationToken)
-               .ConfigureAwait(false);
+            var cursor = await PersistedCommits
+                .FindAsync(filter, findOptions, cancellationToken)
+                .ConfigureAwait(false);
+            // FirstOrDefaultAsync owns and disposes the cursor, including on cancellation.
+            var max = await cursor.FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 
             return max?[MongoCommitFields.CheckpointNumber].AsInt64 ?? 0L;
         }
