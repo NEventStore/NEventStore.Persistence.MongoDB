@@ -15,7 +15,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsBetween(Logger, streamId, bucketId, minRevision, maxRevision);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -63,7 +63,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromBucketAndCheckpoint(Logger, bucketId, checkpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId);
                 if (checkpointToken > 0)
@@ -99,7 +99,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromBucketAndFromToCheckpoint(Logger, bucketId, fromCheckpointToken, toCheckpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -144,7 +144,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromCheckpoint(Logger, checkpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin);
                 if (checkpointToken > 0)
@@ -180,7 +180,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromToCheckpoint(Logger, fromCheckpointToken, toCheckpointToken);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -338,7 +338,7 @@ namespace NEventStore.Persistence.MongoDB
 
             MongoPersistenceEngineLogMessages.GettingStreamsToSnapshot(Logger);
 
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 var query = Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId),
@@ -564,8 +564,8 @@ namespace NEventStore.Persistence.MongoDB
         /// <summary>
         /// Executes the callback within a try/catch block to handle exceptions.
         /// If an observer is provided, it will be notified of any exceptions that occur during the operation.
-        /// If the supplied cancellation token is canceled, the observer's OnCompletedAsync callback will be awaited;
-        /// otherwise exceptions are delivered to OnErrorAsync.
+        /// OperationCanceledException completes the observer through an awaited OnCompletedAsync only when the request token is canceled.
+        /// Cancellation exceptions while the request token is active, and other operation errors, are delivered to OnErrorAsync.
         /// If no observer is provided, exceptions (including cancellation) will be raised.
         /// Exceptions from terminal observer callbacks propagate to the caller without another notification.
         /// </summary>
@@ -626,8 +626,10 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
-        // Observer reads own successful completion; keep the virtual guard's success behavior for derived engines.
-        private async Task TryMongoAsync<T>(Func<Task> callbackAsync, IAsyncObserver<T> asyncObserver, CancellationToken cancellationToken)
+        // Successful observer completion must run outside TryMongoAsync's guarded operation.
+        // Otherwise an OnCompletedAsync failure would be caught and sent to OnErrorAsync,
+        // notifying the observer a second time. Keep the protected virtual guard's success behavior unchanged.
+        private async Task ObserveMongoAsync<T>(Func<Task> callbackAsync, IAsyncObserver<T> asyncObserver, CancellationToken cancellationToken)
         {
             bool completed = false;
             await TryMongoAsync<T>(async () =>
@@ -636,7 +638,6 @@ namespace NEventStore.Persistence.MongoDB
                 completed = true;
             }, cancellationToken, asyncObserver).ConfigureAwait(false);
 
-            // Notify outside the operation's catch block: a terminal callback must not be retried or sent to OnErrorAsync.
             if (completed)
             {
                 await asyncObserver.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
@@ -683,7 +684,7 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public Task GetDeletedCommitsAsync(IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            return TryMongoAsync(async () =>
+            return ObserveMongoAsync(async () =>
             {
                 using var cursor = await PersistedCommits
                     .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))

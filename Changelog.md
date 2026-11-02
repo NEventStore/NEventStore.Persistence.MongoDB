@@ -10,7 +10,7 @@
 
 - Fix initialization races: serialize initialization with a lock and retain success only after all setup completes. A waiting or later caller retries after failure; successful calls remain idempotent. Same-thread recursive initialization fails explicitly. Use `System.Threading.Lock` on .NET 9+ and an object lock on older targets. [#85](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/85)
 
-- Propagate cancellation from async operations, including snapshot writes. Observer reads signal request cancellation through `OnCompletedAsync` with the original token; `OperationCanceledException` while the request token is active is reported through `OnErrorAsync`. Observer reads use a completion-aware `TryMongoAsync` overload, retaining the protected virtual guard and its existing success behavior for derived engines. Terminal callbacks are awaited, and callback outcomes reach the returned task. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
+- Propagate cancellation from async operations, including snapshot writes. Observer reads signal request cancellation through `OnCompletedAsync` with the original token; `OperationCanceledException` while the request token is active is reported through `OnErrorAsync`. Observer reads use `ObserveMongoAsync` to complete successfully outside the guarded operation, retaining the protected virtual `TryMongoAsync` guard and its existing success behavior for derived engines. Terminal callbacks are awaited, and callback outcomes reach the returned task. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Breaking Changes
 
