@@ -68,8 +68,14 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
 
         protected class CancellationEngine : MongoPersistenceEngine
         {
+            public int WrapperCalls { get; private set; }
             public CancellationEngine(IMongoDatabase database, IDocumentSerializer serializer, MongoPersistenceOptions options)
                 : base(database, serializer, options) { }
+            protected override Task TryMongoAsync<T>(Func<Task> callbackAsync, CancellationToken cancellationToken, IAsyncObserver<T>? asyncObserver = null)
+            {
+                WrapperCalls++;
+                return base.TryMongoAsync(callbackAsync, cancellationToken, asyncObserver);
+            }
             public Task Execute(Func<Task> callback, CancellationToken token, IAsyncObserver<int>? observer = null) =>
                 TryMongoAsync(callback, token, observer);
             public Task<int> ExecuteValue(Func<Task<int>> callback) => TryMongoAsync(callback);
@@ -204,10 +210,15 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
         public void Should_exercise_cancellation_at_the_requested_boundary() => _wasPending.Should().Be(_inFlight);
     }
 
+    [TestFixture(false)]
+    [TestFixture(true)]
     public class when_Issue_86_a_derived_engine_completes_its_own_callback : Issue_86_concern
     {
+        private readonly bool _completes;
         private int _completed;
         private IAsyncObserver<int> _observer = null!;
+
+        public when_Issue_86_a_derived_engine_completes_its_own_callback(bool completes) => _completes = completes;
 
         protected override void Context()
         {
@@ -219,10 +230,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
             });
         }
 
-        protected override Task BecauseAsync() => Engine.Execute(() => _observer.OnCompletedAsync(Cancellation.Token), Cancellation.Token, _observer);
+        protected override Task BecauseAsync() => Engine.Execute(() => _completes ? _observer.OnCompletedAsync(Cancellation.Token) : Task.CompletedTask, Cancellation.Token, _observer);
 
         [Fact]
-        public void Should_not_add_completion_to_the_protected_wrapper_success_path() => _completed.Should().Be(1);
+        public void Should_not_add_completion_to_the_protected_wrapper_success_path() => _completed.Should().Be(_completes ? 1 : 0);
     }
 
     [TestFixture("snapshot-read")]
@@ -304,6 +315,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
     [TestFixture("stream", "next-operation-canceled")]
     [TestFixture("stream", "next-unrelated-task-canceled")]
     [TestFixture("stream", "next-unrelated-operation-canceled")]
+    [TestFixture("stream", "next-tokenless-operation-canceled")]
+    [TestFixture("stream", "next-canceled-request-unrelated-operation-canceled")]
     [TestFixture("stream", "next-error")]
     [TestFixture("stream", "completion-task-canceled")]
     [TestFixture("stream", "completion-operation-canceled")]
@@ -357,6 +370,12 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
                 await _nextRelease.Task.ConfigureAwait(false);
                 if (_mode == "next-task-canceled") return await Task.FromCanceled<bool>(token).ConfigureAwait(false);
                 if (_mode == "next-operation-canceled") throw new OperationCanceledException(token);
+                if (_mode == "next-tokenless-operation-canceled")
+                {
+                    _unrelatedCancellation = new OperationCanceledException();
+                    throw _unrelatedCancellation;
+                }
+                if (_mode == "next-canceled-request-unrelated-operation-canceled") throw new OperationCanceledException();
                 if (_mode == "next-unrelated-task-canceled" || _mode == "next-unrelated-operation-canceled")
                 {
                     using var unrelatedCancellation = new CancellationTokenSource();
@@ -420,7 +439,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
             {
                 await WaitFor(_nextEntered.Task).ConfigureAwait(false);
                 _pendingAtNext = !Operation.IsCompleted;
-                if (_mode != "next-error" && !_mode.StartsWith("next-unrelated-", StringComparison.Ordinal)) Cancellation.Cancel();
+                if (_mode != "next-error" && _mode != "next-tokenless-operation-canceled" && !_mode.StartsWith("next-unrelated-", StringComparison.Ordinal)) Cancellation.Cancel();
                 _nextRelease.SetResult(true);
             }
             await WaitFor(_terminalEntered.Task).ConfigureAwait(false);
@@ -440,7 +459,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
         [Fact]
         public void Should_deliver_exactly_one_terminal_notification()
         {
-            bool unrelatedCancellation = _mode.StartsWith("next-unrelated-", StringComparison.Ordinal);
+            Engine.WrapperCalls.Should().Be(1, "observer reads must still dispatch through the protected virtual wrapper");
+            bool unrelatedCancellation = _mode.StartsWith("next-unrelated-", StringComparison.Ordinal) || _mode == "next-tokenless-operation-canceled";
             bool dataError = _mode == "next-error" || unrelatedCancellation || _mode.StartsWith("error-callback-", StringComparison.Ordinal);
             _completed.Should().Be(dataError ? 0 : 1);
             _errors.Should().Be(dataError ? 1 : 0);
