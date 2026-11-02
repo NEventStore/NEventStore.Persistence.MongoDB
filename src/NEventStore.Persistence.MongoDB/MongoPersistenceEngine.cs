@@ -19,9 +19,13 @@ namespace NEventStore.Persistence.MongoDB
         private const string ConcurrencyException = "E1100";
         private static readonly ILogger Logger = LogFactory.BuildLogger(typeof(MongoPersistenceEngine));
         private readonly IDocumentSerializer _serializer;
+#if NET9_0_OR_GREATER
+        private readonly System.Threading.Lock _initializationLock = new();
+#else
         private readonly object _initializationLock = new();
-        private Lazy<bool>? _initialization;
-        private int _initializingThreadId;
+#endif
+        private bool _initialized;
+        private bool _initializing;
         private readonly MongoPersistenceOptions _options;
         private readonly string _systemBucketName;
         private ICheckpointGenerator? _checkpointGenerator;
@@ -81,43 +85,28 @@ namespace NEventStore.Persistence.MongoDB
         /// <inheritdoc/>
         public virtual void Initialize()
         {
-            Lazy<bool> initialization;
             lock (_initializationLock)
             {
-                if (_initializingThreadId == Environment.CurrentManagedThreadId)
+                if (_initialized)
+                {
+                    return;
+                }
+                if (_initializing)
                 {
                     throw new InvalidOperationException("Recursive storage initialization is not supported.");
                 }
-                initialization = _initialization ??= new Lazy<bool>(() =>
-                {
-                    lock (_initializationLock)
-                    {
-                        _initializingThreadId = Environment.CurrentManagedThreadId;
-                    }
-                    try
-                    {
-                        InitializeStorage();
-                        lock (_initializationLock)
-                        {
-                            _initializingThreadId = 0;
-                        }
-                        return true;
-                    }
-                    catch
-                    {
-                        // Only the executing attempt may enable a retry;
-                        // its waiters retain the failed attempt.
-                        lock (_initializationLock)
-                        {
-                            _initializingThreadId = 0;
-                            _initialization = null;
-                        }
-                        throw;
-                    }
-                }, LazyThreadSafetyMode.ExecutionAndPublication);
-            }
 
-            _ = initialization.Value;
+                _initializing = true;
+                try
+                {
+                    InitializeStorage();
+                    _initialized = true;
+                }
+                finally
+                {
+                    _initializing = false;
+                }
+            }
         }
 
         private void InitializeStorage()
