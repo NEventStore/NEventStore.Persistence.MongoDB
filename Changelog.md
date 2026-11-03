@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep stream-head revisions monotonic when synchronous or asynchronous commit metadata writes complete out of order, while retaining every write's unsnapshotted event increment and existing snapshot revision. No API/schema breaking changes or migration are required; existing regressed metadata is not backfilled. Snapshot-update races (#90) and deletion/recreation races (#96) remain separate. See [stream-head invariants](docs/Stream-Heads.md). [#89](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/89)
+
 - Fix async checkpoint reads to acquire and dispose cursors through `FindAsync`, preserving cancellation tokens, checkpoint values, duplicate-ID recovery, and recycle-bin cleanup boundaries. No public API or data-format changes; no migration is required. [#88](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/88)
 
 - Update CI and packaging actions to exact stable version tags and use MongoDB 9.0.4 in CI for the startup fix in [SERVER-131779](https://jira.mongodb.org/browse/SERVER-131779). This changes CI database coverage from MongoDB 8 to 9; the library, driver dependency, and supported-target declarations are unchanged. No library breaking changes are introduced by this workflow update.
