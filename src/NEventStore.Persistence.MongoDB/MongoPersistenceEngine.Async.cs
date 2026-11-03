@@ -525,7 +525,8 @@ namespace NEventStore.Persistence.MongoDB
                     await PersistedStreamHeads.UpdateOneAsync(
                         Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId),
                         Builders<BsonDocument>.Update
-                            .Set(MongoStreamHeadFields.HeadRevision, streamRevision)
+                            // Completion order can differ from commit order; every write still adds its events.
+                            .Max(MongoStreamHeadFields.HeadRevision, streamRevision)
                             .Inc(MongoStreamHeadFields.SnapshotRevision, 0)
                             .Inc(MongoStreamHeadFields.Unsnapshotted, eventsCount),
                         UpsertUpdateOptions,
