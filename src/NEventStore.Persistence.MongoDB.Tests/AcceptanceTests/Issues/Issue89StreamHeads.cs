@@ -100,7 +100,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             public void Started(CommandStartedEvent command)
             {
                 if (command.CommandName != "update" || command.Command["update"] != "Streams") return;
-                var update = command.Command["updates"][0]["u"].AsBsonDocument;
+                var value = command.Command["updates"][0]["u"];
+                if (!value.IsBsonDocument) return;
+                var update = value.AsBsonDocument;
                 BsonValue revision;
                 // Accept the old $set and the fixed $max so the same test reproduces the bug.
                 if (!(update.TryGetValue("$set", out var fields) && fields.AsBsonDocument.TryGetValue(MongoStreamHeadFields.HeadRevision, out revision)) &&
@@ -200,7 +202,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         {
             _retryError.Should().BeOfType<DuplicateCommitException>();
             Gate.Writes.Should().Be(_writesBeforeRetry);
-            ReadHead().Should().Be(_afterRelease);
+            ReadHead().Equals(_afterRelease).Should().BeTrue();
             Engine.GetFrom(Bucket.Default, Stream, 0, int.MaxValue).Should().HaveCount(ExistingHead ? 3 : 2);
         }
     }
