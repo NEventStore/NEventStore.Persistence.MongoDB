@@ -410,26 +410,20 @@ namespace NEventStore.Persistence.MongoDB
                 // stream that needs to be snapshotted because the insert fails and the SnapshotRevision isn't being updated.
                 await PersistedSnapshots.UpdateOneAsync(query, update, UpsertUpdateOptions, cancellationToken).ConfigureAwait(false);
 
-                // More commits could have been made between us deciding that a snapshot is required and writing it so just
-                // resetting the Un-snapshotted count may be a little off. Adding snapshots should be a separate process so
-                // this is a good chance to make sure the numbers are still in-sync - it only adds a 'read' after all ...
+                // Retain validation of missing/invalid heads, but calculate the update from current server-side values.
                 BsonDocument streamHeadId = GetStreamHeadId(snapshot.BucketId, snapshot.StreamId);
 
                 using var cursor = await PersistedStreamHeads
                     .FindAsync(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId), cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
-                StreamHead streamHead = (await cursor.FirstAsync(cancellationToken).ConfigureAwait(false))
+                _ = (await cursor.FirstAsync(cancellationToken).ConfigureAwait(false))
                     .ToStreamHead();
-
-                int unsnapshotted = streamHead.HeadRevision - snapshot.StreamRevision;
 
                 await PersistedStreamHeads.UpdateOneAsync(
                     Builders<BsonDocument>.Filter
                         .Eq(MongoStreamHeadFields.Id, streamHeadId),
-                    Builders<BsonDocument>.Update
-                        .Set(MongoStreamHeadFields.SnapshotRevision, snapshot.StreamRevision)
-                        .Set(MongoStreamHeadFields.Unsnapshotted, unsnapshotted),
+                    CreateSnapshotMetadataUpdate(snapshot.StreamRevision),
                     cancellationToken: cancellationToken
                 );
 

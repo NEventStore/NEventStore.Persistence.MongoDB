@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Atomically advance snapshot metadata without losing concurrent or delayed commit increments. Older snapshots cannot regress the recorded snapshot revision. Preserve configured write concerns; legacy heads without an unsnapshotted counter use the current head-minus-snapshot value as a fallback. Existing incorrect counters are not repaired. [#90](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/90)
+
 - Keep stream-head revisions monotonic when synchronous or asynchronous commit metadata writes complete out of order, while retaining every write's unsnapshotted event increment and existing snapshot revision. No API/schema breaking changes or migration are required; existing regressed metadata is not backfilled. Snapshot-update races (#90) and deletion/recreation races (#96) remain separate. See [stream-head invariants](docs/Stream-Heads.md). [#89](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/89)
 
 - Fix async checkpoint reads to acquire and dispose cursors through `FindAsync`, preserving cancellation tokens, checkpoint values, duplicate-ID recovery, and recycle-bin cleanup boundaries. No public API or data-format changes; no migration is required. [#88](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/88)
@@ -17,6 +19,8 @@
 - Propagate cancellation from async operations, including snapshot writes. Observer reads signal request cancellation through `OnCompletedAsync` with the original token; `OperationCanceledException` while the request token is active is reported through `OnErrorAsync`. Observer reads use `ObserveMongoAsync` to complete successfully outside the guarded operation, retaining the protected virtual `TryMongoAsync` guard and its existing success behavior for derived engines. Terminal callbacks are awaited, and callback outcomes reach the returned task. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Breaking Changes
+
+- **MongoDB 4.2 or later is now required** for aggregation-based snapshot metadata updates. Upgrade MongoDB before upgrading this adapter. No stored-schema migration is needed; MongoDB 4.2 is the feature minimum, not a recommended production release. This change does not repair historical metadata or solve stream lifecycle races. [#90](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/90)
 
 - New recycled records use the synthetic stored `StreamId`. Older adapter binaries expose that value and cannot find these records by the original stream ID; raw readers that assume stored `StreamId` is original see the same change. Upgrade recycle-bin readers before deleting streams with the new format. Existing recycled records need no backfill. [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 

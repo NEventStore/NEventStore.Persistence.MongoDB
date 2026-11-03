@@ -9,6 +9,20 @@ NEventStore.Persistence.MongoDB currently supports:
 - .net standard 2.1
 - .net framework 4.7.2
 
+MongoDB server requirement
+===
+
+MongoDB **4.2 or later** is required. Snapshot metadata updates use aggregation update
+pipelines introduced in 4.2. This is a breaking server requirement: upgrade MongoDB
+before upgrading this adapter. Version 4.2 is the minimum feature level, not a
+recommended production release; use a supported MongoDB release.
+
+No stored-schema migration is required. The fix preserves configured write concerns
+and prevents new snapshot counter races; it does not repair previously incorrect
+counters or provide transactional snapshot/commit or stream-lifecycle guarantees.
+For legacy missing/null counters, the head-minus-snapshot fallback cannot reconstruct
+commit increments that have not yet reached the head.
+
 Build Status
 ===
 

@@ -622,6 +622,30 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        private static UpdateDefinition<BsonDocument> CreateSnapshotMetadataUpdate(int snapshotRevision)
+        {
+            var currentSnapshot = "$" + MongoStreamHeadFields.SnapshotRevision;
+            var nextSnapshot = new BsonDocument("$max", new BsonArray { currentSnapshot, snapshotRevision });
+            // Subtract only the snapshot advance: commit increments may arrive before or after this update.
+            // Recomputing from HeadRevision would count delayed commit metadata twice. Do not clamp negatives.
+            // Legacy heads without Unsnapshotted retain the previous head-minus-snapshot fallback.
+            var currentCount = new BsonDocument("$ifNull", new BsonArray
+            {
+                "$" + MongoStreamHeadFields.Unsnapshotted,
+                new BsonDocument("$subtract", new BsonArray { "$" + MongoStreamHeadFields.HeadRevision, currentSnapshot })
+            });
+            var advance = new BsonDocument("$subtract", new BsonArray { nextSnapshot, currentSnapshot });
+            PipelineDefinition<BsonDocument, BsonDocument> pipeline = new[]
+            {
+                new BsonDocument("$set", new BsonDocument
+                {
+                    { MongoStreamHeadFields.SnapshotRevision, nextSnapshot },
+                    { MongoStreamHeadFields.Unsnapshotted, new BsonDocument("$subtract", new BsonArray { currentCount, advance }) }
+                })
+            };
+            return Builders<BsonDocument>.Update.Pipeline(pipeline);
+        }
+
         /// <inheritdoc/>
         public virtual bool AddSnapshot(ISnapshot snapshot)
         {
@@ -644,22 +668,16 @@ namespace NEventStore.Persistence.MongoDB
                 // stream that needs to be snapshotted because the insert fails and the SnapshotRevision isn't being updated.
                 PersistedSnapshots.UpdateOne(query, update, UpsertUpdateOptions);
 
-                // More commits could have been made between us deciding that a snapshot is required and writing it so just
-                // resetting the Un-snapshotted count may be a little off. Adding snapshots should be a separate process so
-                // this is a good chance to make sure the numbers are still in-sync - it only adds a 'read' after all ...
+                // Retain validation of missing/invalid heads, but calculate the update from current server-side values.
                 BsonDocument streamHeadId = GetStreamHeadId(snapshot.BucketId, snapshot.StreamId);
-                StreamHead streamHead = PersistedStreamHeads.Find(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId))
+                _ = PersistedStreamHeads.Find(Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.Id, streamHeadId))
                     .First()
                     .ToStreamHead();
-
-                int unsnapshotted = streamHead.HeadRevision - snapshot.StreamRevision;
 
                 PersistedStreamHeads.UpdateOne(
                     Builders<BsonDocument>.Filter
                         .Eq(MongoStreamHeadFields.Id, streamHeadId),
-                    Builders<BsonDocument>.Update
-                        .Set(MongoStreamHeadFields.SnapshotRevision, snapshot.StreamRevision)
-                        .Set(MongoStreamHeadFields.Unsnapshotted, unsnapshotted)
+                    CreateSnapshotMetadataUpdate(snapshot.StreamRevision)
                 );
 
                 return true;

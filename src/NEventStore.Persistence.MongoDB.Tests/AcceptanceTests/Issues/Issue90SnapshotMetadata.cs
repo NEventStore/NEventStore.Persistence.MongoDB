@@ -10,6 +10,145 @@ using NUnit.Framework;
 
 namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 {
+    [TestFixture(false)]
+    [TestFixture(true)]
+    public class Issue90SnapshotAccountingContracts
+    {
+        private readonly bool _async;
+        private IMongoDatabase _database = null!;
+        private MongoPersistenceEngine _engine = null!;
+        private readonly List<BsonDocument> _metadataCommands = new();
+        private const string Bucket = "accounting";
+        private const string Stream = "delayed-metadata";
+        private IMongoCollection<BsonDocument> Heads => _database.GetCollection<BsonDocument>("Streams");
+
+        public Issue90SnapshotAccountingContracts(bool async) { _async = async; }
+
+        [SetUp]
+        public void SetUp()
+        {
+            _ = new AcceptanceTestMongoPersistenceFactory();
+            var url = new MongoUrl(AcceptanceTestMongoPersistenceFactory.GetConnectionString());
+            _database = new MongoClient(url).GetDatabase($"issue90-contract-{Guid.NewGuid():N}");
+            _engine = CreateEngine(WriteConcern.Acknowledged);
+            _engine.Initialize();
+            _engine.CommitMany(2, Stream, Bucket).ToArray();
+            _metadataCommands.Clear();
+        }
+
+        private MongoPersistenceEngine CreateEngine(WriteConcern concern)
+        {
+            var settings = MongoClientSettings.FromUrl(new MongoUrl(AcceptanceTestMongoPersistenceFactory.GetConnectionString()));
+            settings.ClusterConfigurator = cluster => cluster.Subscribe<CommandStartedEvent>(command =>
+            {
+                if (command.CommandName == "update" && command.Command["update"] == "Streams")
+                    _metadataCommands.Add(command.Command.DeepClone().AsBsonDocument);
+            });
+            return new MongoPersistenceEngine(new MongoClient(settings).GetDatabase(_database.DatabaseNamespace.DatabaseName),
+                new DocumentObjectSerializer(), new MetadataOptions(concern));
+        }
+
+        private Task<bool> Save(int revision, MongoPersistenceEngine? engine = null)
+        {
+            engine ??= _engine;
+            var snapshot = new Snapshot(Bucket, Stream, revision, "payload");
+            return _async ? engine.AddSnapshotAsync(snapshot, CancellationToken.None) : Task.FromResult(engine.AddSnapshot(snapshot));
+        }
+
+        [Test]
+        public async Task Delayed_earlier_commit_metadata_is_not_counted_twice_after_a_snapshot()
+        {
+            // Two accepted two-event commits exist. Model revision 4's metadata arriving
+            // before revision 2's: only two event increments have reached the head.
+            Heads.UpdateOne(FilterDefinition<BsonDocument>.Empty,
+                Builders<BsonDocument>.Update.Set(MongoStreamHeadFields.Unsnapshotted, 2));
+            (await Save(4)).Should().BeTrue();
+            Heads.Find(FilterDefinition<BsonDocument>.Empty).Single()[MongoStreamHeadFields.Unsnapshotted]
+                .AsInt32.Should().Be(-2, "pending increments must not be clamped or reconstructed from HeadRevision");
+
+            // This is the delayed commit-side update from #89, not a second event commit.
+            Heads.UpdateOne(FilterDefinition<BsonDocument>.Empty, Builders<BsonDocument>.Update
+                .Max(MongoStreamHeadFields.HeadRevision, 2).Inc(MongoStreamHeadFields.Unsnapshotted, 2));
+            var head = Heads.Find(FilterDefinition<BsonDocument>.Empty).Single();
+            head[MongoStreamHeadFields.HeadRevision].AsInt32.Should().Be(4);
+            head[MongoStreamHeadFields.SnapshotRevision].AsInt32.Should().Be(4);
+            head[MongoStreamHeadFields.Unsnapshotted].AsInt32.Should().Be(0);
+            _engine.GetStreamsToSnapshot(Bucket, 1).Should().BeEmpty();
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Legacy_missing_unsnapshotted_counter_is_initialized_without_a_null_result(bool nullValue)
+        {
+            (await Save(1)).Should().BeTrue();
+            Heads.UpdateOne(FilterDefinition<BsonDocument>.Empty,
+                nullValue ? Builders<BsonDocument>.Update.Set(MongoStreamHeadFields.Unsnapshotted, BsonNull.Value)
+                    : Builders<BsonDocument>.Update.Unset(MongoStreamHeadFields.Unsnapshotted));
+            (await Save(2)).Should().BeTrue();
+            var head = Heads.Find(FilterDefinition<BsonDocument>.Empty).Single();
+            head[MongoStreamHeadFields.SnapshotRevision].AsInt32.Should().Be(2);
+            head[MongoStreamHeadFields.Unsnapshotted].AsInt32.Should().Be(2);
+            _engine.GetStreamsToSnapshot(Bucket, 2).Should().ContainSingle();
+            _engine.GetStreamsToSnapshot(Bucket, 3).Should().BeEmpty();
+        }
+
+        [TestCase("head")]
+        [TestCase("revision")]
+        [TestCase("snapshot")]
+        public async Task Missing_head_or_required_revision_fields_still_return_false(string missing)
+        {
+            if (missing == "head") Heads.DeleteMany(FilterDefinition<BsonDocument>.Empty);
+            else Heads.UpdateOne(FilterDefinition<BsonDocument>.Empty,
+                Builders<BsonDocument>.Update.Unset(missing == "revision"
+                    ? MongoStreamHeadFields.HeadRevision : MongoStreamHeadFields.SnapshotRevision));
+            (await Save(2)).Should().BeFalse();
+            _metadataCommands.Should().BeEmpty("validation must fail before a metadata update is sent");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Snapshot_metadata_retains_the_configured_write_concern(bool majority)
+        {
+            using var engine = CreateEngine(majority ? WriteConcern.WMajority : WriteConcern.Unacknowledged);
+            engine.Initialize();
+            _metadataCommands.Clear();
+            (await Save(2, engine)).Should().BeTrue();
+            _metadataCommands.Should().ContainSingle();
+            var concern = _metadataCommands.Single()["writeConcern"]["w"];
+            if (majority) concern.AsString.Should().Be("majority");
+            else concern.AsInt32.Should().Be(0);
+        }
+
+        [Test]
+        public async Task Already_canceled_async_snapshot_does_not_mutate_metadata()
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            Func<Task> save = () => _engine.AddSnapshotAsync(
+                new Snapshot(Bucket, Stream, 2, "payload"), cancellation.Token);
+            await save.Should().ThrowAsync<OperationCanceledException>();
+            _metadataCommands.Should().BeEmpty();
+            Heads.Find(FilterDefinition<BsonDocument>.Empty).Single()[MongoStreamHeadFields.SnapshotRevision]
+                .AsInt32.Should().Be(0);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _engine?.Dispose();
+            if (_database != null) _database.Client.DropDatabase(_database.DatabaseNamespace.DatabaseName);
+        }
+
+        private sealed class MetadataOptions : MongoPersistenceOptions
+        {
+            private readonly WriteConcern _concern;
+            public MetadataOptions(WriteConcern concern)
+            { _concern = concern; PersistStreamHeadsOnBackgroundThread = false; }
+            public override MongoCollectionSettings GetStreamSettings() => new() { WriteConcern = _concern };
+            public override MongoCollectionSettings GetSnapshotSettings() => new() { WriteConcern = WriteConcern.Acknowledged };
+        }
+    }
+
     [TestFixture(false, 0)]
     [TestFixture(true, 0)]
     [TestFixture(false, 1)]
