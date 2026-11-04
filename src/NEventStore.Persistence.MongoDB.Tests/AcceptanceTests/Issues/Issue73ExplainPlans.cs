@@ -22,7 +22,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
 
         public int Returned { get; set; }
 
-        public bool UsesBuiltinIdIndex => Indexes.Contains("_id_");
+        // MongoDB 4.2-7 can use the IDHACK fast path without an indexName.
+        // Named index access also handles classic, SBE and newer EXPRESS plans.
+        public bool UsesBuiltinIdIndex => Indexes.Contains("_id_") || Stages.Contains("IDHACK");
 
         public static ExplainPlanResult From(BsonDocument explain)
         {
@@ -160,13 +162,9 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                         [MongoSnapshotFields.FullQualifiedBucketId] = "default",
                         [MongoSnapshotFields.FullQualifiedStreamId] = "stream-1"
                     }),
-                ["deleteStreamHeadById"] = ExplainFind(
-                    _streamHeads!,
-                    new BsonDocument(MongoStreamHeadFields.Id, new BsonDocument
-                    {
-                        [MongoStreamHeadFields.BucketId] = "default",
-                        [MongoStreamHeadFields.StreamId] = "stream-1"
-                    })),
+                ["deleteStreamHeadById"] = ExplainFind(_streamHeads!, StreamHeadIdFilter()),
+                ["deleteStreamHeadByIdWithoutIndex"] = ExplainFind(
+                    _streamHeads!, StreamHeadIdFilter(), hint: new BsonDocument("$natural", 1)),
                 ["purgeBucketSnapshotsFilter"] = ExplainFind(
                     _snapshots!,
                     new BsonDocument(MongoSnapshotFields.FullQualifiedBucketId, "default")),
@@ -228,7 +226,29 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         [Fact]
         public void Stream_head_delete_by_id_should_use_the_builtin_id_index()
         {
-            _plans!["deleteStreamHeadById"].UsesBuiltinIdIndex.Should().BeTrue();
+            using var indexes = _streamHeads!.Indexes.List();
+            indexes.ToList().Should().Contain(index => index["name"] == "_id_" &&
+                index["key"].AsBsonDocument.Equals(new BsonDocument(MongoStreamHeadFields.Id, 1)));
+
+            var plan = _plans!["deleteStreamHeadById"];
+            plan.UsesBuiltinIdIndex.Should().BeTrue("an exact embedded-_id lookup must use the built-in index");
+            plan.Stages.Should().NotContain("COLLSCAN");
+            plan.Returned.Should().Be(1);
+            plan.TotalKeysExamined.Should().Be(1);
+            plan.TotalDocsExamined.Should().Be(1);
+        }
+
+        [Fact]
+        public void Forced_collection_scan_must_not_qualify_as_id_index_access()
+        {
+            // The same query and data with a natural hint prove the check detects
+            // lost index use, even while the built-in index still exists.
+            var plan = _plans!["deleteStreamHeadByIdWithoutIndex"];
+            plan.UsesBuiltinIdIndex.Should().BeFalse();
+            plan.Stages.Should().Contain("COLLSCAN");
+            plan.Returned.Should().Be(1);
+            plan.TotalKeysExamined.Should().Be(0);
+            plan.TotalDocsExamined.Should().Be(3);
         }
 
         [Fact]
@@ -322,11 +342,18 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             };
         }
 
+        private static BsonDocument StreamHeadIdFilter() => new(MongoStreamHeadFields.Id, new BsonDocument
+        {
+            [MongoStreamHeadFields.BucketId] = "default",
+            [MongoStreamHeadFields.StreamId] = "stream-1"
+        });
+
         private ExplainPlanResult ExplainFind(
             IMongoCollection<BsonDocument> collection,
             BsonDocument filter,
             BsonDocument? sort = null,
-            int? limit = null)
+            int? limit = null,
+            BsonDocument? hint = null)
         {
             var explainCommand = new BsonDocument
             {
@@ -348,9 +375,13 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
                 explainCommand["explain"].AsBsonDocument["limit"] = limit.Value;
             }
 
+            if (hint != null)
+            {
+                explainCommand["explain"].AsBsonDocument["hint"] = hint;
+            }
+
             var explain = collection.Database.RunCommand<BsonDocument>(explainCommand);
             return ExplainPlanResult.From(explain);
         }
-
     }
 }

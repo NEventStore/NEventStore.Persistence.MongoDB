@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Make exact-ID explain assertions accept MongoDB IDHACK as well as named index plans, while verifying the built-in index, bounded examined work and absence of collection scans. Add plan-layout regression coverage and a forced-scan negative control. Test-only change; no API, schema or MongoDB minimum-version change and no migration required. [#94](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/94)
+
 - Atomically advance snapshot metadata without losing concurrent or delayed commit increments. Older snapshots cannot regress the recorded snapshot revision. Preserve configured write concerns; legacy heads without an unsnapshotted counter use the current head-minus-snapshot value as a fallback. Existing incorrect counters are not repaired. [#90](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/90)
 
 - Keep stream-head revisions monotonic when synchronous or asynchronous commit metadata writes complete out of order, while retaining every write's unsnapshotted event increment and existing snapshot revision. No API/schema breaking changes or migration are required; existing regressed metadata is not backfilled. Snapshot-update races (#90) and deletion/recreation races (#96) remain separate. See [stream-head invariants](docs/Stream-Heads.md). [#89](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/89)
