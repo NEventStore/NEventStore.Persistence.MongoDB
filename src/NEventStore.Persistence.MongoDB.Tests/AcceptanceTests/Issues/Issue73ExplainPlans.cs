@@ -19,6 +19,55 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         public int TotalKeysExamined { get; set; }
 
         public int TotalDocsExamined { get; set; }
+
+        public int Returned { get; set; }
+
+        public bool UsesBuiltinIdIndex => Indexes.Contains("_id_");
+
+        public static ExplainPlanResult From(BsonDocument explain)
+        {
+            var result = new ExplainPlanResult();
+            WalkPlan(explain["queryPlanner"]["winningPlan"], result);
+            var executionStats = explain["executionStats"].AsBsonDocument;
+            result.TotalKeysExamined = executionStats["totalKeysExamined"].ToInt32();
+            result.TotalDocsExamined = executionStats["totalDocsExamined"].ToInt32();
+            result.Returned = executionStats["nReturned"].ToInt32();
+            return result;
+        }
+
+        private static void WalkPlan(BsonValue value, ExplainPlanResult result)
+        {
+            if (!value.IsBsonDocument)
+            {
+                return;
+            }
+
+            var document = value.AsBsonDocument;
+            if (document.TryGetValue("stage", out BsonValue? stageValue))
+            {
+                result.Stages.Add(stageValue.AsString);
+            }
+
+            if (document.TryGetValue("indexName", out BsonValue? indexNameValue))
+            {
+                result.Indexes.Add(indexNameValue.AsString);
+            }
+
+            foreach (BsonElement element in document.Elements)
+            {
+                if (element.Value.IsBsonDocument)
+                {
+                    WalkPlan(element.Value, result);
+                }
+                else if (element.Value.IsBsonArray)
+                {
+                    foreach (BsonValue arrayItem in element.Value.AsBsonArray)
+                    {
+                        WalkPlan(arrayItem, result);
+                    }
+                }
+            }
+        }
     }
 
 #if MSTEST
@@ -179,7 +228,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         [Fact]
         public void Stream_head_delete_by_id_should_use_the_builtin_id_index()
         {
-            _plans!["deleteStreamHeadById"].Indexes.Should().Contain("_id_");
+            _plans!["deleteStreamHeadById"].UsesBuiltinIdIndex.Should().BeTrue();
         }
 
         [Fact]
@@ -300,47 +349,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             }
 
             var explain = collection.Database.RunCommand<BsonDocument>(explainCommand);
-            var result = new ExplainPlanResult();
-            WalkPlan(explain["queryPlanner"]["winningPlan"], result);
-
-            var executionStats = explain["executionStats"].AsBsonDocument;
-            result.TotalKeysExamined = executionStats["totalKeysExamined"].ToInt32();
-            result.TotalDocsExamined = executionStats["totalDocsExamined"].ToInt32();
-            return result;
+            return ExplainPlanResult.From(explain);
         }
 
-        private static void WalkPlan(BsonValue value, ExplainPlanResult result)
-        {
-            if (!value.IsBsonDocument)
-            {
-                return;
-            }
-
-            var document = value.AsBsonDocument;
-            if (document.TryGetValue("stage", out BsonValue? stageValue))
-            {
-                result.Stages.Add(stageValue.AsString);
-            }
-
-            if (document.TryGetValue("indexName", out BsonValue? indexNameValue))
-            {
-                result.Indexes.Add(indexNameValue.AsString);
-            }
-
-            foreach (BsonElement element in document.Elements)
-            {
-                if (element.Value.IsBsonDocument)
-                {
-                    WalkPlan(element.Value, result);
-                }
-                else if (element.Value.IsBsonArray)
-                {
-                    foreach (BsonValue arrayItem in element.Value.AsBsonArray)
-                    {
-                        WalkPlan(arrayItem, result);
-                    }
-                }
-            }
-        }
     }
 }
