@@ -69,17 +69,35 @@ jobs:
       - name: Build solution
         run: dotnet build ./src/NEventStore.Persistence.MongoDB.Core.sln -c Release --no-restore /p:ContinuousIntegrationBuild=True
 
+      - name: Test dependency verification guards
+        shell: pwsh
+        run: ./scripts/test-verify-driver-dependencies.ps1
+
+      - name: Verify production and default test restore
+        shell: pwsh
+        run: ./scripts/verify-driver-dependencies.ps1 -TestDriverVersion '3.13.0'
+
+      - name: Pack and verify published dependency contract
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          nuget pack ./src/.nuget/NEventStore.Persistence.MongoDB.nuspec -properties "version=${{ steps.gitversion.outputs.semver }};configuration=Release" -OutputDirectory artifacts
+          if ($LASTEXITCODE -ne 0) { throw 'NuGet pack failed.' }
+          $package = Get-ChildItem artifacts -Filter '*.nupkg' | Select-Object -First 1
+          ./scripts/verify-driver-dependencies.ps1 -PackagePath $package.FullName -RestoreConsumer
+
   # Tests run on Linux because this repository needs a live MongoDB instance and
   # GitHub Actions service containers are only available on Linux runners.
-  # The matrix is therefore per target framework instead of per OS.
+  # Each framework/driver pair restores and builds in a separate job.
   test-modern-tfm-linux:
-    name: Test (Linux, ${{ matrix.tfm }})
+    name: Test (Linux, ${{ matrix.tfm }}, Driver ${{ matrix.driver }})
     needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # Run each modern TFM independently so failures are isolated and easy to read.
+        # Pin both lanes; update the current 3.x pin in reviewed changes.
+        driver: ["3.0.0", "3.13.0"]
         tfm:
           - net8.0
           - net9.0
@@ -89,7 +107,8 @@ jobs:
       # The test project reads NEventStore.MongoDB from the environment and expects
       # a real MongoDB server. This sidecar provides that dependency for each matrix leg.
       mongodb:
-        image: mongo:9.0.4
+        # MongoDB 8 is supported by both driver lanes; keep the server constant.
+        image: mongo:8.0.34
         ports:
           - 27017:27017
         options: >-
@@ -127,15 +146,22 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      - name: Run tests for ${{ matrix.tfm }}
-        # Only the test project is executed here. It pulls in the production project and
-        # linked acceptance coverage from the NEventStore submodule.
-        run: dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f ${{ matrix.tfm }} --logger "trx;LogFileName=test-results-${{ matrix.tfm }}.trx"
+      - name: Restore selected test driver
+        run: dotnet restore ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -p:MongoDbDriverTestVersion=${{ matrix.driver }}
+
+      - name: Verify restored driver and BSON versions
+        shell: pwsh
+        run: ./scripts/verify-driver-dependencies.ps1 -TestDriverVersion '${{ matrix.driver }}'
+
+      - name: Run tests for ${{ matrix.tfm }} with Driver ${{ matrix.driver }}
+        # Both driver lanes execute the same complete acceptance and regression suite.
+        run: dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f ${{ matrix.tfm }} --no-restore -p:MongoDbDriverTestVersion=${{ matrix.driver }} --logger "trx;LogFileName=test-results-${{ matrix.tfm }}-${{ matrix.driver }}.trx"
 
       - name: Upload test results
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: test-results-${{ matrix.tfm }}
-          path: "**/test-results-${{ matrix.tfm }}.trx"
+          name: test-results-${{ matrix.tfm }}-${{ matrix.driver }}
+          path: "**/test-results-${{ matrix.tfm }}-${{ matrix.driver }}.trx"
           if-no-files-found: error
           retention-days: 14

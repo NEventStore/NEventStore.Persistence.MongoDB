@@ -7,6 +7,8 @@
     <RootNamespace>NEventStore.Persistence.MongoDB.Tests</RootNamespace>
     <TestTfmsInParallel>false</TestTfmsInParallel>
     <IsTestProject>true</IsTestProject>
+    <!-- Test-only override. Keep the production project and published range unchanged. -->
+    <MongoDbDriverTestVersion Condition="'$(MongoDbDriverTestVersion)' == ''">3.13.0</MongoDbDriverTestVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -22,7 +24,7 @@
     <PackageReference Include="FakeItEasy" Version="9.0.1" />
     <PackageReference Include="FluentAssertions" Version="8.10.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
-    <PackageReference Include="MongoDB.Driver" Version="3.9.0" />
+    <PackageReference Include="MongoDB.Driver" Version="[$(MongoDbDriverTestVersion)]" />
     <PackageReference Include="MSTest.TestAdapter" Version="4.2.3" />
     <PackageReference Include="MSTest.TestFramework" Version="4.2.3" />
     <PackageReference Include="NUnit" Version="4.6.1" />
