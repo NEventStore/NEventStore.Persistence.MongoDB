@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Run the same acceptance and regression suite with pinned MongoDB.Driver 3.0.0 and 3.13.0 test dependencies in isolated CI jobs on MongoDB 8.0.34. Verify restored Driver/BSON versions and the packed dependency contract across supported frameworks. Production dependencies and the published `[3.0.0,4.0.0)` range are unchanged; no API, schema or migration change. [#93](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/93)
+- Run the same acceptance and regression suite with pinned MongoDB.Driver 3.0.0 and 3.13.0 test dependencies in isolated CI jobs on MongoDB 7.0.45, retaining a net10.0/current-driver lane on MongoDB 9.0.4. Verify restored Driver/BSON versions and the packed dependency contract across supported frameworks. Production dependencies and the published `[3.0.0,4.0.0)` range are unchanged; no API, schema or migration change. [#93](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/93)
 
 - Guard recycle-bin checkpoint reads and deletion together in synchronous and asynchronous cleanup. Disposed engines fail before collection access, failed reads never reach deletion, and acquired cursors are disposed. Preserve async cancellation, query shape and the strict checkpoint cutoff. No public API, stored-schema or MongoDB minimum-version change; no data migration required. [#107](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/107)
 
