@@ -90,7 +90,7 @@ jobs:
   # GitHub Actions service containers are only available on Linux runners.
   # Each framework/driver pair restores and builds in a separate job.
   test-modern-tfm-linux:
-    name: Test (Linux, ${{ matrix.tfm }}, Driver ${{ matrix.driver }})
+    name: Test (Linux, ${{ matrix.tfm }}, Driver ${{ matrix.driver }}, MongoDB ${{ matrix.mongodb }})
     needs: build
     runs-on: ubuntu-latest
     strategy:
@@ -98,17 +98,24 @@ jobs:
       matrix:
         # Pin both lanes; update the current 3.x pin in reviewed changes.
         driver: ["3.0.0", "3.13.0"]
+        mongodb: ["7.0.45"]
         tfm:
           - net8.0
           - net9.0
           - net10.0
+        include:
+          # Retain current-server coverage with the current driver only.
+          - tfm: net10.0
+            driver: "3.13.0"
+            mongodb: "9.0.4"
 
     services:
       # The test project reads NEventStore.MongoDB from the environment and expects
       # a real MongoDB server. This sidecar provides that dependency for each matrix leg.
       mongodb:
-        # MongoDB 8 is supported by both driver lanes; keep the server constant.
-        image: mongo:8.0.34
+        # MongoDB 7 supports both lanes and avoids the MongoDB 8/Linux 6.19
+        # startup incompatibility: https://jira.mongodb.org/browse/SERVER-121912
+        image: mongo:${{ matrix.mongodb }}
         ports:
           - 27017:27017
         options: >-
@@ -155,13 +162,13 @@ jobs:
 
       - name: Run tests for ${{ matrix.tfm }} with Driver ${{ matrix.driver }}
         # Both driver lanes execute the same complete acceptance and regression suite.
-        run: dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f ${{ matrix.tfm }} --no-restore -p:MongoDbDriverTestVersion=${{ matrix.driver }} --logger "trx;LogFileName=test-results-${{ matrix.tfm }}-${{ matrix.driver }}.trx"
+        run: dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f ${{ matrix.tfm }} --no-restore -p:MongoDbDriverTestVersion=${{ matrix.driver }} --logger "trx;LogFileName=test-results-${{ matrix.tfm }}-${{ matrix.driver }}-${{ matrix.mongodb }}.trx"
 
       - name: Upload test results
         if: ${{ always() }}
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: test-results-${{ matrix.tfm }}-${{ matrix.driver }}
-          path: "**/test-results-${{ matrix.tfm }}-${{ matrix.driver }}.trx"
+          name: test-results-${{ matrix.tfm }}-${{ matrix.driver }}-${{ matrix.mongodb }}
+          path: "**/test-results-${{ matrix.tfm }}-${{ matrix.driver }}-${{ matrix.mongodb }}.trx"
           if-no-files-found: error
           retention-days: 14
