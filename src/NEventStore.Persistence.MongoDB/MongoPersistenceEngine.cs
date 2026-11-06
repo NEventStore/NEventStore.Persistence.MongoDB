@@ -877,9 +877,9 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public void EmptyRecycleBin()
         {
-            var lastCheckpointNumber = GetLastCommittedCheckPointNumber();
             TryMongo(() =>
             {
+                var lastCheckpointNumber = GetLastCommittedCheckPointNumber();
                 PersistedCommits.DeleteMany(Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
                     Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CheckpointNumber, lastCheckpointNumber)

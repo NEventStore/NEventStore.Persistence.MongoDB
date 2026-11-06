@@ -665,13 +665,13 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public async Task EmptyRecycleBinAsync(CancellationToken cancellationToken)
         {
-            var lastCheckpointNumber = await GetLastCommittedCheckPointNumberAsync(cancellationToken).ConfigureAwait(false);
-            await TryMongoAsync<object>(() =>
+            await TryMongoAsync<object>(async () =>
             {
-                return PersistedCommits.DeleteManyAsync(Builders<BsonDocument>.Filter.And(
+                var lastCheckpointNumber = await GetLastCommittedCheckPointNumberAsync(cancellationToken).ConfigureAwait(false);
+                await PersistedCommits.DeleteManyAsync(Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin),
                     Builders<BsonDocument>.Filter.Lt(MongoCommitFields.CheckpointNumber, lastCheckpointNumber)
-                ), cancellationToken);
+                ), cancellationToken).ConfigureAwait(false);
             },
             cancellationToken,
             asyncObserver: null);
