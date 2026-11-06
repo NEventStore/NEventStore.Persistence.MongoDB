@@ -66,6 +66,29 @@ To build the project locally on a Windows Machine:
   NEventStore.MongoDB="mongodb://localhost:50002/NEventStore"
   ```
 
+### MongoDB driver coverage
+
+The production reference stays at MongoDB.Driver 3.0.0 and the published range stays
+`[3.0.0,4.0.0)`. Only the test project accepts `MongoDbDriverTestVersion`; its default
+is the pinned current stable 3.x release, 3.13.0. CI runs the same full suite for
+3.0.0 and 3.13.0 on net8.0, net9.0 and net10.0 in separate jobs with MongoDB 8.0.34.
+.NET Framework 4.7.2 is compiled but not executed. This matrix does not establish
+compatibility with every MongoDB server or every intervening driver release.
+
+Run either lane locally (do not reuse `--no-restore` or `--no-build` outputs when
+switching versions):
+
+```powershell
+dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f net8.0 -p:MongoDbDriverTestVersion=3.0.0
+dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f net8.0 -p:MongoDbDriverTestVersion=3.13.0
+```
+
+When a new stable 3.x driver is released, update the test-project default and the
+CI current-lane/verification pins together, then review both lanes' results. Keep
+the baseline and production package contract unchanged. Do not use floating versions.
+CI checks the resolved Driver and BSON packages for every target and verifies the
+packed package's dependency ranges and consumer restore without publishing it.
+
 ## Run Benchmarks (locally)
 
 - Build benchmark project:
