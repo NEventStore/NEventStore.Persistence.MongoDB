@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Guard recycle-bin checkpoint reads and deletion together in synchronous and asynchronous cleanup. Disposed engines fail before collection access, failed reads never reach deletion, and acquired cursors are disposed. Preserve async cancellation, query shape and the strict checkpoint cutoff. No public API, stored-schema or MongoDB minimum-version change; no data migration required. [#107](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/107)
+
 - Translate MongoDB driver failures from all nine lazy synchronous reads at cursor acquisition and subsequent batches, preserving streaming, cursor disposal, and serializer exception identity. Async reads, public signatures, stored data, CI, and the MongoDB 4.2 minimum are unchanged. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
 
 - Make exact-ID explain assertions accept MongoDB IDHACK as well as named index plans, while verifying the built-in index, bounded examined work and absence of collection scans. Add plan-layout regression coverage and a forced-scan negative control. Test-only change; no API, schema or MongoDB minimum-version change and no migration required. [#94](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/94)
@@ -23,6 +25,8 @@
 - Propagate cancellation from async operations, including snapshot writes. Observer reads signal request cancellation through `OnCompletedAsync` with the original token; `OperationCanceledException` while the request token is active is reported through `OnErrorAsync`. Observer reads use `ObserveMongoAsync` to complete successfully outside the guarded operation, retaining the protected virtual `TryMongoAsync` guard and its existing success behavior for derived engines. Terminal callbacks are awaited, and callback outcomes reach the returned task. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Breaking Changes
+
+- `EmptyRecycleBin()` and `EmptyRecycleBinAsync(...)` now translate checkpoint-read driver failures to `StorageException` or `StorageUnavailableException` (for `MongoConnectionException`), retaining the original inner exception. Consumers catching raw driver exceptions must handle the persistence exceptions instead. The existing protected virtual guard is still invoked once, but its callback now includes checkpoint acquisition and iteration before deletion. Non-driver exceptions and cancellation retain their identity. [#107](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/107)
 
 - Synchronous reads reuse one cursor `MoveNext` callback per enumeration. Both protected virtual `TryMongo` overloads are still called for cursor acquisition and every batch attempt, including completion. Source and binary APIs are unchanged, but overrides that inspect callback reference identity now observe the same callback within an enumeration. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
 
