@@ -24,6 +24,8 @@
 
 ### Breaking Changes
 
+- Synchronous reads reuse one cursor `MoveNext` callback per enumeration. Both protected virtual `TryMongo` overloads are still called for cursor acquisition and every batch attempt, including completion. Source and binary APIs are unchanged, but overrides that inspect callback reference identity now observe the same callback within an enumeration. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
+
 - Synchronous enumeration now reports driver failures as `StorageException` or `StorageUnavailableException` (for `MongoConnectionException`), rather than leaking raw driver exceptions. Consumers that caught driver exceptions from iteration must handle the persistence exceptions instead. Keep the persistence engine alive until enumeration finishes; deferred driver calls now enforce its existing disposed-engine guard. Serializer errors remain unchanged. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
 
 - **MongoDB 4.2 or later is now required** for aggregation-based snapshot metadata updates. Upgrade MongoDB before upgrading this adapter. No stored-schema migration is needed; MongoDB 4.2 is the feature minimum, not a recommended production release. This change does not repair historical metadata or solve stream lifecycle races. [#90](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/90)

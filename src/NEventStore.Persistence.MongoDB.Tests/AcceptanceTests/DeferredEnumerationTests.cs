@@ -250,6 +250,62 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         protected override void Cleanup() => _probe.Engine.Dispose();
     }
 
+    [TestFixtureSource(nameof(Cases))]
+    public class when_synchronous_reads_use_virtual_guards : SpecificationBase
+    {
+        public static IEnumerable<object[]> Cases =>
+            Enumerable.Range(0, EnumerationProbe.ReadCount).Select(path => new object[] { path });
+
+        private readonly int _path;
+        private EnumerationProbe _probe = null!;
+        private int _callsBeforeEnumeration;
+
+        public when_synchronous_reads_use_virtual_guards(int path) => _path = path;
+
+        protected override void Context() => _probe = new EnumerationProbe(_path);
+
+        protected override void Because()
+        {
+            var result = _probe.Read();
+            _callsBeforeEnumeration = _probe.GuardCalls.Count;
+            _probe.GuardCalls.Clear();
+            result.ToArray();
+            result.ToArray();
+        }
+
+        [Fact]
+        public void Should_keep_both_virtual_dispatches_for_acquisition_and_every_batch_attempt()
+        {
+            // Only the public read's guard runs eagerly. Each enumeration then guards
+            // acquisition, both populated batches, the empty batch, and completion.
+            _callsBeforeEnumeration.Should().Be(2);
+            var expected = new Type?[]
+            {
+                typeof(IAsyncCursor<BsonDocument>), null,
+                typeof(bool), null, typeof(bool), null,
+                typeof(bool), null, typeof(bool), null
+            };
+            _probe.GuardCalls.Should().Equal(expected.Concat(expected));
+            _probe.FindCalls.Should().Be(2);
+            _probe.MoveNextCalls.Should().Be(8);
+        }
+
+        [Fact]
+        public void Should_reuse_the_callback_within_but_not_across_enumerations()
+        {
+            _probe.MoveNextCallbacks.Should().HaveCount(8);
+            var first = _probe.MoveNextCallbacks[0];
+            var second = _probe.MoveNextCallbacks[4];
+            first.Should().NotBeSameAs(second);
+            foreach (var callback in _probe.MoveNextCallbacks.Take(4))
+                callback.Should().BeSameAs(first);
+            foreach (var callback in _probe.MoveNextCallbacks.Skip(4))
+                callback.Should().BeSameAs(second);
+        }
+
+        protected override void Cleanup() => _probe.Engine.Dispose();
+    }
+
     internal sealed class EnumerationProbe
     {
         public const int ReadCount = 9;
@@ -258,6 +314,8 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         public int FindCalls { get; private set; }
         public int MoveNextCalls { get; private set; }
         public List<IAsyncCursor<BsonDocument>> Cursors { get; } = [];
+        public List<Type?> GuardCalls => ((ProbeEngine)Engine).GuardCalls;
+        public List<Delegate> MoveNextCallbacks => ((ProbeEngine)Engine).MoveNextCallbacks;
 
         public EnumerationProbe(int path, string? failureStage = null, Exception? failure = null)
         {
@@ -359,6 +417,22 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         {
             private readonly IMongoCollection<BsonDocument> _collection;
             private readonly Exception? _failure;
+            public List<Type?> GuardCalls { get; } = [];
+            public List<Delegate> MoveNextCallbacks { get; } = [];
+
+            protected override T TryMongo<T>(Func<T> callback)
+            {
+                GuardCalls.Add(typeof(T));
+                if (typeof(T) == typeof(bool))
+                    MoveNextCallbacks.Add(callback);
+                return base.TryMongo(callback);
+            }
+
+            protected override void TryMongo(Action callback)
+            {
+                GuardCalls.Add(null);
+                base.TryMongo(callback);
+            }
 
             public ProbeEngine(IMongoDatabase database, IDocumentSerializer serializer,
                 IMongoCollection<BsonDocument> collection, Exception? failure)
