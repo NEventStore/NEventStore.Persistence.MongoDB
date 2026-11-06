@@ -798,7 +798,8 @@ namespace NEventStore.Persistence.MongoDB
             // Keep only driver work inside TryMongo. Callers project documents outside
             // this iterator so serializer errors retain their original exception types.
             using var cursor = TryMongo(() => source.ToCursor());
-            while (TryMongo(() => cursor.MoveNext()))
+            Func<bool> moveNext = () => cursor.MoveNext();
+            while (TryMongo(moveNext))
             {
                 foreach (var document in cursor.Current)
                     yield return document;
