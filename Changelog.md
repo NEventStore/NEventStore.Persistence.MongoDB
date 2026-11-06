@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Translate MongoDB driver failures from all nine lazy synchronous reads at cursor acquisition and subsequent batches, preserving streaming, cursor disposal, and serializer exception identity. Async reads, public signatures, stored data, CI, and the MongoDB 4.2 minimum are unchanged. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
+
 - Make exact-ID explain assertions accept MongoDB IDHACK as well as named index plans, while verifying the built-in index, bounded examined work and absence of collection scans. Add plan-layout regression coverage and a forced-scan negative control. Test-only change; no API, schema or MongoDB minimum-version change and no migration required. [#94](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/94)
 
 - Atomically advance snapshot metadata without losing concurrent or delayed commit increments. Older snapshots cannot regress the recorded snapshot revision. Preserve configured write concerns; legacy heads without an unsnapshotted counter use the current head-minus-snapshot value as a fallback. Existing incorrect counters are not repaired. [#90](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/90)
@@ -21,6 +23,8 @@
 - Propagate cancellation from async operations, including snapshot writes. Observer reads signal request cancellation through `OnCompletedAsync` with the original token; `OperationCanceledException` while the request token is active is reported through `OnErrorAsync`. Observer reads use `ObserveMongoAsync` to complete successfully outside the guarded operation, retaining the protected virtual `TryMongoAsync` guard and its existing success behavior for derived engines. Terminal callbacks are awaited, and callback outcomes reach the returned task. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Breaking Changes
+
+- Synchronous enumeration now reports driver failures as `StorageException` or `StorageUnavailableException` (for `MongoConnectionException`), rather than leaking raw driver exceptions. Consumers that caught driver exceptions from iteration must handle the persistence exceptions instead. Keep the persistence engine alive until enumeration finishes; deferred driver calls now enforce its existing disposed-engine guard. Serializer errors remain unchanged. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
 
 - **MongoDB 4.2 or later is now required** for aggregation-based snapshot metadata updates. Upgrade MongoDB before upgrading this adapter. No stored-schema migration is needed; MongoDB 4.2 is the feature minimum, not a recommended production release. This change does not repair historical metadata or solve stream lifecycle races. [#90](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/90)
 

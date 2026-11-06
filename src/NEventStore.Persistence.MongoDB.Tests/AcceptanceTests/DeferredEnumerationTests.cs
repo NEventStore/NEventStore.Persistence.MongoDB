@@ -105,6 +105,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
         private readonly string _mode;
         private EnumerationProbe _probe = null!;
         private int _itemsRead;
+        private readonly List<long> _positions = [];
         private int _findCallsBeforeEnumeration;
         private Exception? _error;
         private readonly Exception _consumerFailure = new InvalidOperationException("consumer");
@@ -126,6 +127,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
                 foreach (var item in result)
                 {
                     _itemsRead++;
+                    _positions.Add(item is ICommit commit ? commit.CheckpointToken : ((IStreamHead)item).HeadRevision);
                     if (_mode == "early")
                         break;
                     if (_mode == "consumer failure")
@@ -144,6 +146,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             _probe.FindCalls.Should().Be(_mode == "repeat" ? 2 : 1);
             // Early termination must not fetch a second batch, even if it is empty.
             _probe.MoveNextCalls.Should().Be(_mode == "repeat" ? 8 : _mode == "complete" ? 4 : 1);
+            _positions.Should().Equal(_mode == "early" || _mode == "consumer failure" ? new long[] { 1 } : new long[] { 1, 3 });
             _error.Should().BeSameAs(_mode == "consumer failure" ? _consumerFailure : null);
         }
 
@@ -192,6 +195,56 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests
             _probe.FindCalls.Should().Be(1);
             _probe.MoveNextCalls.Should().Be(1);
             A.CallTo(() => _probe.Cursors.Single().Dispose()).MustHaveHappenedOnceExactly();
+        }
+
+        protected override void Cleanup() => _probe.Engine.Dispose();
+    }
+
+    [TestFixtureSource(nameof(Cases))]
+    public class when_the_engine_is_disposed_during_a_synchronous_read : SpecificationBase
+    {
+        public static IEnumerable<object[]> Cases =>
+            from path in Enumerable.Range(0, EnumerationProbe.ReadCount)
+            from stage in new[] { "before call", "before iteration", "between batches" }
+            select new object[] { path, stage };
+
+        private readonly int _path;
+        private readonly string _stage;
+        private EnumerationProbe _probe = null!;
+        private Exception? _error;
+
+        public when_the_engine_is_disposed_during_a_synchronous_read(int path, string stage)
+        {
+            _path = path;
+            _stage = stage;
+        }
+
+        protected override void Context() => _probe = new EnumerationProbe(_path);
+
+        protected override void Because()
+        {
+            _error = Catch.Exception(() =>
+            {
+                if (_stage == "before call")
+                    _probe.Engine.Dispose();
+                var result = _probe.Read();
+                using var iterator = result.GetEnumerator();
+                if (_stage == "between batches")
+                    iterator.MoveNext();
+                _probe.Engine.Dispose();
+                iterator.MoveNext();
+            });
+        }
+
+        [Fact]
+        public void Should_guard_driver_calls_and_still_release_acquired_cursors()
+        {
+            _error.Should().BeOfType<ObjectDisposedException>();
+            _probe.FindCalls.Should().Be(_stage == "between batches" ? 1 : 0);
+            _probe.MoveNextCalls.Should().Be(_stage == "between batches" ? 1 : 0);
+            _probe.Cursors.Count.Should().Be(_stage == "between batches" ? 1 : 0);
+            foreach (var cursor in _probe.Cursors)
+                A.CallTo(() => cursor.Dispose()).MustHaveHappenedOnceExactly();
         }
 
         protected override void Cleanup() => _probe.Engine.Dispose();

@@ -290,10 +290,9 @@ namespace NEventStore.Persistence.MongoDB
 
                 var query = Builders<BsonDocument>.Filter.And(filters);
 
-                return PersistedCommits
+                return EnumerateMongo(PersistedCommits
                     .Find(query)
-                    .Sort(SortByAscendingStreamRevisionFrom)
-                    .ToEnumerable()
+                    .Sort(SortByAscendingStreamRevisionFrom))
                     .Select(mc => mc.ToCommit(_serializer));
             });
         }
@@ -315,10 +314,9 @@ namespace NEventStore.Persistence.MongoDB
                     );
                 }
 
-                return PersistedCommits
+                return EnumerateMongo(PersistedCommits
                     .Find(query)
-                    .Sort(SortByAscendingCheckpointNumber)
-                    .ToEnumerable()
+                    .Sort(SortByAscendingCheckpointNumber))
                     .Select(x => x.ToCommit(_serializer));
             });
         }
@@ -339,10 +337,9 @@ namespace NEventStore.Persistence.MongoDB
                     );
                 }
 
-                return PersistedCommits
+                return EnumerateMongo(PersistedCommits
                     .Find(query)
-                    .Sort(SortByAscendingCheckpointNumber)
-                    .ToEnumerable()
+                    .Sort(SortByAscendingCheckpointNumber))
                     .Select(x => x.ToCommit(_serializer));
             });
         }
@@ -373,10 +370,9 @@ namespace NEventStore.Persistence.MongoDB
 
                 var query = Builders<BsonDocument>.Filter.And(filters);
 
-                return PersistedCommits
+                return EnumerateMongo(PersistedCommits
                     .Find(query)
-                    .Sort(SortByAscendingCheckpointNumber)
-                    .ToEnumerable()
+                    .Sort(SortByAscendingCheckpointNumber))
                     .Select(x => x.ToCommit(_serializer));
             });
         }
@@ -397,10 +393,9 @@ namespace NEventStore.Persistence.MongoDB
                     );
                 }
 
-                return PersistedCommits
+                return EnumerateMongo(PersistedCommits
                     .Find(query)
-                    .Sort(SortByAscendingCheckpointNumber)
-                    .ToEnumerable()
+                    .Sort(SortByAscendingCheckpointNumber))
                     .Select(x => x.ToCommit(_serializer));
             });
         }
@@ -431,10 +426,9 @@ namespace NEventStore.Persistence.MongoDB
 
                 var query = Builders<BsonDocument>.Filter.And(filters);
 
-                return PersistedCommits
+                return EnumerateMongo(PersistedCommits
                     .Find(query)
-                    .Sort(SortByAscendingCheckpointNumber)
-                    .ToEnumerable()
+                    .Sort(SortByAscendingCheckpointNumber))
                     .Select(x => x.ToCommit(_serializer));
             });
         }
@@ -466,10 +460,9 @@ namespace NEventStore.Persistence.MongoDB
 
                 var query = Builders<BsonDocument>.Filter.And(filters);
 
-                return PersistedCommits
+                return EnumerateMongo(PersistedCommits
                     .Find(query)
-                    .Sort(SortByAscendingCheckpointNumber)
-                    .ToEnumerable()
+                    .Sort(SortByAscendingCheckpointNumber))
                     .Select(x => x.ToCommit(_serializer));
             });
         }
@@ -593,10 +586,9 @@ namespace NEventStore.Persistence.MongoDB
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId),
                     Builders<BsonDocument>.Filter.Gte(MongoStreamHeadFields.Unsnapshotted, maxThreshold)
                 );
-                return PersistedStreamHeads
+                return EnumerateMongo(PersistedStreamHeads
                     .Find(query)
-                    .Sort(Builders<BsonDocument>.Sort.Descending(MongoStreamHeadFields.Unsnapshotted))
-                    .ToEnumerable()
+                    .Sort(Builders<BsonDocument>.Sort.Descending(MongoStreamHeadFields.Unsnapshotted)))
                     .Select(x => x.ToStreamHead());
             });
             return result ?? [];
@@ -801,6 +793,18 @@ namespace NEventStore.Persistence.MongoDB
             });
         }
 
+        private IEnumerable<BsonDocument> EnumerateMongo(IAsyncCursorSource<BsonDocument> source)
+        {
+            // Keep only driver work inside TryMongo. Callers project documents outside
+            // this iterator so serializer errors retain their original exception types.
+            using var cursor = TryMongo(() => source.ToCursor());
+            while (TryMongo(() => cursor.MoveNext()))
+            {
+                foreach (var document in cursor.Current)
+                    yield return document;
+            }
+        }
+
         /// <summary>
         /// Executes the callback within a try/catch block to handle exceptions.
         /// </summary>
@@ -887,10 +891,9 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public IEnumerable<ICommit> GetDeletedCommits()
         {
-            return TryMongo(() => PersistedCommits
+            return TryMongo(() => EnumerateMongo(PersistedCommits
                 .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
-                .Sort(SortByAscendingCheckpointNumber)
-                .ToEnumerable()
+                .Sort(SortByAscendingCheckpointNumber))
                 .Select(mc => mc.ToCommit(_serializer)));
         }
 
