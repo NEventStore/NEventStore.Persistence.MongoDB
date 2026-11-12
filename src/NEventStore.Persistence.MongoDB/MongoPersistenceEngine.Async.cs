@@ -253,15 +253,15 @@ namespace NEventStore.Persistence.MongoDB
                     }
                     catch (MongoException e)
                     {
-                        if (!e.Message.Contains(ConcurrencyException))
+                        var duplicate = DuplicateKeyClassifier.Classify(e);
+                        if (duplicate == DuplicateKeyKind.None)
                         {
                             MongoPersistenceEngineLogMessages.GenericPersistingError(Logger, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e.ToString(), e);
                             throw;
                         }
 
                         // checkpoint index? 
-                        if (e.Message.Contains(MongoCommitIndexes.CheckpointNumberMMApV1)
-                            || e.Message.Contains(MongoCommitIndexes.CheckpointNumberWiredTiger))
+                        if (duplicate == DuplicateKeyKind.Checkpoint)
                         {
                             MongoPersistenceEngineLogMessages.DuplicatedCheckpointTokenError(Logger, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId, e);
                             await _checkpointGenerator.SignalDuplicateIdAsync(checkpointId, cancellationToken);
@@ -275,7 +275,7 @@ namespace NEventStore.Persistence.MongoDB
                                 await FillHoleAsync(attempt, checkpointId, cancellationToken).ConfigureAwait(false);
                             }
 
-                            if (e.Message.Contains(MongoCommitIndexes.CommitId))
+                            if (duplicate == DuplicateKeyKind.Commit)
                             {
                                 var msg = string.Format(CultureInfo.InvariantCulture, MongoPersistenceEngineLogMessages.DuplicatedCommitErrorTemplate, attempt.CommitId, checkpointId, attempt.BucketId, attempt.StreamId);
                                 MongoPersistenceEngineLogMessages.Information(Logger, msg);
