@@ -632,11 +632,11 @@ namespace NEventStore.Persistence.MongoDB
         // disposal remain inside the normal storage guard. No shared per-operation state.
         private sealed class AsyncApplicationException(Exception innerException) : Exception(null, innerException);
 
-        private async Task<bool> ObserveCommitAsync(BsonDocument document, IAsyncObserver<ICommit> observer, CancellationToken cancellationToken)
+        private Task<bool> ObserveCommitAsync(BsonDocument document, IAsyncObserver<ICommit> observer, CancellationToken cancellationToken)
         {
             try
             {
-                return await observer.OnNextAsync(document.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+                return ObserveApplicationTask(observer.OnNextAsync(document.ToCommit(_serializer), cancellationToken));
             }
             catch (MongoException e) when (!_options.WrapAsyncApplicationExceptions)
             {
@@ -644,11 +644,30 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
-        private async Task<bool> ObserveStreamHeadAsync(BsonDocument document, IAsyncObserver<IStreamHead> observer, CancellationToken cancellationToken)
+        private Task<bool> ObserveStreamHeadAsync(BsonDocument document, IAsyncObserver<IStreamHead> observer, CancellationToken cancellationToken)
         {
             try
             {
-                return await observer.OnNextAsync(document.ToStreamHead(), cancellationToken).ConfigureAwait(false);
+                return ObserveApplicationTask(observer.OnNextAsync(document.ToStreamHead(), cancellationToken));
+            }
+            catch (MongoException e) when (!_options.WrapAsyncApplicationExceptions)
+            {
+                throw new AsyncApplicationException(e);
+            }
+        }
+
+        private Task<bool> ObserveApplicationTask(Task<bool> task)
+        {
+            // Completed callbacks and legacy mode need no additional async state machine.
+            return task.Status == TaskStatus.RanToCompletion || _options.WrapAsyncApplicationExceptions
+                ? task : AwaitApplicationTaskAsync(task);
+        }
+
+        private async Task<bool> AwaitApplicationTaskAsync(Task<bool> task)
+        {
+            try
+            {
+                return await task.ConfigureAwait(false);
             }
             catch (MongoException e) when (!_options.WrapAsyncApplicationExceptions)
             {
