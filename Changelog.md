@@ -28,6 +28,8 @@
 
 ### Breaking Changes
 
+- Active async observer reads now check engine disposal before every cursor batch advancement, matching synchronous enumeration. After disposal is observed, the owned cursor is disposed and `ObjectDisposedException` is sent once to `OnErrorAsync`, without completion notification; a successful error handler leaves the returned task successful, while a failing handler propagates its exception. Already-disposed invocations still fault directly without observer notification. In-flight acquisition/advancement and callbacks are not canceled, and documents in an already fetched batch can still be delivered. Early observer stop still completes normally. [#109](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/109)
+
 - `EmptyRecycleBin()` and `EmptyRecycleBinAsync(...)` now translate checkpoint-read driver failures to `StorageException` or `StorageUnavailableException` (for `MongoConnectionException`), retaining the original inner exception. Consumers catching raw driver exceptions must handle the persistence exceptions instead. The existing protected virtual guard is still invoked once, but its callback now includes checkpoint acquisition and iteration before deletion. Non-driver exceptions and cancellation retain their identity. [#107](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/107)
 
 - Synchronous reads reuse one cursor `MoveNext` callback per enumeration. Both protected virtual `TryMongo` overloads are still called for cursor acquisition and every batch attempt, including completion. Source and binary APIs are unchanged, but overrides that inspect callback reference identity now observe the same callback within an enumeration. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
@@ -41,6 +43,8 @@
 - Non-observer async callers must now handle `OperationCanceledException` (including `TaskCanceledException`) from operations that previously swallowed cancellation or returned success/default values; for example, `AddSnapshotAsync` now propagates cancellation instead of returning `false`. Observer reads invoke `OnCompletedAsync` with the original token only when the request token is canceled; cancellation exceptions with an active request token go to `OnErrorAsync`. Cancellation or failure from a terminal callback propagates after it is awaited, without a second terminal notification. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Migration notes
+
+- Keep the engine alive until all synchronous enumerations and async observer reads finish. For shutdown, cancel and await active async reads before disposing the shared engine; disposal is a batch-boundary guard, not immediate cancellation or atomic exclusion of concurrent reads. No data migration is required. [#109](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/109)
 
 - `Initialize()` now creates `GetFrom_RecycleBin_Index` on existing databases. No data backfill or old-index replacement is required, but deployments must budget index build time and disk/I/O costs and retain index-creation permission. Operators can pre-create the documented definition to move build work out of startup. See [recycle-bin rollout and indexing](docs/Recycle-Bin.md#recycle-lookup-index-and-deployment). [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 

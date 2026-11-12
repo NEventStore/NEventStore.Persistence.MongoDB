@@ -43,7 +43,7 @@ namespace NEventStore.Persistence.MongoDB
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await MoveNextWhileActiveAsync(cursor, cancellationToken).ConfigureAwait(false))
                 {
                     foreach (var doc in cursor.Current)
                     {
@@ -78,7 +78,7 @@ namespace NEventStore.Persistence.MongoDB
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
-                while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await MoveNextWhileActiveAsync(cursor, cancellationToken).ConfigureAwait(false))
                 {
                     foreach (var doc in cursor.Current)
                     {
@@ -123,7 +123,7 @@ namespace NEventStore.Persistence.MongoDB
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
-                while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await MoveNextWhileActiveAsync(cursor, cancellationToken).ConfigureAwait(false))
                 {
                     foreach (var doc in cursor.Current)
                     {
@@ -159,7 +159,7 @@ namespace NEventStore.Persistence.MongoDB
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
-                while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await MoveNextWhileActiveAsync(cursor, cancellationToken).ConfigureAwait(false))
                 {
                     foreach (var doc in cursor.Current)
                     {
@@ -205,7 +205,7 @@ namespace NEventStore.Persistence.MongoDB
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
-                while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await MoveNextWhileActiveAsync(cursor, cancellationToken).ConfigureAwait(false))
                 {
                     foreach (var doc in cursor.Current)
                     {
@@ -350,7 +350,7 @@ namespace NEventStore.Persistence.MongoDB
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await MoveNextWhileActiveAsync(cursor, cancellationToken).ConfigureAwait(false))
                 {
                     foreach (var doc in cursor.Current)
                     {
@@ -623,6 +623,17 @@ namespace NEventStore.Persistence.MongoDB
             }
         }
 
+        // Match synchronous enumeration: check before advancing, not within a fetched batch.
+        // Disposal does not cancel a driver operation or observer callback already in flight.
+        private Task<bool> MoveNextWhileActiveAsync(IAsyncCursor<BsonDocument> cursor, CancellationToken cancellationToken)
+        {
+            if (IsDisposed)
+            {
+                throw new ObjectDisposedException("Attempt to use storage after it has been disposed.");
+            }
+            return cursor.MoveNextAsync(cancellationToken);
+        }
+
         // Successful observer completion must run outside TryMongoAsync's guarded operation.
         // Otherwise an OnCompletedAsync failure would be caught and sent to OnErrorAsync,
         // notifying the observer a second time. Keep the protected virtual guard's success behavior unchanged.
@@ -689,7 +700,7 @@ namespace NEventStore.Persistence.MongoDB
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken)
                     .ConfigureAwait(false);
-                while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await MoveNextWhileActiveAsync(cursor, cancellationToken).ConfigureAwait(false))
                 {
                     foreach (var doc in cursor.Current)
                     {
