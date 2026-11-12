@@ -575,7 +575,7 @@ namespace NEventStore.Persistence.MongoDB
             using var cursor = legacy
                 ? await acquireCursorAsync().ConfigureAwait(false)
                 : await TryMongoAsync(acquireCursorAsync, cancellationToken).ConfigureAwait(false);
-            Func<Task<bool>> moveNextAsync = () => cursor.MoveNextAsync(cancellationToken);
+            Func<Task<bool>> moveNextAsync = () => MoveNextWhileActiveAsync(cursor, cancellationToken);
             while (legacy
                 ? await moveNextAsync().ConfigureAwait(false)
                 : await TryMongoAsync(moveNextAsync, cancellationToken).ConfigureAwait(false))
@@ -586,6 +586,14 @@ namespace NEventStore.Persistence.MongoDB
                         return;
                 }
             }
+        }
+
+        // Check before advancing, not within a fetched batch; in-flight work is not canceled.
+        private Task<bool> MoveNextWhileActiveAsync(IAsyncCursor<BsonDocument> cursor, CancellationToken cancellationToken)
+        {
+            if (IsDisposed)
+                throw new ObjectDisposedException("Attempt to use storage after it has been disposed.");
+            return cursor.MoveNextAsync(cancellationToken);
         }
 
         // Preserve the existing protected guard for driver operations, with the request token.
