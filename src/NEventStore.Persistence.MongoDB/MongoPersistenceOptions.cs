@@ -171,6 +171,14 @@ namespace NEventStore.Persistence.MongoDB
         public Boolean DisableSnapshotSupport { get; set; }
 
         /// <summary>
+        /// Opts into legacy async observer-read behavior: MongoDB exceptions raised by
+        /// application serializers or OnNextAsync callbacks are wrapped as storage exceptions.
+        /// Defaults to false, preserving those application exceptions unchanged.
+        /// Driver failures from the persistence adapter are always translated.
+        /// </summary>
+        public Boolean WrapAsyncApplicationExceptions { get; set; }
+
+        /// <summary>
         /// The default behavior when using snapshot is to persist the stream heads in
         /// a background threads, but this way it can be hard to test if the heads and snapshots
         /// are computed an updated correctly after a commit.

@@ -47,7 +47,7 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     foreach (var doc in cursor.Current)
                     {
-                        var res = await observer.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+                        var res = await ObserveCommitAsync(doc, observer, cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
                             return;
@@ -82,7 +82,7 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     foreach (var doc in cursor.Current)
                     {
-                        var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+                        var res = await ObserveCommitAsync(doc, asyncObserver, cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
                             return;
@@ -127,7 +127,7 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     foreach (var doc in cursor.Current)
                     {
-                        var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+                        var res = await ObserveCommitAsync(doc, asyncObserver, cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
                             return;
@@ -163,7 +163,7 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     foreach (var doc in cursor.Current)
                     {
-                        var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+                        var res = await ObserveCommitAsync(doc, asyncObserver, cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
                             return;
@@ -209,7 +209,7 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     foreach (var doc in cursor.Current)
                     {
-                        var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+                        var res = await ObserveCommitAsync(doc, asyncObserver, cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
                             return;
@@ -354,7 +354,7 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     foreach (var doc in cursor.Current)
                     {
-                        var res = await asyncObserver.OnNextAsync(doc.ToStreamHead(), cancellationToken).ConfigureAwait(false);
+                        var res = await ObserveStreamHeadAsync(doc, asyncObserver, cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
                             return;
@@ -584,6 +584,11 @@ namespace NEventStore.Persistence.MongoDB
             {
                 await callbackAsync().ConfigureAwait(false);
             }
+            catch (AsyncApplicationException e)
+            {
+                // Preserve the original application exception and stack, not the transport marker.
+                exception = ExceptionDispatchInfo.Capture(e.InnerException!);
+            }
             catch (MongoConnectionException e)
             {
                 MongoPersistenceEngineLogMessages.StorageUnavailable(Logger, e);
@@ -620,6 +625,34 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     exception.Throw();
                 }
+            }
+        }
+
+        // Mark only application-origin Mongo exceptions. Cursor acquisition, iteration and
+        // disposal remain inside the normal storage guard. No shared per-operation state.
+        private sealed class AsyncApplicationException(Exception innerException) : Exception(null, innerException);
+
+        private async Task<bool> ObserveCommitAsync(BsonDocument document, IAsyncObserver<ICommit> observer, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await observer.OnNextAsync(document.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+            }
+            catch (MongoException e) when (!_options.WrapAsyncApplicationExceptions)
+            {
+                throw new AsyncApplicationException(e);
+            }
+        }
+
+        private async Task<bool> ObserveStreamHeadAsync(BsonDocument document, IAsyncObserver<IStreamHead> observer, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await observer.OnNextAsync(document.ToStreamHead(), cancellationToken).ConfigureAwait(false);
+            }
+            catch (MongoException e) when (!_options.WrapAsyncApplicationExceptions)
+            {
+                throw new AsyncApplicationException(e);
             }
         }
 
@@ -693,7 +726,7 @@ namespace NEventStore.Persistence.MongoDB
                 {
                     foreach (var doc in cursor.Current)
                     {
-                        var res = await asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken).ConfigureAwait(false);
+                        var res = await ObserveCommitAsync(doc, asyncObserver, cancellationToken).ConfigureAwait(false);
                         if (!res)
                         {
                             return;

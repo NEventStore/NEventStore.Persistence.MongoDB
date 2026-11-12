@@ -28,6 +28,8 @@
 
 ### Breaking Changes
 
+- Async observer reads now preserve MongoDB exceptions thrown by application serializers or `OnNextAsync` callbacks instead of wrapping them as `StorageException` / `StorageUnavailableException`. Failures from the adapter's own MongoDB operations are still translated. The original application exception is delivered to `OnErrorAsync`; public method signatures are unchanged. [#108](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/108)
+
 - `EmptyRecycleBin()` and `EmptyRecycleBinAsync(...)` now translate checkpoint-read driver failures to `StorageException` or `StorageUnavailableException` (for `MongoConnectionException`), retaining the original inner exception. Consumers catching raw driver exceptions must handle the persistence exceptions instead. The existing protected virtual guard is still invoked once, but its callback now includes checkpoint acquisition and iteration before deletion. Non-driver exceptions and cancellation retain their identity. [#107](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/107)
 
 - Synchronous reads reuse one cursor `MoveNext` callback per enumeration. Both protected virtual `TryMongo` overloads are still called for cursor acquisition and every batch attempt, including completion. Source and binary APIs are unchanged, but overrides that inspect callback reference identity now observe the same callback within an enumeration. [#91](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/91)
@@ -41,6 +43,8 @@
 - Non-observer async callers must now handle `OperationCanceledException` (including `TaskCanceledException`) from operations that previously swallowed cancellation or returned success/default values; for example, `AddSnapshotAsync` now propagates cancellation instead of returning `false`. Observer reads invoke `OnCompletedAsync` with the original token only when the request token is canceled; cancellation exceptions with an active request token go to `OnErrorAsync`. Cancellation or failure from a terminal callback propagates after it is awaited, without a second terminal notification. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Migration notes
+
+- For #108, update observer error handling to distinguish application exceptions from event-store failures. To retain the stable 12.1.0 wrapping behavior for async observer reads, set `MongoPersistenceOptions.WrapAsyncApplicationExceptions = true` when configuring the persistence engine. The default is `false`. This option does not change synchronous reads, non-observer operations, cancellation, or terminal callback behavior. Custom `TryMongoAsync` overrides that inspect callback exceptions now see an internal wrapper for application-origin Mongo exceptions; delegate to the base guard to unwrap it before notifying observers. Overrides that replace the base guard should enable `WrapAsyncApplicationExceptions` to retain the previous callback exception contract, or be updated for the new origin handling.
 
 - `Initialize()` now creates `GetFrom_RecycleBin_Index` on existing databases. No data backfill or old-index replacement is required, but deployments must budget index build time and disk/I/O costs and retain index-creation permission. Operators can pre-create the documented definition to move build work out of startup. See [recycle-bin rollout and indexing](docs/Recycle-Bin.md#recycle-lookup-index-and-deployment). [#87](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/87)
 
