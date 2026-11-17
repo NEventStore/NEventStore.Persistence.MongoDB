@@ -47,3 +47,28 @@ public class when_Issue92_legacy_duplicate_messages_are_classified(string messag
     [Fact] public void Should_only_use_the_duplicate_prefix_and_complete_index_token() => _actual.Should().Be(expected);
 }
 #endif
+
+#if NUNIT
+[TestFixture("waiting for replication timed out")]
+[TestFixture("E11000 duplicate key error index: _id_ dup key: {}")]
+public class when_Issue92_a_write_concern_failure_has_no_write_error(string message) : SpecificationBase
+{
+    private string? _actual;
+    protected override void Because()
+    {
+        var concern = (WriteConcernError)Activator.CreateInstance(typeof(WriteConcernError),
+            BindingFlags.Instance | BindingFlags.NonPublic, null,
+            new object?[] { 64, "WriteConcernFailed", message, new BsonDocument("wtimeout", true), Array.Empty<string>() }, null)!;
+        var connection = new global::MongoDB.Driver.Core.Connections.ConnectionId(
+            new global::MongoDB.Driver.Core.Servers.ServerId(new global::MongoDB.Driver.Core.Clusters.ClusterId(),
+                new System.Net.DnsEndPoint("localhost", 27017)));
+        var error = new MongoWriteException(connection, null, concern, null);
+        var classifier = typeof(MongoPersistenceEngine).Assembly.GetType("NEventStore.Persistence.MongoDB.DuplicateKeyClassifier")!;
+        _actual = classifier.GetMethod("Classify", BindingFlags.Static | BindingFlags.NonPublic)!
+            .Invoke(null, new object[] { error })!.ToString();
+    }
+    [Fact]
+    public void Should_leave_write_concern_failures_to_normal_storage_error_translation()
+        => _actual.Should().Be("None");
+}
+#endif
