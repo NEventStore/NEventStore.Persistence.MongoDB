@@ -55,9 +55,13 @@ namespace NEventStore.Persistence.MongoDB
             }
 
             // Without a usable key pattern, older responses identify the index in errmsg.
-            // Extract the token between 'index:' and 'dup key:' instead of searching the
-            // duplicate value payload for a known index name. Unrecognized text stays Other.
-            var index = Regex.Match(message, @"\bindex:\s+(?<name>\S+)\s+dup key\s*:", RegexOptions.CultureInvariant);
+            // Stop at the first value delimiter: a malformed or unknown header must not
+            // let an index-like clause inside a duplicate value select a retry strategy.
+            var payload = Regex.Match(message, @"\bdup key\s*:", RegexOptions.CultureInvariant);
+            if (!payload.Success) return DuplicateKeyKind.Other;
+            var header = message.Substring(0, payload.Index + payload.Length);
+            // Extract the complete index token from that header. Unrecognized text stays Other.
+            var index = Regex.Match(header, @"\bindex:\s+(?<name>\S+)\s+dup key\s*:", RegexOptions.CultureInvariant);
             if (!index.Success) return DuplicateKeyKind.Other;
             var name = index.Groups["name"].Value;
             // CheckpointNumber is stored as MongoDB's _id. Accept the bare index name

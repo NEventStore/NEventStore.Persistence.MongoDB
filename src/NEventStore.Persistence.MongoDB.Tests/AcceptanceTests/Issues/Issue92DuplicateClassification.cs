@@ -36,6 +36,10 @@ public class when_Issue92_structured_duplicate_details_are_available(int code, s
 [TestFixture("E11000 duplicate key error without index", "Other")]
 [TestFixture("validation rejected user text E11000 duplicate key error index: _id_ dup key: {}", "None")]
 [TestFixture("E11002 duplicate key error index: _id_ dup key: {}", "None")]
+[TestFixture("E11000 duplicate key error index: custom index dup key: { value: \"index: _id_ dup key:\" }", "Other")]
+[TestFixture("E11000 duplicate key error index: custom index dup key: { value: \"index: CommitId_Index dup key:\" }", "Other")]
+[TestFixture("E11000 duplicate key error dup key: { value: \"index: _id_ dup key:\" }", "Other")]
+[TestFixture("E11000 duplicate key error index: custom index dup key : { value: \"index: _id_ dup key:\" }", "Other")]
 public class when_Issue92_legacy_duplicate_messages_are_classified(string message, string expected) : SpecificationBase
 {
     private string? _actual;
@@ -70,5 +74,31 @@ public class when_Issue92_a_write_concern_failure_has_no_write_error(string mess
     [Fact]
     public void Should_leave_write_concern_failures_to_normal_storage_error_translation()
         => _actual.Should().Be("None");
+}
+#endif
+
+#if NUNIT
+[TestFixture("{ '_id': 1 }", "CommitId_Index", "Checkpoint")]
+[TestFixture("{ 'BucketId': 1, 'StreamId': 1, 'CommitId': 1 }", "_id_", "Commit")]
+[TestFixture("{ '_id': 1, 'Other': 1 }", "_id_", "Other")]
+[TestFixture("{ 'Other': 1 }", "CommitId_Index", "Other")]
+public class when_Issue92_metadata_conflicts_with_message(string pattern, string index, string expected) : SpecificationBase
+{
+    private string? _actual;
+    protected override void Because()
+    {
+        var connection = new global::MongoDB.Driver.Core.Connections.ConnectionId(
+            new global::MongoDB.Driver.Core.Servers.ServerId(new global::MongoDB.Driver.Core.Clusters.ClusterId(),
+                new System.Net.DnsEndPoint("localhost", 27017)));
+        var error = new MongoCommandException(connection,
+            $"E11000 duplicate key error index: {index} dup key: {{ : 1 }}", new BsonDocument(),
+            new BsonDocument { { "code", 11000 }, { "keyPattern", BsonDocument.Parse(pattern) } });
+        var classifier = typeof(MongoPersistenceEngine).Assembly.GetType("NEventStore.Persistence.MongoDB.DuplicateKeyClassifier")!;
+        _actual = classifier.GetMethod("Classify", BindingFlags.Static | BindingFlags.NonPublic)!
+            .Invoke(null, new object[] { error })!.ToString();
+    }
+    [Fact]
+    public void Should_treat_the_complete_key_pattern_as_authoritative()
+        => _actual.Should().Be(expected);
 }
 #endif
