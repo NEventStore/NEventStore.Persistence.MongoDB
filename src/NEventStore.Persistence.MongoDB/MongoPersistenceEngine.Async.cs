@@ -15,7 +15,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsBetween(Logger, streamId, bucketId, minRevision, maxRevision);
 
-            return ObserveMongoAsync(async legacy =>
+            return ObserveMongoAsync(legacy =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -37,13 +37,13 @@ namespace NEventStore.Persistence.MongoDB
 
                 var query = Builders<BsonDocument>.Filter.And(filters);
 
-                await EnumerateMongoAsync(
+                return EnumerateMongoAsync(
                     () => PersistedCommits
                     .Find(query)
                     .Sort(SortByAscendingStreamRevisionFrom)
                     .ToCursorAsync(cancellationToken),
                     doc => observer.OnNextAsync(doc.ToCommit(_serializer), cancellationToken),
-                    legacy, cancellationToken).ConfigureAwait(false);
+                    legacy, cancellationToken);
             },
             observer, cancellationToken);
         }
@@ -53,7 +53,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromBucketAndCheckpoint(Logger, bucketId, checkpointToken);
 
-            return ObserveMongoAsync(async legacy =>
+            return ObserveMongoAsync(legacy =>
             {
                 var query = Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, bucketId);
                 if (checkpointToken > 0)
@@ -63,13 +63,13 @@ namespace NEventStore.Persistence.MongoDB
                         Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     );
                 }
-                await EnumerateMongoAsync(
+                return EnumerateMongoAsync(
                     () => PersistedCommits
                     .Find(query)
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken),
                     doc => asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken),
-                    legacy, cancellationToken).ConfigureAwait(false);
+                    legacy, cancellationToken);
             },
             asyncObserver,
             cancellationToken);
@@ -80,7 +80,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromBucketAndFromToCheckpoint(Logger, bucketId, fromCheckpointToken, toCheckpointToken);
 
-            return ObserveMongoAsync(async legacy =>
+            return ObserveMongoAsync(legacy =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -99,13 +99,13 @@ namespace NEventStore.Persistence.MongoDB
                         );
                 }
                 var query = Builders<BsonDocument>.Filter.And(filters);
-                await EnumerateMongoAsync(
+                return EnumerateMongoAsync(
                     () => PersistedCommits
                     .Find(query)
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken),
                     doc => asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken),
-                    legacy, cancellationToken).ConfigureAwait(false);
+                    legacy, cancellationToken);
             },
             asyncObserver,
             cancellationToken);
@@ -116,7 +116,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromCheckpoint(Logger, checkpointToken);
 
-            return ObserveMongoAsync(async legacy =>
+            return ObserveMongoAsync(legacy =>
             {
                 var query = Builders<BsonDocument>.Filter.Ne(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin);
                 if (checkpointToken > 0)
@@ -126,13 +126,13 @@ namespace NEventStore.Persistence.MongoDB
                         Builders<BsonDocument>.Filter.Gt(MongoCommitFields.CheckpointNumber, checkpointToken)
                     );
                 }
-                await EnumerateMongoAsync(
+                return EnumerateMongoAsync(
                     () => PersistedCommits
                     .Find(query)
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken),
                     doc => asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken),
-                    legacy, cancellationToken).ConfigureAwait(false);
+                    legacy, cancellationToken);
             },
             asyncObserver,
             cancellationToken);
@@ -143,7 +143,7 @@ namespace NEventStore.Persistence.MongoDB
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromToCheckpoint(Logger, fromCheckpointToken, toCheckpointToken);
 
-            return ObserveMongoAsync(async legacy =>
+            return ObserveMongoAsync(legacy =>
             {
                 var filters = new List<FilterDefinition<BsonDocument>>()
                 {
@@ -163,13 +163,13 @@ namespace NEventStore.Persistence.MongoDB
                 }
                 var query = Builders<BsonDocument>.Filter.And(filters);
 
-                await EnumerateMongoAsync(
+                return EnumerateMongoAsync(
                     () => PersistedCommits
                     .Find(query)
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken),
                     doc => asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken),
-                    legacy, cancellationToken).ConfigureAwait(false);
+                    legacy, cancellationToken);
             },
             asyncObserver,
             cancellationToken);
@@ -292,19 +292,19 @@ namespace NEventStore.Persistence.MongoDB
 
             MongoPersistenceEngineLogMessages.GettingStreamsToSnapshot(Logger);
 
-            return ObserveMongoAsync(async legacy =>
+            return ObserveMongoAsync(legacy =>
             {
                 var query = Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq(MongoStreamHeadFields.FullQualifiedBucketId, bucketId),
                     Builders<BsonDocument>.Filter.Gte(MongoStreamHeadFields.Unsnapshotted, maxThreshold)
                 );
-                await EnumerateMongoAsync(
+                return EnumerateMongoAsync(
                     () => PersistedStreamHeads
                     .Find(query)
                     .Sort(Builders<BsonDocument>.Sort.Descending(MongoStreamHeadFields.Unsnapshotted))
                     .ToCursorAsync(cancellationToken),
                     doc => asyncObserver.OnNextAsync(doc.ToStreamHead(), cancellationToken),
-                    legacy, cancellationToken).ConfigureAwait(false);
+                    legacy, cancellationToken);
             },
             asyncObserver, cancellationToken);
         }
@@ -678,15 +678,15 @@ namespace NEventStore.Persistence.MongoDB
         /// </summary>
         public Task GetDeletedCommitsAsync(IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
         {
-            return ObserveMongoAsync(async legacy =>
+            return ObserveMongoAsync(legacy =>
             {
-                await EnumerateMongoAsync(
+                return EnumerateMongoAsync(
                     () => PersistedCommits
                     .Find(Builders<BsonDocument>.Filter.Eq(MongoCommitFields.BucketId, MongoSystemBuckets.RecycleBin))
                     .Sort(SortByAscendingCheckpointNumber)
                     .ToCursorAsync(cancellationToken),
                     doc => asyncObserver.OnNextAsync(doc.ToCommit(_serializer), cancellationToken),
-                    legacy, cancellationToken).ConfigureAwait(false);
+                    legacy, cancellationToken);
             },
             asyncObserver,
             cancellationToken);

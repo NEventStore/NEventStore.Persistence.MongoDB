@@ -16,7 +16,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
     {
         public static IEnumerable<object[]> Cases =>
             from path in Enumerable.Range(0, 7)
-            from stage in new[] { "serializer", "observer throw", "observer task", "observer delayed", "early stop", "find", "later batch", "dispose" }
+            from stage in new[] { "serializer", "observer throw", "observer task", "observer delayed", "early stop", "find", "find throw", "later batch", "dispose" }
             where path != 5 || stage != "serializer"
             from kind in new[] { "mongo", "connection", "other" }
             where stage != "early stop" || kind == "other"
@@ -46,7 +46,7 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
             A.CallTo(() => serializer.Deserialize<EventMessage>(A<object>._)).Throws(_failure);
             A.CallTo(() => collection.FindAsync(A<FilterDefinition<BsonDocument>>._,
                 A<FindOptions<BsonDocument, BsonDocument>>._, _cancellation.Token))
-                .ReturnsLazily(() => stage == "find"
+                .ReturnsLazily(() => stage == "find throw" ? throw _failure : stage == "find"
                     ? Task.FromException<IAsyncCursor<BsonDocument>>(_failure)
                     : Task.FromResult(_cursor));
             int batch = 0;
@@ -134,16 +134,16 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues
         public void Should_preserve_notification_and_resource_contracts()
         {
             // Driver guards never enclose application work in the default mode.
-            if (stage == "find" || stage == "later batch" || (legacy && stage != "early stop"))
+            if (stage.StartsWith("find") || stage == "later batch" || (legacy && stage != "early stop"))
                 _engine.CallbackFailure.Should().BeSameAs(_failure);
             else
                 _engine.CallbackFailure.Should().BeNull();
-            _engine.WrapperCalls.Should().Be(legacy ? 1 : stage == "find" ? 1 : stage == "later batch" || stage == "dispose" ? 3 : 2);
+            _engine.WrapperCalls.Should().Be(legacy ? 1 : stage.StartsWith("find") ? 1 : stage == "later batch" || stage == "dispose" ? 3 : 2);
             _engine.Token.Should().Be(_cancellation.Token);
             _errors.Should().Be(stage == "early stop" ? 0 : 1);
             _completions.Should().Be(stage == "early stop" ? 1 : 0);
-            _nextCalls.Should().Be(stage == "find" || stage == "serializer" ? 0 : 1);
-            if (stage == "find") A.CallTo(() => _cursor.Dispose()).MustNotHaveHappened();
+            _nextCalls.Should().Be(stage.StartsWith("find") || stage == "serializer" ? 0 : 1);
+            if (stage.StartsWith("find")) A.CallTo(() => _cursor.Dispose()).MustNotHaveHappened();
             else A.CallTo(() => _cursor.Dispose()).MustHaveHappenedOnceExactly();
             if (stage == "early stop")
                 A.CallTo(() => _cursor.MoveNextAsync(_cancellation.Token)).MustHaveHappenedOnceExactly();
