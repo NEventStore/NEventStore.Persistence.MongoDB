@@ -11,7 +11,7 @@ namespace NEventStore.Persistence.MongoDB
     public partial class MongoPersistenceEngine : IPersistStreams
     {
         /// <inheritdoc/>
-        public Task GetFromAsync(string bucketId, string streamId, int minRevision, int maxRevision, IAsyncObserver<ICommit> observer, CancellationToken cancellationToken)
+        public Task GetFromAsync(string bucketId, string streamId, int minRevision, int maxRevision, IAsyncObserver<ICommit> observer, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsBetween(Logger, streamId, bucketId, minRevision, maxRevision);
 
@@ -49,7 +49,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task GetFromAsync(string bucketId, long checkpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
+        public Task GetFromAsync(string bucketId, long checkpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromBucketAndCheckpoint(Logger, bucketId, checkpointToken);
 
@@ -76,7 +76,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task GetFromToAsync(string bucketId, long fromCheckpointToken, long toCheckpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
+        public Task GetFromToAsync(string bucketId, long fromCheckpointToken, long toCheckpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromBucketAndFromToCheckpoint(Logger, bucketId, fromCheckpointToken, toCheckpointToken);
 
@@ -112,7 +112,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task GetFromAsync(long checkpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
+        public Task GetFromAsync(long checkpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.GettingAllCommitsFromCheckpoint(Logger, checkpointToken);
 
@@ -139,7 +139,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task GetFromToAsync(long fromCheckpointToken, long toCheckpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken)
+        public Task GetFromToAsync(long fromCheckpointToken, long toCheckpointToken, IAsyncObserver<ICommit> asyncObserver, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.GettingCommitsFromToCheckpoint(Logger, fromCheckpointToken, toCheckpointToken);
 
@@ -176,7 +176,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public async Task<ICommit?> CommitAsync(CommitAttempt attempt, CancellationToken cancellationToken)
+        public async Task<ICommit?> CommitAsync(CommitAttempt attempt, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.AttemptingToCommit(Logger, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence);
 
@@ -241,7 +241,7 @@ namespace NEventStore.Persistence.MongoDB
                                 .FindAsync(attempt.ToMongoCommitIdQuery(), cancellationToken: cancellationToken)
                                 .ConfigureAwait(false);
                             var bsonSavedCommit = await asyncCursor
-                                .FirstOrDefaultAsync()
+                                .FirstOrDefaultAsync(cancellationToken)
                                 .ConfigureAwait(false);
                             if (bsonSavedCommit != null)
                             {
@@ -262,7 +262,7 @@ namespace NEventStore.Persistence.MongoDB
                 }
 
                 return commitDoc.ToCommit(_serializer);
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task FillHoleAsync(CommitAttempt attempt, Int64 checkpointId, CancellationToken cancellationToken)
@@ -286,7 +286,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task GetStreamsToSnapshotAsync(string bucketId, int maxThreshold, IAsyncObserver<IStreamHead> asyncObserver, CancellationToken cancellationToken)
+        public Task GetStreamsToSnapshotAsync(string bucketId, int maxThreshold, IAsyncObserver<IStreamHead> asyncObserver, CancellationToken cancellationToken = default)
         {
             CheckIfSnapshotEnabled();
 
@@ -310,7 +310,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task<ISnapshot?> GetSnapshotAsync(string bucketId, string streamId, int maxRevision, CancellationToken cancellationToken)
+        public Task<ISnapshot?> GetSnapshotAsync(string bucketId, string streamId, int maxRevision, CancellationToken cancellationToken = default)
         {
             CheckIfSnapshotEnabled();
 
@@ -329,11 +329,11 @@ namespace NEventStore.Persistence.MongoDB
 
                 var snapshot = await cursor.FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
                 return snapshot?.ToSnapshot(_serializer) as ISnapshot;
-            });
+            }, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public async Task<bool> AddSnapshotAsync(ISnapshot snapshot, CancellationToken cancellationToken)
+        public async Task<bool> AddSnapshotAsync(ISnapshot snapshot, CancellationToken cancellationToken = default)
         {
             CheckIfSnapshotEnabled();
 
@@ -385,7 +385,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task PurgeAsync(CancellationToken cancellationToken)
+        public Task PurgeAsync(CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.PurgingStorage(Logger);
 
@@ -399,7 +399,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task PurgeAsync(string bucketId, CancellationToken cancellationToken)
+        public Task PurgeAsync(string bucketId, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.PurgingBucket(Logger, bucketId);
 
@@ -413,7 +413,7 @@ namespace NEventStore.Persistence.MongoDB
         }
 
         /// <inheritdoc/>
-        public Task DeleteStreamAsync(string bucketId, string streamId, CancellationToken cancellationToken)
+        public Task DeleteStreamAsync(string bucketId, string streamId, CancellationToken cancellationToken = default)
         {
             MongoPersistenceEngineLogMessages.DeletingStream(Logger, streamId, bucketId);
 

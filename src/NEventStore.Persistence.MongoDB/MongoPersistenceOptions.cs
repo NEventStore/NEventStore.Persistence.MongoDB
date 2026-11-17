@@ -1,5 +1,5 @@
 ﻿using NEventStore.Persistence.MongoDB.Support;
-using global::MongoDB.Driver;
+using MongoDB.Driver;
 
 namespace NEventStore.Persistence.MongoDB
 {
@@ -176,7 +176,6 @@ namespace NEventStore.Persistence.MongoDB
         /// advancement are translated; application and cursor disposal errors retain their types.
         /// </summary>
         public Boolean WrapAsyncApplicationExceptions { get; set; }
-
 
         /// <summary>
         /// The default behavior when using snapshot is to persist the stream heads in
