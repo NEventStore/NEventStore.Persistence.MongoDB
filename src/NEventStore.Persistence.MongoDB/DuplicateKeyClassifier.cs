@@ -22,6 +22,9 @@ namespace NEventStore.Persistence.MongoDB
             // error must not become a duplicate merely because its message mentions one.
             if (exception is MongoWriteException write)
             {
+                // Write-concern-only failures have no WriteError. Preserve them for
+                // normal storage-error translation, even if their text resembles a duplicate.
+                if (write.WriteError == null) return DuplicateKeyKind.None;
                 duplicate = write.WriteError.Category == ServerErrorCategory.DuplicateKey;
                 details = write.WriteError.Details;
                 message = write.WriteError.Message;
