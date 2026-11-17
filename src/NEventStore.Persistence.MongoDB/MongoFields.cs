@@ -167,17 +167,6 @@
     public static class MongoCommitIndexes
     {
         /// <summary>
-        /// the following value is used to determine the index
-        /// that throws exception when a duplicate is found.
-        /// </summary>
-        public const string CheckpointNumberMMApV1 = "$_id_";
-        /// <summary>
-        /// the following value is used to determine the index
-        /// that throws exception when a duplicate is found.
-        /// </summary>
-        public const string CheckpointNumberWiredTiger = "index: _id_";
-
-        /// <summary>
         /// The commit stamp index.
         /// </summary>
         public const string CommitStamp = "CommitStamp_Index";

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Harden duplicate-write classification using driver error codes/categories and structured key patterns, with a narrowly matched legacy index-message fallback. Preserve checkpoint retries, duplicate commit detection and concurrency handling without matching index names inside user payloads. No public API or schema change. [#92](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/92)
+- Harden duplicate-write classification using driver error codes/categories and structured key patterns, with a narrowly matched legacy index-message fallback. Preserve checkpoint retries, duplicate commit detection and concurrency handling without matching index names inside user payloads. No stored-schema change; obsolete public constants are removed as noted below. [#92](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/92)
 
 - Run the same acceptance and regression suite with pinned MongoDB.Driver 3.0.0 and 3.13.0 test dependencies in isolated CI jobs on MongoDB 7.0.45, retaining a net10.0/current-driver lane on MongoDB 9.0.4. Verify restored Driver/BSON versions and the packed dependency contract across supported frameworks. Production dependencies and the published `[3.0.0,4.0.0)` range are unchanged; no API, schema or migration change. [#93](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/93)
 
@@ -30,6 +30,8 @@
 
 ### Breaking Changes
 
+- Removed the unused public constants `MongoCommitIndexes.CheckpointNumberMMApV1` and `MongoCommitIndexes.CheckpointNumberWiredTiger`. Source consumers and reflection-based code referencing these members must be updated. Duplicate-key classification and legacy message support are unchanged. [#92](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/92)
+
 - Async observer reads now use `EnumerateMongoAsync` to translate only cursor acquisition and advancement errors, matching synchronous `EnumerateMongo`. Mongo exceptions from application deserializers, `OnNextAsync`, and cursor disposal reach `OnErrorAsync` unchanged instead of being wrapped as storage failures. Driver errors still retain the original exception as `InnerException`. No public observer signatures change. [#108](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/108)
 
 - Default async observer reads invoke the protected `Task`-returning (non-result) `TryMongoAsync<T>` guard for acquisition and each batch advance, with no observer argument, rather than once around the whole read. The existing result-returning guard overload is not used by these observer reads. Overrides no longer encompass application callbacks or cleanup. Per-batch calls enforce disposed-engine checks like sync enumeration. Cursor disposal remains unconditional and outside translation, like sync `using`; a cleanup failure may replace an earlier error under normal `using` semantics. [#108](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/108)
@@ -48,6 +50,8 @@
 - Non-observer async callers must now handle `OperationCanceledException` (including `TaskCanceledException`) from operations that previously swallowed cancellation or returned success/default values; for example, `AddSnapshotAsync` now propagates cancellation instead of returning `false`. Observer reads invoke `OnCompletedAsync` with the original token only when the request token is canceled; cancellation exceptions with an active request token go to `OnErrorAsync`. Cancellation or failure from a terminal callback propagates after it is awaited, without a second terminal notification. [#86](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/86)
 
 ### Migration notes
+
+- Remove references to the deleted checkpoint error-message constants. They represented legacy server-message fragments, not a supported classification API. If an application needs those literal fragments for its own legacy parser, define them locally (`"$_id_"` and `"index: _id_"` respectively); do not use substring matching to classify arbitrary duplicate-write errors. No database or index migration is required. [#92](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/92)
 
 - For async observer reads, handle application Mongo exceptions directly in `OnErrorAsync`. Set `MongoPersistenceOptions.WrapAsyncApplicationExceptions = true` to select the legacy whole-read guard once per operation, restoring legacy application/cleanup wrapping and protected guard scope. The option is read once per read and does not alter other async operations. Subclasses relying on whole-read timing, retries or interception should opt out or adapt to the new driver-operation scope. Cancellation, early-stop completion and terminal callback failures retain their observer contract. [#108](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/108)
 - Keep the engine alive until all synchronous enumerations and async observer reads finish. For shutdown, cancel and await active async reads before disposing the shared engine; disposal is a batch-boundary guard, not immediate cancellation or atomic exclusion of concurrent reads. No data migration is required. [#109](https://github.com/NEventStore/NEventStore.Persistence.MongoDB/issues/109)
