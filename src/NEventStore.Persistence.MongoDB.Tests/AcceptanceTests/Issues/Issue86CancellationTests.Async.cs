@@ -459,7 +459,10 @@ namespace NEventStore.Persistence.MongoDB.Tests.AcceptanceTests.Issues.Async
         [Fact]
         public void Should_deliver_exactly_one_terminal_notification()
         {
-            Engine.WrapperCalls.Should().Be(1, "observer reads must still dispatch through the protected virtual wrapper");
+            int expectedDriverCalls = _mode == "canceled" ? 1
+                : _mode == "success" || _mode.StartsWith("completion-", StringComparison.Ordinal) ? 3 : 2;
+            Engine.WrapperCalls.Should().Be(expectedDriverCalls,
+                "default reads guard acquisition and each batch advance, not application callbacks");
             bool unrelatedCancellation = _mode.StartsWith("next-unrelated-", StringComparison.Ordinal) || _mode == "next-tokenless-operation-canceled";
             bool dataError = _mode == "next-error" || unrelatedCancellation || _mode.StartsWith("error-callback-", StringComparison.Ordinal);
             _completed.Should().Be(dataError ? 0 : 1);
