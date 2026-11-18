@@ -1,8 +1,10 @@
+<!-- as:rules -->
 Be concise and token-efficient. Give direct answers, minimal examples, and no extra background.
 No sycophantic openers or closing fluff. No emojis or em-dashes.
 
 These rules apply to every task in this project unless explicitly overridden.
 Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
+Use sub-agents to delegate tasks.
 
 ## Rule 1 — Think Before Coding
 State assumptions explicitly. If uncertain, ask rather than guess.
@@ -19,6 +21,7 @@ Test: would a senior engineer say this is overcomplicated? If yes, simplify.
 Touch only what you must. Clean up only your own mess.
 Don't "improve" adjacent code, comments, or formatting.
 Don't refactor what isn't broken. Match existing style.
+Preserve existing encoding and line endings when practical, don't normalize LF/CRLF unless build/test is affected or explicitly requested.
 
 ## Rule 4 — Goal-Driven Execution
 Define success criteria. Loop until verified.
@@ -30,10 +33,9 @@ Use me for: classification, drafting, summarization, extraction.
 Do NOT use me for: routing, retries, deterministic transforms.
 If code can answer, code answers.
 
-## Rule 6 — Token budgets are not advisory
-Per-task: 4,000 tokens. Per-session: 30,000 tokens.
-If approaching budget, summarize and start fresh.
-Surface the breach. Do not silently overrun.
+## Rule 6 — Control exploration cost
+Prefer targeted searches, concise context, and incremental validation.
+If exploration grows beyond the task’s needs, summarize the current state and narrow the scope.
 
 ## Rule 7 — Surface conflicts, don't average them
 If two patterns contradict, pick one (more recent / more tested).
@@ -61,6 +63,8 @@ If you genuinely think a convention is harmful, surface it. Don't fork silently.
 "Completed" is wrong if anything was skipped silently.
 "Tests pass" is wrong if any were skipped.
 Default to surfacing uncertainty, not hiding it.
+<!-- /as:rules -->
+
 
 # NEventStore.Persistence.MongoDB Project Guidelines
 

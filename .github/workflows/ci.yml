@@ -75,7 +75,7 @@ jobs:
 
       - name: Verify production and default test restore
         shell: pwsh
-        run: ./scripts/verify-driver-dependencies.ps1 -TestDriverVersion '3.13.0'
+        run: ./scripts/verify-driver-dependencies.ps1 -TestDriverVersion '3.14.0'
 
       - name: Pack and verify published dependency contract
         if: runner.os == 'Windows'
@@ -97,7 +97,7 @@ jobs:
       fail-fast: false
       matrix:
         # Pin both lanes; update the current 3.x pin in reviewed changes.
-        driver: ["3.0.0", "3.13.0"]
+        driver: ["3.0.0", "3.14.0"]
         mongodb: ["7.0.45"]
         tfm:
           - net8.0
@@ -106,7 +106,7 @@ jobs:
         include:
           # Retain current-server coverage with the current driver only.
           - tfm: net10.0
-            driver: "3.13.0"
+            driver: "3.14.0"
             mongodb: "9.0.4"
 
     services:

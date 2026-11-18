@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "subagent-orchestrator": {
+      "source": "AGiorgetti/AgentStack",
+      "commit": "964ab9c31cfb0a162d5bbe5a66fb2d5c5a9fa36e",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/subagent-orchestrator/SKILL.md",
+      "computedHash": "bca77250566b942dcf6b7ae5beb5996e1215bb35341f440775416fc7a8e3e4ab"
+    }
+  }
+}

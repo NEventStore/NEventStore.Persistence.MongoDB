@@ -70,8 +70,8 @@ To build the project locally on a Windows Machine:
 
 The production reference stays at MongoDB.Driver 3.0.0 and the published range stays
 `[3.0.0,4.0.0)`. Only the test project accepts `MongoDbDriverTestVersion`; its default
-is the pinned current stable 3.x release, 3.13.0. CI runs the same full suite for
-3.0.0 and 3.13.0 on net8.0, net9.0 and net10.0 in separate jobs with MongoDB 7.0.45. One additional net10.0/3.13.0 job retains
+is the pinned current stable 3.x release, 3.14.0. CI runs the same full suite for
+3.0.0 and 3.14.0 on net8.0, net9.0 and net10.0 in separate jobs with MongoDB 7.0.45. One additional net10.0/3.14.0 job retains
 MongoDB 9.0.4 coverage without pairing that server with the baseline driver.
 MongoDB 7 also avoids the [MongoDB 8/Linux 6.19 startup incompatibility](https://jira.mongodb.org/browse/SERVER-121912).
 .NET Framework 4.7.2 is compiled but not executed. This matrix does not establish
@@ -82,7 +82,7 @@ switching versions):
 
 ```powershell
 dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f net8.0 -p:MongoDbDriverTestVersion=3.0.0
-dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f net8.0 -p:MongoDbDriverTestVersion=3.13.0
+dotnet test ./src/NEventStore.Persistence.MongoDB.Tests/NEventStore.Persistence.MongoDB.Core.Tests.csproj -c Release -f net8.0 -p:MongoDbDriverTestVersion=3.14.0
 ```
 
 When a new stable 3.x driver is released, update the test-project default and the
