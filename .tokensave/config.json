@@ -1,5 +1,12 @@
 {
-  "version": 1,
+  "language_detection": {
+    "enabled": false,
+    "max_bytes": 4096,
+    "cache_results": true
+  },
+  "cpu_usage": "balanced",
+  "memory_usage": "balanced",
+  "version": 2,
   "root_dir": ".",
   "exclude": [
     "target/**",
@@ -16,8 +23,34 @@
     "**/bin/**"
   ],
   "include": [],
+  "force_include": [],
   "max_file_size": 1048576,
   "extract_docstrings": true,
   "track_call_sites": true,
-  "git_ignore": false
+  "git_ignore": false,
+  "default_path_include": [],
+  "default_path_exclude": [],
+  "source_path_overrides": [],
+  "docs_dir": "tokensave-docs",
+  "last_indexed_version": "7.16.0",
+  "auto_track": true,
+  "auto_gc": false,
+  "strict_tree": false,
+  "max_auto_sync_files": 2000,
+  "report_savings": false,
+  "artifact_extensions": [
+    "feature",
+    "json",
+    "yaml",
+    "yml",
+    "sql",
+    "toml",
+    "proto",
+    "graphql",
+    "md",
+    "bnd",
+    "bndrun"
+  ],
+  "suppress_scope_warning": false,
+  "_comment": "TOKENSAVE_* environment variables override matching config values when set."
 }
